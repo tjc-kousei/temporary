@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テーマ表示</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
+        * {
+            box-sizing: border-box;
+        }
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            background-color: beige;
+            color: black;
+/*             font-family: Arial; */
+            font-weight: bold;
+        }
+        main {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #thema_ja, #thema_ch, #worship {
+            text-align: center;
+            color: rgb(23,28,107);
+        }
+        #worship {
+            color: #3A8FB7;
+        }
+        #thema_ch {
+            font-family: "微软雅黑","宋体","Noto Sans SC", "sans-serif";
+        }
+        #wrap {
+            display: flex;
+            flex-direction: column;
+        }
+        #info {
+            display: inline-block;
+            margin: 0 auto;
+            
+        }
+        #speech, #translator, #hymn {
+            font-size: 5rem;
+        }
+        #hymn {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div id="wrap">
+            <div id="worship"></div>
+            <div id="thema_ja"></div>
+            <div id="thema_ch"></div>
+            <div id="info">
+                <div id="speech"></div>
+                <div id="translator"></div>
+                <div id="hymn"></div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

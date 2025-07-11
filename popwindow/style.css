@@ -1,0 +1,126 @@
+#church {
+    width: 40%;
+    height: 40px;
+    font-size: 1.5rem;
+    text-align: center;
+    margin: 0 30%;
+  }
+  select {
+    appearance: none;
+  }
+  select, select > option, input[type="text"]{
+    text-align: center;
+    font-size: 1.5rem;
+    height:2.7rem;
+  }
+  #to_change,#to_remove{
+    font-size: 1.5rem;
+    text-align: center;
+    height: 2.7rem;
+  }
+  .role_wrap {
+    display: flex;
+    flex-direction: column;
+  }
+  .role{
+    font-size: 1.5rem;
+    text-align: center;
+    width: 9.5rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: gray;
+  }
+  .role_wrap > input[type="radio"]:checked + label.role{
+    background-color: aqua;
+  }
+
+  /* ボタンの共通スタイル */
+  .compo_btn {
+    width: 5rem;
+    height: 3rem;
+  } 
+
+  /*タブ切り替え全体のスタイル*/
+  .tabs {
+    margin-top: 50px;
+    padding-bottom: 40px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    width: 700px;
+    height:500px;
+    margin: 0 auto;
+  }
+
+  /*タブのスタイル*/
+  .tab_item {
+    width: calc(100%/3);
+    height: 50px;
+    border-bottom: 3px solid #5ab4bd;
+    background-color: #d9d9d9;
+    line-height: 50px;
+    font-size: 16px;
+    text-align: center;
+    color: #565656;
+    display: block;
+    float: left;
+    text-align: center;
+    font-weight: bold;
+    transition: add 0.2s ease;
+  }
+  .tab_item:hover {
+    opacity: 0.75;
+  }
+
+  /*ラジオボタンを全て消す*/
+  input[name="tab_item"] {
+    display: none;
+  }
+
+  /*タブ切り替えの中身のスタイル*/
+  .tab_content {
+    display: none;
+    height: 100%;
+    padding: 40px 40px 0;
+    clear: both;
+    overflow: hidden;
+  }
+
+  /* タブ中身のスタイル */
+  .tab_content_description{
+    height: 60%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #change_content .tab_content_description, #change_content .tab_content_description div {
+    display: flex;
+  }
+  #change_content .tab_content_description div {
+    flex-direction: column;
+  }
+
+  /*選択されているタブのコンテンツのみを表示*/
+  #add:checked ~ #add_content,
+  #change:checked ~ #change_content,
+  #remove:checked ~ #remove_content {
+    display: block;
+  }
+
+  /*選択されているタブのスタイルを変える*/
+  .tabs input:checked + .tab_item {
+    background-color: #5ab4bd;
+    color: #fff;
+  }
+  .hi-times-circle {
+    width: 3.5em;
+    height: 3.5em;
+  }
+
+  input[type="radio"] {
+    appearance: none;
+    display: none;
+  }

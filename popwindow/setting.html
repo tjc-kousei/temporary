@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定画面</title>
+    <style>
+        /* 共通フォームスタイル */
+        select, select > option,
+        input[type="text"],
+        #to_change, #to_remove {
+        text-align: center;
+        font-size: 1.5rem;
+        height: 2.7rem;
+        }
+
+        /* 教会セレクトボックス */
+        #church {
+        width: 40%;
+        height: 40px;
+        font-size: 1.5rem;
+        text-align: center;
+        margin: 0 auto 20px auto;
+        display: block;
+        }
+
+        /* selectのデフォルト矢印削除（見た目調整） */
+        select {
+        appearance: none;
+        }
+
+        /* 共通ボタン */
+        .compo_btn {
+        width: 5rem;
+        height: 3rem;
+        font-size: 1.1rem;
+        margin-left: 0.5rem;
+        }
+
+        /* タブ全体 */
+        .tabs {
+        width: 700px;
+        height: 500px;
+        margin: 0 auto;
+        margin-top: 50px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        padding-bottom: 40px;
+        }
+
+        /* タブ項目 */
+        .tab_item {
+        width: calc(100% / 3);
+        height: 50px;
+        float: left;
+        text-align: center;
+        line-height: 50px;
+        background-color: #d9d9d9;
+        border-bottom: 3px solid #5ab4bd;
+        color: #565656;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+        }
+        .tab_item:hover {
+        opacity: 0.75;
+        }
+
+        /* 選択タブのスタイル */
+        .tabs input:checked + .tab_item {
+        background-color: #5ab4bd;
+        color: #fff;
+        }
+
+        /* ラジオボタンは非表示 */
+        input[name="tab_item"],
+        input[type="radio"] {
+        display: none;
+        appearance: none;
+        }
+
+        /* 各タブの内容 */
+        .tab_content {
+        display: none;
+        clear: both;
+        overflow: hidden;
+        height: 100%;
+        padding: 40px;
+        }
+
+        /* 選択中のタブを表示 */
+        #add:checked ~ #add_content,
+        #change:checked ~ #change_content,
+        #remove:checked ~ #remove_content {
+        display: block;
+        }
+
+        /* タブ内の説明セクション */
+        .tab_content_description {
+        height: 60%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        }
+
+        /* 「変更」タブ用のネスト構造対応 */
+        #change_content .tab_content_description div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        }
+
+        /* 役割セレクタ */
+        .role {
+        font-size: 1.5rem;
+        width: 9.5rem;
+        height: 3rem;
+        background-color: gray;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        }
+
+        /* 選択された役割の強調 */
+        .role_wrap > input[type="radio"]:checked + label.role,
+        .role:focus,
+        .role:active {
+        background-color: aqua;
+        color: black;
+        }
+
+        /* ログ情報 */
+        #log {
+        width: 700px;
+        margin: 30px auto;
+        padding: 1rem;
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        font-size: 1rem;
+        }
+
+        /* 閉じるアイコン */
+        .hi-times-circle {
+        width: 3.5em;
+        height: 3.5em;
+        cursor: pointer;
+        display: block;
+        margin: 20px auto;
+        }
+
+    </style>
+</head>
+<body>
+ <svg onclick="window.close();" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-times-circle"><g xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" d="M9 15l6-6m0 6L9 9"/></g></svg>
+ <select id="church" onchange="memochurch(this.value); check_select(this.id,this.selectedIndex);"><option>教会・祈祷所</option></select>
+ <div class="tabs">
+  <input id="add" type="radio" name="tab_item" checked> <label class="tab_item" for="add">追加</label>
+  <input id="change" type="radio" name="tab_item"> <label class="tab_item" for="change">変更</label>
+  <input id="remove" type="radio" name="tab_item"> <label class="tab_item" for="remove">削除</label>
+  <datalist id="data"></datalist>
+    <div class="tab_content" id="add_content">
+   <div class="tab_content_description">
+    <select class="role" onchange="check_select(this.className,this.selectedIndex);">
+     <option value="">役割</option>
+     <option value="sekkyou">説教者</option>
+     <option value="tuyaku">通訳者</option>
+    </select>
+    <input type="text" id="add_text" oninput="check_select('role',document.querySelector('.role').value);">
+    <button class="compo_btn" id="add_btn" onclick="check_select('role',document.querySelector('.role').value); if(document.getElementById('add_text').value!=''){ addServicer(); } else alert('入力がありません');">追加</button>
+   </div>
+  </div>
+    <div class="tab_content" id="change_content">
+   <div class="tab_content_description">
+    <select class="role" onchange="check_select(this.className,this.selectedIndex);">
+     <option value="">役割</option>
+     <option value="sekkyou">説教者</option>
+     <option value="tuyaku">通訳者</option>
+    </select>
+    <div>
+     <input type="text" id="to_change" list="data" onchange="inputarea(this.value);" placeholder="変更する名前を選択" autocomplete="off">
+     <input type="text" id="text-area" autocomplete="off">
+    </div>
+    <button class="compo_btn" id="change_btn" onclick="if(document.getElementById('to_change').value=='') alert('変更する名前を選択してください'); else if(document.getElementById('to_change').value == document.getElementById('text-area').value) alert('名前が一緒です'); else { changeServicer(); }">変更</button>
+   </div>
+  </div>
+    <div class="tab_content" id="remove_content">
+   <div class="tab_content_description">
+    <select class="role" onchange="check_select(this.className,this.selectedIndex);">
+     <option value="">役割</option>
+     <option value="sekkyou">説教者</option>
+     <option value="tuyaku">通訳者</option>
+    </select>
+    <input type="text" id="to_remove" list="data" placeholder="削除する名前を選択" autocomplete="off">
+    <button class="compo_btn" id="remove_btn" onclick="removeServicer(); ">削除</button>
+   </div>
+  </div>
+ </div>
+
+ <div id="log">
+  <p>ログ情報</p>
+ </div>
+
+  <script>
+  // let socket = io(); // socket.io は使用しません
+  let servicerData = {}; // 奉仕者データを格納する変数
+  let church = "";
+
+  // URLパラメータから教会名を取得
+  const urlParams = new URLSearchParams(window.location.search);
+  church = urlParams.get('church');
+
+  // ページ読み込み時に奉仕者リストを取得
+  async function loadServicerList() {
+   try {
+    // index.htmlからデータを取得するAPIエンドポイントを利用
+    const response = await fetch(`/api/church/${church}/data`);
+    const data = await response.json();
+    servicerData = data.servicerJson; // servicer.json のデータを取得
+
+        // 教会選択肢を populate (今回の要件ではURLから取得するので不要かもしれませんが、既存のコードに合わせた名残です)
+        // URLから取得した教会名を初期選択状態にするなどの調整が必要かもしれません。
+        const churchSelect = document.getElementById("church");
+         // 既存のオプションをクリア
+        churchSelect.innerHTML = '<option value="">教会・祈祷所</option>';
+         // 取得した奉仕者データに基づいて教会のオプションを追加
+        for (const key in servicerData) {
+            let option = document.createElement("option");
+            option.value = key;
+            option.innerHTML = key + " 教会";
+            churchSelect.appendChild(option);
+        }
+        // URLから取得した教会名をデフォルトで選択状態にする
+         if (church) {
+            for (let i = 0; i < churchSelect.options.length; i++) {
+                if (churchSelect.options[i].value === church) {
+                    churchSelect.selectedIndex = i;
+                    memochurch(church); // church 変数に設定
+                    check_select('church', i); // 選択状態を反映
+                    break;
+                }
+            }
+        }
+
+
+    // 役割選択が変更されたときにリストを更新
+    updateRoleLists();
+
+   } catch (error) {
+    console.error('Error loading servicer list:', error);
+    alert('奉仕者リストの読み込みに失敗しました。');
+   }
+  }
+
+  // 奉仕者リストのdatalistを更新する関数
+  function updateServicerDatalist(roleValue) {
+   const datalist = document.getElementById("data");
+   datalist.innerHTML = ""; // 既存のオプションをクリア
+
+   if (servicerData[church]) {
+    for (const servicer of servicerData[church]) {
+     if (servicer.role === roleValue) {
+      let option = document.createElement("option");
+      option.value = option.innerHTML = servicer.name;
+      datalist.appendChild(option);
+     }
+    }
+   }
+  }
+
+  // 役割選択が変更されたときの処理
+  function updateRoleLists() {
+   let role_lists = document.querySelectorAll(".role");
+   for (var n = 0; n < role_lists.length; n++) {
+    role_lists[n].addEventListener("change", (e) => {
+     for (var l = 0; l < role_lists.length; l++) {
+      if (l != n) role_lists[l].options[e.target.selectedIndex].selected = true;
+     }
+     // リストを出力
+     updateServicerDatalist(e.target.value);
+    });
+   }
+  }
+
+
+  function inputarea(value) { document.getElementById('text-area').value = value; }
+  function memochurch(value){ church = value; }
+
+  //教会・役割選択時にボタン押せるようになる
+  //ボタン操作不可　初期設定
+  for(var n=0,btn=document.querySelectorAll(".compo_btn");n<btn.length;n++){
+   btn[n].addEventListener("click",()=>{
+    if(document.getElementById("church").selectedIndex != 0 && document.querySelector(".role").selectedIndex != 0) {
+
+    } else {
+     alert("教会・役割が正しく選択されていません");
+    }
+   })
+  }
+
+  var church_btn = false;
+  var role_btn = false;
+
+  function check_select(name,index) {
+   const text = document.getElementById("add_text");
+   if( name=="church" && index!=0 ) church_btn = true;
+   else if(name=="church" && index==0) church_btn = false;
+   if( name=="role" && index!=0) role_btn = true;
+   else if(name=="role" && index==0) role_btn = false;
+  }
+
+  // 奉仕者追加関数 (fetchを使用)
+  async function addServicer() {
+   const role = document.querySelector(".role").value;
+   const name = document.getElementById("add_text").value;
+
+   if (!church || !role || !name) {
+    alert("教会、役割、名前を全て入力してください。");
+    return;
+   }
+
+   // 既存のデータに重複がないかチェック
+   if (servicerData[church] && servicerData[church].some(servicer => servicer.role === role && servicer.name === name)) {
+    alert("既に存在しています。");
+    return;
+   }
+
+   try {
+    const response = await fetch(`/api/church/${church}/add-servicer`, {
+     method: 'POST',
+     headers: {
+      'Content-Type': 'application/json',
+     },
+     body: JSON.stringify({ role, name }),
+    });
+    const result = await response.json();
+
+    if (result.success) {
+     // UIのリストを更新
+     if (!servicerData[church]) {
+      servicerData[church] = [];
+     }
+     servicerData[church].push({ role, name });
+     updateServicerDatalist(role); // datalistを更新
+
+     // ログに出力
+     const p = document.createElement("p");
+     p.innerHTML = `[${church}] の [${role}] に [${name}] を追加`;
+     document.getElementById("log").appendChild(p);
+
+     // 入力フィールドをクリア
+     document.getElementById("add_text").value = "";
+
+     alert("奉仕者を追加しました。");
+    } else {
+     alert(`奉仕者の追加に失敗しました: ${result.message}`);
+    }
+   } catch (error) {
+    console.error('Error adding servicer:', error);
+    alert('奉仕者の追加中にエラーが発生しました。');
+   }
+  }
+
+  // 奉仕者変更関数 (fetchを使用)
+  async function changeServicer() {
+   const role = document.querySelector(".role").value;
+   const oldName = document.getElementById("to_change").value;
+   const newName = document.getElementById("text-area").value;
+
+   if (!church || !role || !oldName || !newName) {
+    alert("教会、役割、変更前後の名前を全て入力してください。");
+    return;
+   }
+   if (oldName === newName) {
+    alert("名前が一緒です。");
+    return;
+   }
+
+   try {
+    const response = await fetch(`/api/church/${church}/change-servicer`, {
+     method: 'POST',
+     headers: {
+      'Content-Type': 'application/json',
+     },
+     body: JSON.stringify({ role, oldName, newName }),
+    });
+    const result = await response.json();
+
+    if (result.success) {
+     // UIのリストを更新
+     if (servicerData[church]) {
+      const index = servicerData[church].findIndex(servicer => servicer.role === role && servicer.name === oldName);
+      if (index !== -1) {
+       servicerData[church][index].name = newName;
+       updateServicerDatalist(role); // datalistを更新
+      }
+     }
+
+     // ログに出力
+     const p = document.createElement("p");
+     p.innerHTML = `[${church}] の [${role}] である [${oldName}] を [${newName}] に変更`;
+     document.getElementById("log").appendChild(p);
+
+     // 入力フィールドをクリア
+     document.getElementById("to_change").value = "";
+     document.getElementById("text-area").value = "";
+
+     alert("奉仕者名を変更しました。");
+    } else {
+     alert(`奉仕者名の変更に失敗しました: ${result.message}`);
+    }
+   } catch (error) {
+    console.error('Error changing servicer:', error);
+    alert('奉仕者名の変更中にエラーが発生しました。');
+   }
+  }
+
+  // 奉仕者削除関数 (fetchを使用)
+  async function removeServicer() {
+   const role = document.querySelector(".role").value;
+   const name = document.getElementById("to_remove").value;
+
+   if (!church || !role || !name) {
+    alert("教会、役割、削除する名前を全て入力してください。");
+    return;
+   }
+
+   try {
+    const response = await fetch(`/api/church/${church}/remove-servicer`, {
+     method: 'POST',
+     headers: {
+      'Content-Type': 'application/json',
+     },
+     body: JSON.stringify({ role, name }),
+    });
+    const result = await response.json();
+
+    if (result.success) {
+     // UIのリストを更新
+     if (servicerData[church]) {
+      const index = servicerData[church].findIndex(servicer => servicer.role === role && servicer.name === name);
+      if (index !== -1) {
+       servicerData[church].splice(index, 1);
+       updateServicerDatalist(role); // datalistを更新
+      }
+     }
+
+     // ログに出力
+     const p = document.createElement("p");
+     p.innerHTML = `[${church}] の [${role}] から [${name}] を削除`;
+     document.getElementById("log").appendChild(p);
+
+     // 入力フィールドをクリア
+     document.getElementById("to_remove").value = "";
+
+     alert("奉仕者を削除しました。");
+    } else {
+     alert(`奉仕者の削除に失敗しました: ${result.message}`);
+    }
+   } catch (error) {
+    console.error('Error removing servicer:', error);
+    alert('奉仕者の削除中にエラーが発生しました。');
+   }
+  }
+
+  // ページ読み込み時に奉仕者リストを取得して表示を初期化
+  loadServicerList();
+
+ </script>
+</body>
+</html>

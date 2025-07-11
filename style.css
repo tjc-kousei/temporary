@@ -1,0 +1,629 @@
+/* 基本設定 */
+* {
+    margin: .2rem;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    background-color: #f5f5f5;
+  }
+
+  /* モーダルのスタイル - 改良版 */
+  .modal_abbre_btn {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    padding: 1rem;
+    margin: 0;
+    background-color: rgba(30, 30, 30, 0.85);
+    backdrop-filter: blur(5px);
+    overflow-y: auto;
+    z-index: 100;
+    transition: all 0.3s ease;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  /* ボタンのスタイル - 改良版 */
+  .modal_abbre_btn button {
+    width: calc(33.333% - 0.5rem);
+    height: auto;
+    margin: 0.25rem;
+    padding: 0.6rem 0.4rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2), -3px -3px 6px rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #333;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .modal_abbre_btn button:hover {
+    background: linear-gradient(145deg, #f0f0f0, #ffffff);
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.25), -4px -4px 8px rgba(255, 255, 255, 0.6);
+    color: #0066cc;
+  }
+
+  .modal_abbre_btn button:active {
+    background: linear-gradient(145deg, #e6e6e6, #ffffff);
+    transform: translateY(1px);
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2), -2px -2px 4px rgba(255, 255, 255, 0.5);
+  }
+
+  /* 旧約・新約の区別 */
+  #ja_ot button, #ch_ot button {
+    background: linear-gradient(145deg, #f8f4e8, #ebe4d0);
+    color: #5d4037;
+  }
+
+  #ja_nt button, #ch_nt button {
+    background: linear-gradient(145deg, #e8f4f8, #d0e4eb);
+    color: #1565c0;
+  }
+
+  #ja_ot button:hover, #ch_ot button:hover {
+    background: linear-gradient(145deg, #ebe4d0, #f8f4e8);
+    color: #8d6e63;
+  }
+
+  #ja_nt button:hover, #ch_nt button:hover {
+    background: linear-gradient(145deg, #d0e4eb, #e8f4f8);
+    color: #1e88e5;
+  }
+
+  /* 通知メッセージスタイル */
+  .modal_abbre_btn p {
+    width: 100%;
+    margin: 0.5rem 0.25rem;
+    padding: 0.5rem;
+    text-align: center;
+    background-color: rgba(255, 255, 0, 0.8);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .modal_abbre_btn p b {
+    font-size: 0.8rem;
+    color: #d50000;
+    font-weight: 600;
+  }
+
+  /* レスポンシブデザイン */
+  @media screen and (max-width: 768px) {
+    .modal_abbre_btn button {
+      width: calc(50% - 0.5rem);
+      font-size: 0.8rem;
+    }
+  }
+
+  @media screen and (max-width: 480px) {
+    .modal_abbre_btn button {
+      width: calc(50% - 0.5rem);
+      font-size: 0.75rem;
+      padding: 0.5rem 0.3rem;
+    }
+  }
+
+  /* モーダル内コンテンツのグリッドレイアウト（画面に収めるため） */
+  .modal-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* モーダル内の閉じるボタン */
+  .modal-close {
+    position: fixed;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 101;
+  }
+
+  .modal-close:hover {
+    background: #f0f0f0;
+    transform: scale(1.1);
+  }
+
+  /* モーダルタイトル */
+  .modal-title {
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  /* テーブルスタイル */
+  table {
+    background: #e0f7fa;
+    width: 700px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-collapse: separate;
+    border-spacing: 0.2rem;
+  }
+
+  table#operate > * {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  /* 検索フィールドの改良 - 視認性向上 */
+  input[type=search] {
+    width: 100%;
+    height: 2.5rem;
+    text-align: center;
+    font-size: 1rem;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #0066cc;
+    color: #333333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    padding: 0 0.5rem;
+  }
+
+  input[type=search]:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+    outline: none;
+  }
+
+  input[type=search]::placeholder {
+    color: #757575;
+  }
+
+  /* テキスト入力フィールドの改良 - 視認性向上 */
+  input[type=text] {
+    background: #ffffff;
+    text-align: center;
+    border-radius: 6px;
+    border: 2px solid #0099cc;
+    padding: 0.4rem;
+    font-size: 1rem;
+    color: #333333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  input[type=text]:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+    outline: none;
+    background: #f9f9ff;
+  }
+
+  input[type=text]::placeholder {
+    color: #757575;
+  }
+
+  /* スライダーの改良 */
+  input[type=range] {
+    width: 15rem;
+    height: 0.5rem;
+    -webkit-appearance: none;
+    background: linear-gradient(to right, #0066cc, #66b2ff);
+    border-radius: 10px;
+    margin: 0.5rem 0;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 1.2rem;
+    height: 1.2rem;
+    background: #ffffff;
+    border: 2px solid #0066cc;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    background: #e6f2ff;
+    transform: scale(1.1);
+  }
+
+  input[type=range]:focus {
+    outline: none;
+  }
+
+  /* 旧約・新約切り替えの改良 */
+  #ot, #nt {
+    height: 2.5rem;
+    background: #f0f0f0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    font-weight: bold;
+    color: #333;
+    border: 2px solid transparent;
+  }
+
+  #ot {
+    background: #fff8e1;
+    color: #5d4037;
+  }
+
+  #nt {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  #ot:hover, #nt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  #ot:hover {
+    background: #fff3cd;
+  }
+
+  #nt:hover {
+    background: #bbdefb;
+  }
+
+  #ot:active, #nt:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 賛美歌入力欄の改良 */
+  #hymn, #hymn2nd {
+    display: inline-block;
+    width: 10rem;
+    height: 2rem;
+    background: #ffffff;
+    border: 2px solid #0099cc;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1rem;
+    color: #333333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  #hymn:focus, #hymn2nd:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+    outline: none;
+    background: #f9f9ff;
+  }
+
+  /* 章・節入力欄の改良 */
+  #syou, #setu {
+    display: inline-block;
+    height: 3rem;
+    width: 3rem;
+    font-size: 1.1rem;
+    text-align: center;
+    background: #ffffff;
+    border: 2px solid #0099cc;
+    border-radius: 8px;
+    color: #333333;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  #syou:focus, #setu:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+    outline: none;
+    background: #f9f9ff;
+  }
+
+  /* スイッチボタンの改良 */
+  .switch {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  span.button {
+    width: 100%;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    text-align: center;
+    color: #ffffff;
+    background-color: #7986cb;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .switch:checked + span.button {
+    background-color: #3949ab;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .switch:focus + span.button {
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+  }
+
+  /* アイコンの改良 */
+  .humbleicons {
+    width: 3.5em;
+    height: 3.5em;
+    align-self: center;
+    vertical-align: middle;
+    margin-top: -0.1em;
+    transition: transform 0.2s ease;
+    color: #0066cc;
+  }
+
+  .humbleicons:hover {
+    cursor: pointer;
+    transform: scale(1.1);
+    color: #1976d2;
+  }
+
+  /* リンクスタイルの改良 */
+  a {
+    text-decoration: none;
+    color: #0066cc;
+    background-color: transparent;
+    transition: all 0.2s ease;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  a:hover {
+    color: white;
+    background-color: #0066cc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  a:active {
+    background-color: #004c99;
+    transform: translateY(1px);
+  }
+
+  /* 聖書グループスタイルの改良 */
+  .group_bible {
+    background-color: #b2ebf2;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid #80deea;
+  }
+
+  .group_bible > * {
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  .group_bible > td:has(select[name="history"]) {
+    display: flex;
+  }
+
+  /* 履歴選択の改良 */
+  #history {
+    width: 100%;
+    height: 2.5rem;
+    background: #ffffff;
+    appearance: none;
+    text-align: center;
+    border-radius: 6px;
+    border: 2px solid #0099cc;
+    color: #333333;
+    font-size: 1rem;
+    padding: 0 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  #history:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.25);
+    outline: none;
+  }
+
+  #history:hover {
+    border-color: #1976d2;
+  }
+
+  /* ボタンのスタイル */
+/* General Button Styling */
+button {
+  display: inline-flex;   /* Aligns text/icons properly */
+  align-items: center;    /* Vertically centers content */
+  justify-content: center; /* Horizontally centers content */
+  padding: 7px 14px;      /* Provides comfortable spacing around the button text */
+  font-size: 14px;        /* Sets a clear, readable font size */
+  font-family: 'Noto Sans JP', sans-serif; /* Ensures consistent font with the rest of the page */
+  font-weight: 500;       /* Medium font weight for emphasis */
+  color: #ffffff;         /* White text for good contrast on the button background */
+  background: #007bff;    /* Fallback solid background color */
+  background: linear-gradient(145deg, #007bff, #0056b3); /* A nice blue gradient */
+  border: none;           /* Removes default browser borders */
+  border-radius: 4px;     /* Slightly rounded corners for a modern look */
+  cursor: pointer;        /* Changes cursor to a pointer on hover */
+  text-align: center;     /* Ensures text is centered if not using flex properties */
+  text-decoration: none;  /* Removes text decoration (though buttons don't usually have it) */
+  transition: background 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.15s ease-in-out; /* Smooth transitions for interactions */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* Adds a subtle shadow for a lifting effect */
+  line-height: 1.4;       /* Standard line height for button text */
+  -webkit-font-smoothing: antialiased; /* Improves font rendering on some displays */
+  -moz-osx-font-smoothing: grayscale; /* Improves font rendering on some displays */
+}
+
+button:hover {
+  background: #0069d9;    /* Darker solid background for hover state */
+  background: linear-gradient(145deg, #0069d9, #004894); /* Darker gradient on hover */
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);  /* Enhances shadow on hover */
+  transform: translateY(-1px); /* Lifts the button slightly on hover */
+}
+
+/* Style for when the button is focused, for accessibility */
+button:focus,
+button:focus-visible { /* focus-visible for modern browsers, shows outline typically for keyboard navigation */
+  outline: 2px solid #0056b3; /* Adds a clear outline when button is focused */
+  outline-offset: 1px;        /* Adds a small space between the button and the outline */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Optional: adds a glow effect around the button */
+}
+
+button:active {
+  background: #0056b3;    /* Even darker solid background for active/pressed state */
+  background: linear-gradient(145deg, #0056b3, #003d7a); /* Darkest gradient when pressed */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Reduces shadow to give a "pressed in" effect */
+  transform: translateY(0px); /* Resets or slightly presses the button down */
+}
+
+/* Disable all transitions when prefers-reduced-motion is enabled for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
+
+    /* == 聖句検索モーダル用のスタイル == */
+    .search-modal {
+      display: none; /* 初期状態では非表示 */
+      position: fixed; /* 画面に固定 */
+      z-index: 1000; /* 他の要素より前面に */
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto; /* 内容が多い場合にスクロール可能に */
+      background-color: rgba(0,0,0,0.6); /* 背景を暗くする */
+      padding-top: 50px; /* モーダル上部の余白 */
+    }
+
+    .search-modal-content {
+      background-color: #fefefe;
+      margin: 5% auto; /* 上下5%、左右中央寄せ */
+      padding: 25px;
+      border: 1px solid #bbb;
+      width: 85%;
+      max-width: 700px; /* 最大幅 */
+      border-radius: 8px;
+      position: relative;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .search-modal-close {
+      color: #777;
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 32px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .search-modal-close:hover,
+    .search-modal-close:focus {
+      color: #333;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    #searchInput {
+      width: calc(100% - 110px); /* ボタン幅を考慮 */
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    #executeSearchBtn {
+      padding: 12px 18px;
+      /* 既存のボタンスタイルが適用されることを期待 */
+      /* 必要であれば個別にスタイル指定 */
+      cursor: pointer;
+      margin-left: 5px;
+      font-size: 1rem;
+      vertical-align: top; /* inputと高さを合わせる */
+    }
+
+    #searchResults {
+      margin-top: 20px;
+      max-height: 45vh; /* 画面の高さに応じて調整 */
+      overflow-y: auto;
+      border: 1px solid #eee;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+    #searchResults div.result-item {
+      padding: 10px;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 8px;
+    }
+    #searchResults div.result-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    #searchResults p {
+      margin: 5px 0;
+      line-height: 1.6;
+    }
+    #searchResults .highlight {
+      background-color: #fff352; /* ハイライト色 */
+      font-weight: bold;
+      padding: 1px 0;
+    }
+    #searchResults .verse-ref {
+      font-weight: bold;
+      color: #0056b3; /* 聖書箇所の色 */
+      font-size: 0.95em;
+    }
+    #searchResults .lang-label {
+        font-size: 0.85em;
+        color: #555;
+        margin-bottom: 3px;
+        display: block;
+    }
