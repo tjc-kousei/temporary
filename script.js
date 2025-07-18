@@ -163,53 +163,74 @@ let TitleList = {};
 let servicerList = {}; // To store data from servicer.json
 
 async function loadInitialData() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const churchName = urlParams.get("church");
+  const GAS_WEB_APP_URL =
+    "https://script.google.com/macros/s/AKfycbxgbEvZxza-kyTmM3aJXL-2XLEYM7g3JLVnjBfLbJcLGoa5Ve6ib94uYIQgcbo6uB-k/exec";
+
+  if (churchName) {
+    console.log(`現在のURLから取得した値: ${churchName}`); // 出力例: Kawaguchi
+    const apiUrl = `${GAS_WEB_APP_URL}?church=${encodeURIComponent(
+      churchName
+    )}`;
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (response.ok) {
+        // recievedData = JSON.stringify(data, null, 2);
+        recievedData = data;
+        // console.log(recievedData);
+
+        // Load Servicer JSON
+        if (recievedData) {
+          servicerList = recievedData;
+          const sekkyoulist = document.getElementById("sekkyoulist");
+          const tuyakulist = document.getElementById("tuyakulist");
+
+          //奉仕人員読み込み
+          for (const keys in servicerList) {
+            for (const key in servicerList[keys]) {
+              if (servicerList[keys][key].role == "sekkyou") {
+                let sekkyou = document.createElement("option");
+                sekkyou.value = servicerList[keys][key].name;
+                sekkyoulist.appendChild(sekkyou);
+              } else if (servicerList[keys][key].role == "tuyaku") {
+                let tuyaku = document.createElement("option");
+                tuyaku.value = servicerList[keys][key].name;
+                tuyakulist.appendChild(tuyaku);
+              }
+            }
+          }
+        }
+      } else {
+        // GAS APIがエラーを返した場合
+        console.log(`APIエラー: ${data.error || "不明なエラー"}`);
+      }
+    } catch (error) {
+      // ネットワークエラーなど
+      console.error("Fetchエラー:", error);
+    }
+  } else {
+    console.log("現在のURLには 'church' パラメータが見つかりません。");
+  }
   try {
     // Load Bible CSV
     // Bible CSVの読み込み
     let bibleReq = new XMLHttpRequest();
     bibleReq.open("get", "./Data.csv", true);
     bibleReq.send(null);
-    bibleReq.onload = function(){
-        convertbibleCSVtoArray(bibleReq.responseText);
-    }
+    bibleReq.onload = function () {
+      convertbibleCSVtoArray(bibleReq.responseText);
+    };
 
     // Hymn CSVの読み込み
     let hymnReq = new XMLHttpRequest();
     hymnReq.open("get", "./hymn.csv", true);
     hymnReq.send(null);
-    hymnReq.onload = function(){
+    hymnReq.onload = function () {
       converthymnCSVtoArray(hymnReq.responseText);
-    }
-
-    // Load Servicer JSON
-    // if (data.servicerJson) {
-    //   servicerList = data.servicerJson;
-    //   const sekkyoulist = document.getElementById("sekkyoulist");
-    //   const tuyakulist = document.getElementById("tuyakulist");
-
-    //   //奉仕人員読み込み
-    //   for (const keys in servicerList) {
-    //     for (const key in servicerList[keys]) {
-    //       if (servicerList[keys][key].role == "sekkyou") {
-    //         let sekkyou = document.createElement("option");
-    //         sekkyou.value = servicerList[keys][key].name;
-    //         sekkyoulist.appendChild(sekkyou);
-    //       } else if (servicerList[keys][key].role == "tuyaku") {
-    //         let tuyaku = document.createElement("option");
-    //         tuyaku.value = servicerList[keys][key].name;
-    //         tuyakulist.appendChild(tuyaku);
-    //       }
-    //     }
-    //   }
-    // }
-
-    // Load Title JSON
-    // if (data.titleJson) {
-    //   TitleList = data.titleJson;
-    //   let input = document.getElementById("speecher");
-    //   input.addEventListener("input", (e) => getTitle(e.target));
-    //   getTitle(input);
-    // }
+    };
   } catch (error) {
     console.error("Error loading initial data:", error);
     alert("データの読み込みに失敗しました。");
@@ -901,6 +922,5 @@ window.addEventListener("unload", (e) => {
   if (title_win) title_win.close();
   if (hymn_win) hymn_win.close();
 });
-
 
 loadInitialData();
