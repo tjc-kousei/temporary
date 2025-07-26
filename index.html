@@ -66,7 +66,7 @@
         <button id="openSearchModalBtn">聖句検索</button>
       </td>
       <td>
-        <button onclick="saveTitle()">タイトル保存</button>
+        <!-- <button onclick="saveTitle()">タイトル保存</button> -->
       </td>
     </tr>
     <tr class="group_bible">
@@ -151,9 +151,9 @@
     </div>
   </div>
 
-  <!-- <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-cog"><path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M10.47 4.32c.602-1.306 2.458-1.306 3.06 0l.218.473a1.684 1.684 0 002.112.875l.49-.18c1.348-.498 2.66.814 2.162 2.163l-.18.489a1.684 1.684 0 00.875 2.112l.474.218c1.305.602 1.305 2.458 0 3.06l-.474.218a1.684 1.684 0 00-.875 2.112l.18.49c.498 1.348-.814 2.66-2.163 2.162l-.489-.18a1.684 1.684 0 00-2.112.875l-.218.473c-.602 1.306-2.458 1.306-3.06 0l-.218-.473a1.684 1.684 0 00-2.112-.875l-.49.18c-1.348.498-2.66-.814-2.163-2.163l.181-.489a1.684 1.684 0 00-.875-2.112l-.474-.218c-1.305-.602-1.305-2.458 0-3.06l.474-.218a1.684 1.684 0 00.875-2.112l-.18-.49c-.498-1.348.814-2.66 2.163-2.163l.489.181a1.684 1.684 0 002.112-.875l.218-.474z"/></svg> -->
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="humbleicons hi-cog"><path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M10.47 4.32c.602-1.306 2.458-1.306 3.06 0l.218.473a1.684 1.684 0 002.112.875l.49-.18c1.348-.498 2.66.814 2.162 2.163l-.18.489a1.684 1.684 0 00.875 2.112l.474.218c1.305.602 1.305 2.458 0 3.06l-.474.218a1.684 1.684 0 00-.875 2.112l.18.49c.498 1.348-.814 2.66-2.163 2.162l-.489-.18a1.684 1.684 0 00-2.112.875l-.218.473c-.602 1.306-2.458 1.306-3.06 0l-.218-.473a1.684 1.684 0 00-2.112-.875l-.49.18c-1.348.498-2.66-.814-2.163-2.163l.181-.489a1.684 1.684 0 00-.875-2.112l-.474-.218c-1.305-.602-1.305-2.458 0-3.06l.474-.218a1.684 1.684 0 00.875-2.112l-.18-.49c-.498-1.348.814-2.66 2.163-2.163l.489.181a1.684 1.684 0 002.112-.875l.218-.474z"/></svg>
   F11で全画面表示になります/按F11键可以全屏
-  <!-- <button id="SeeRecord">タイトル一覧</button> -->
+
   <br>
   <textarea cols="30" rows="3" placeholder="説教テーマなどのメモにお使いください" style="width: 700px; height: 130px; resize: vertical; min-height:66px;"></textarea>
 
@@ -166,14 +166,13 @@
 
 
     // 設定アイコン押した時の挙動
-    // document.querySelector('.hi-cog').addEventListener('click',()=>{
-    //     // URLの教会名を動的に取得して渡すように変更
-    //     const currentPath = window.location.pathname;
-    //     const pathSegments = currentPath.split('/');
-    //     const churchKeyword = pathSegments[pathSegments.indexOf('church') + 1];
-    //     // ポップアップウィンドウのURLも絶対パスに修正
-    //     let setting = window.open(`/popwindow/setting.html?church=${churchKeyword}`,"win4","width=756,height=700"); // パスを修正
-    // });
+    document.querySelector('.hi-cog').addEventListener('click',()=>{
+        // URLの教会名を動的に取得して渡すように変更
+        const urlParams = new URLSearchParams(window.location.search);
+        const churchKeyword = urlParams.get("church");
+        // ポップアップウィンドウのURLも絶対パスに修正
+        let setting = window.open(`https://script.google.com/macros/s/AKfycbyrJEpuQmgEFwBFU0PX_MUv3bX6rayt7tHV0QO9FxD9xZ73KXPS8FJnEE-kRXlii781/exec?church=${churchKeyword}`,"win4","width=756,height=700"); // パスを修正
+    });
 
     // アコーディオンの動作
     const accordionHeaders = document.querySelectorAll('.accordion-header');
