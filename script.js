@@ -166,7 +166,7 @@ async function loadInitialData() {
   const urlParams = new URLSearchParams(window.location.search);
   const churchName = urlParams.get("church");
   const GAS_WEB_APP_URL =
-    "https://script.google.com/macros/s/AKfycbxgbEvZxza-kyTmM3aJXL-2XLEYM7g3JLVnjBfLbJcLGoa5Ve6ib94uYIQgcbo6uB-k/exec";
+    "https://script.google.com/macros/s/AKfycbyWVCbzcHS9n1ZzL21kLOLmjOJJT7s1U0qksIksyAbBYoA_k7iMKnQneYt1oveRwpBz/exec";
 
   if (churchName) {
     console.log(`現在のURLから取得した値: ${churchName}`); // 出力例: Kawaguchi
@@ -924,3 +924,4 @@ window.addEventListener("unload", (e) => {
 });
 
 loadInitialData();
+
