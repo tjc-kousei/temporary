@@ -346,7 +346,7 @@ function checkwindow(win_name) {
   if (win_name == "bible_win") {
     if (bible_win.closed) {
       bible_win = window.open(
-        "/popwindow/bible.html",
+        "./popwindow/bible.html",
         "bible_win",
         "width=500,height=500"
       );
@@ -358,7 +358,7 @@ function checkwindow(win_name) {
   } else if (win_name == "title_win") {
     if (title_win.closed) {
       title_win = window.open(
-        "/popwindow/title.html",
+        "./popwindow/title.html",
         "title_win",
         "width=500,height=500"
       );
@@ -369,7 +369,7 @@ function checkwindow(win_name) {
   } else if (win_name == "hymn_win") {
     if (hymn_win.closed)
       hymn_win = window.open(
-        "/popwindow/hymn.html",
+        "./popwindow/hymn.html",
         "hymn_win",
         "width=500,height=500"
       );
@@ -924,4 +924,5 @@ window.addEventListener("unload", (e) => {
 });
 
 loadInitialData();
+
 
