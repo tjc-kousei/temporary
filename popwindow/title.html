@@ -16,8 +16,10 @@
         body {
             background-color: beige;
             color: black;
-/*             font-family: Arial; */
             font-weight: bold;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 不要なスクロールバーを消す */
         }
         main {
             width: 100%;
@@ -25,31 +27,49 @@
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        #thema_ja, #thema_ch, #worship {
-            text-align: center;
-            color: rgb(23,28,107);
-        }
-        #worship {
-            color: #3A8FB7;
-        }
-        #thema_ch {
-            font-family: "微软雅黑","宋体","Noto Sans SC", "sans-serif";
+            padding: 20px; /* 画面端に余裕を持たせる */
         }
         #wrap {
             display: flex;
             flex-direction: column;
+            width: 100%;
+            max-width: 95%; /* 画面幅いっぱいになりすぎないように */
+            text-align: center;
+        }
+        #thema_ja, #thema_ch, #worship {
+            text-align: center;
+            color: rgb(23,28,107);
+            /* 長文対応: 折り返し設定 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.2;
+        }
+        #worship {
+            color: #3A8FB7;
+            margin-bottom: 20px;
+        }
+        #thema_ch {
+            font-family: "微软雅黑","宋体","Noto Sans SC", "sans-serif";
+            margin-top: 10px;
         }
         #info {
             display: inline-block;
-            margin: 0 auto;
-            
+            margin: 40px auto 0; /* タイトルとの間隔 */
         }
         #speech, #translator, #hymn {
-            font-size: 5rem;
+            /* 奉仕者情報のフォントサイズは script.js から制御されますが、ここでも折り返しを考慮 */
+            white-space: nowrap; /* 名前などは基本的に折り返さない方が綺麗 */
+        }
+        /* 画面幅が狭い時は奉仕者情報も折り返し許可 */
+        @media (max-width: 800px) {
+            #speech, #translator, #hymn {
+                white-space: normal;
+            }
         }
         #hymn {
             color: black;
+            margin-top: 20px;
         }
     </style>
 </head>

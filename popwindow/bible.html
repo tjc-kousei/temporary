@@ -7,98 +7,196 @@
     <meta http-equiv="content-type" charset="utf-8">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
-      *{
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap');
+
+      * {
         box-sizing: border-box;
-/*         font-family: Arial, Helvetica; */
         font-weight: bold;
         margin: 0;
         padding: 0;
       }
-      #thema-ch {
-        font-family: "微软雅黑","宋体",'Noto Sans SC', sans-serif;
-      }
-      *::-webkit-scrollbar{ display: none; }
 
-      body{  background-color: beige; }
-
-      #title {
-        display: flex;
-        flex-direction: row;
-        background-color: #20604F;
-        font-size: 1em;
-        width: 100%;
-        color: white;
+      html, body {
+        height: 100vh;
+        width: 100vw;
         overflow: hidden;
-        justify-content: space-between;
-      }
-      #thema { 
+        background-color: beige;
         display: flex;
         flex-direction: column;
-        margin-left: 1rem;
-        overflow-wrap: break-word;
-        /* min-width: 50%;
-        max-width: 60%; */
       }
+
+      /* === ヘッダー部分 === */
+      #title {
+        flex: 0 0 auto;
+        width: 100%;
+        background-color: #20604F;
+        color: white;
+
+        /* 1行に収めるためのFlex設定 */
+        display: flex;
+        flex-direction: row;
+        align-items: center; /* 上下中央揃え */
+        justify-content: space-between;
+        white-space: nowrap; /* 改行禁止 */
+        overflow: hidden; /* はみ出し禁止 */
+
+        padding: 0.5vh 1vw; /* 余白も相対的に */
+        height: 12vh; /* 高さを画面比率で固定（ここに合わせて文字サイズを調整） */
+        line-height: 1.2;
+      }
+
+      /* 各要素のバランス */
+      #thema {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1; /* 余ったスペースを占有 */
+        margin: 0 1em;
+        text-align: center;
+      }
+
       #thema-jp {
-        margin-top: -10px ;
-        margin-bottom: -20px ;
+        letter-spacing: 0.1em;
       }
-      #thema-jp, #thema-ch {
-        overflow-wrap: break-word;
-        letter-spacing: 10px;
+      #thema-ch {
+        letter-spacing: 0.1em;
+        font-family: "微软雅黑","宋体",'Noto Sans SC', sans-serif;
       }
-/*       .target_jp { font-family: 'Noto Serif JP', serif; } */
+
       #worship {
         color: #FAD689;
         font-weight: normal;
+        flex: 0 0 auto; /* 縮小しない */
       }
 
       #people {
-        height: 100%;
-        margin-right: 1rem;
-        /* max-width: 50%; */
+        flex: 0 0 auto; /* 縮小しない */
         display: flex;
         flex-direction: column;
-        overflow-wrap: break-word;
-      }
-      #out, #log {
-        font-size: 1.8em;
-        color: black;
-        position: absolute;
-        max-height: 80%;
-        overflow:auto;
+        justify-content: center;
+        text-align: right;
       }
 
-      #speech,#hymn{
-        float: left;
+      #speech, #hymn {
         text-align: left;
-        overflow-wrap: break-word;
       }
 
-      .clear { clear: both; }
+      /* === 本文表示エリア === */
+      #out {
+        flex: 1; /* 残りの高さを全て使う */
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2vmin;
+        color: black;
+      }
 
-      #master,#out{
-        width:100%;
-        height: 100%;
+      #master {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
       }
-      #jp {
-        vertical-align: top;
-        padding: 0 1rem;
-        width:50%;
-        float: left;
+
+      #jp, #ch {
+        width: 48%;
       }
-      #ch {
-        vertical-align: top;
-        padding: 0 1rem;  
-        width:50%;
-        float: right;
-        font-family: "微软雅黑","宋体","Noto Sans SC", "sans-serif";
-      }
+
+      #jp { font-family: 'Noto Serif JP', serif; }
+      #ch { font-family: "微软雅黑","宋体","Noto Sans SC", sans-serif; }
+
+      u { text-decoration: none; margin-right: 0.5em; }
     </style>
 </head>
 <body>
   <div id="title"></div>
   <div id="out"></div>
-  <div id="log"></div>
+  <div id="log" style="display:none;"></div>
+
+  <script>
+    // ヘッダー（タイトル部分）の自動サイズ調整
+    function fitHeader() {
+        const header = document.getElementById('title');
+        // 中身（子要素）のいずれかが存在しなければスキップ
+        if (!header || !header.innerHTML.trim()) return;
+
+        // フォントサイズのリセット（計算のため）
+        header.style.fontSize = '10px';
+
+        // 縦方向(clientHeight)と横方向(scrollWidth)の両方でチェック
+        // ヘッダーの高さはCSSで12vhに固定されているので、それに収まる最大サイズを探す
+        let min = 10;
+        let max = 200;
+        let optimal = min;
+
+        // 二分探索
+        while (min <= max) {
+            let mid = Math.floor((min + max) / 2);
+            header.style.fontSize = mid + 'px';
+
+            // 横にはみ出している OR 縦にはみ出している
+            if (header.scrollWidth > header.clientWidth || header.scrollHeight > header.clientHeight) {
+                max = mid - 1;
+            } else {
+                optimal = mid;
+                min = mid + 1;
+            }
+        }
+
+        // 少し余裕を持たせる
+        header.style.fontSize = (optimal * 0.90) + 'px';
+    }
+
+    // 本文の自動サイズ調整
+    function fitTextToContainer() {
+      const container = document.getElementById('out');
+      const content = document.getElementById('master');
+
+      if (!container || !content) return;
+
+      let min = 10;
+      let max = 400;
+      let optimal = min;
+
+      // Reset
+      content.style.fontSize = max + 'px';
+
+      while (min <= max) {
+        const mid = Math.floor((min + max) / 2);
+        content.style.fontSize = mid + 'px';
+
+        if (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth) {
+          max = mid - 1;
+        } else {
+          optimal = mid;
+          min = mid + 1;
+        }
+      }
+      content.style.fontSize = (optimal * 0.95) + 'px';
+    }
+
+    // 監視設定
+    const observer = new MutationObserver((mutations) => {
+      requestAnimationFrame(() => {
+        fitHeader();        // ヘッダー調整
+        fitTextToContainer(); // 本文調整
+      });
+    });
+
+    // #title と #out の両方を監視
+    const titleNode = document.getElementById('title');
+    const outNode = document.getElementById('out');
+
+    if(titleNode) observer.observe(titleNode, { childList: true, subtree: true, characterData: true });
+    if(outNode) observer.observe(outNode, { childList: true, subtree: true });
+
+    window.addEventListener('resize', () => {
+        fitHeader();
+        fitTextToContainer();
+    });
+  </script>
 </body>
 </html>
