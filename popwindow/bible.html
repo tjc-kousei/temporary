@@ -40,9 +40,10 @@
         white-space: nowrap; /* 改行禁止 */
         overflow: hidden; /* はみ出し禁止 */
 
-        padding: 0.5vh 1vw; /* 余白も相対的に */
-        height: 12vh; /* 高さを画面比率で固定（ここに合わせて文字サイズを調整） */
-        line-height: 1.2;
+        padding: 0 1vw; /* 上下のパディングを削除して高さを有効活用 */
+        /* 高さを12vhから18vh（1.5倍）に変更 */
+        height: 18vh;
+        line-height: 1.1; /* 行間を詰める */
       }
 
       /* 各要素のバランス */
@@ -51,15 +52,15 @@
         flex-direction: column;
         justify-content: center;
         flex: 1; /* 余ったスペースを占有 */
-        margin: 0 1em;
+        margin: 0 0.5em; /* マージンを少し詰める */
         text-align: center;
       }
 
       #thema-jp {
-        letter-spacing: 0.1em;
+        letter-spacing: 0.05em; /* 字間を少し詰めて大きく表示しやすくする */
       }
       #thema-ch {
-        letter-spacing: 0.1em;
+        letter-spacing: 0.05em;
         font-family: "微软雅黑","宋体",'Noto Sans SC', sans-serif;
       }
 
@@ -126,10 +127,8 @@
         // フォントサイズのリセット（計算のため）
         header.style.fontSize = '10px';
 
-        // 縦方向(clientHeight)と横方向(scrollWidth)の両方でチェック
-        // ヘッダーの高さはCSSで12vhに固定されているので、それに収まる最大サイズを探す
         let min = 10;
-        let max = 200;
+        let max = 300; // 上限を上げておく
         let optimal = min;
 
         // 二分探索
@@ -146,8 +145,8 @@
             }
         }
 
-        // 少し余裕を持たせる
-        header.style.fontSize = (optimal * 0.90) + 'px';
+        // 係数を0.95に上げ、よりギリギリまで大きくする
+        header.style.fontSize = (optimal * 0.95) + 'px';
     }
 
     // 本文の自動サイズ調整
