@@ -155,12 +155,85 @@ let en = [
   "Jude",
   "Rev.",
 ];
+// 韓国語の略称
+let kr = [
+  "창",
+  "출",
+  "레",
+  "민",
+  "신",
+  "수",
+  "사",
+  "룻",
+  "삼상",
+  "삼하",
+  "왕상",
+  "왕하",
+  "대상",
+  "대하",
+  "스",
+  "느",
+  "에",
+  "욥",
+  "시",
+  "잠",
+  "전",
+  "아",
+  "사",
+  "렘",
+  "애",
+  "겔",
+  "단",
+  "호",
+  "욜",
+  "암",
+  "옵",
+  "욘",
+  "미",
+  "나",
+  "합",
+  "습",
+  "학",
+  "슥",
+  "말",
+  "마",
+  "막",
+  "눅",
+  "요",
+  "행",
+  "롬",
+  "고전",
+  "고후",
+  "갈",
+  "엡",
+  "빌",
+  "골",
+  "살전",
+  "살후",
+  "딤전",
+  "딤후",
+  "딛",
+  "몬",
+  "히",
+  "약",
+  "벧전",
+  "벧후",
+  "요일",
+  "요이",
+  "요삼",
+  "유",
+  "계",
+];
 
 //データ読み込みエリア //
 let bible = []; //聖書用リスト
 let hymn = []; //讃美歌用リスト
 let TitleList = {};
 let servicerList = {};
+
+// 歌詞データを一時保存する変数
+let currentLyricsSections = [];
+let currentTitleInfo = null;
 
 async function loadInitialData() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -247,34 +320,205 @@ function converthymnCSVtoArray(str) {
   document.getElementById("hymn").disabled = false;
 }
 
-//関数群
-function recievehymn(value) {
-  if (value == "") hymn_win.document.getElementById("output").innerHTML = "";
-  else
-    try {
-      let tar = hymn_win.document.getElementById("output");
-      for (let n = 1; n < hymn.length; n++)
-        if (hymn[n][0].includes(value)) {
-          let wrap = "<div><p id='title'>" + hymn[n][0] + "番</p>";
-          wrap += "<p id='ch'><<" + hymn[n][1] + ">></p>";
-          wrap += "<p id='jp'><<" + hymn[n][2] + ">></p>";
-          wrap += "</div>";
-          tar.innerHTML = wrap;
-          return;
-        }
-    } catch (e) {
-      console.log(e);
+// === 歌詞表示用ロジック（改修版） ===
+
+async function recievehymn(value) {
+  const lyricsArea = document.getElementById("lyrics_area");
+  const outputDiv = hymn_win
+    ? hymn_win.document.getElementById("output")
+    : null;
+
+  if (!value) {
+    if (lyricsArea) lyricsArea.innerHTML = "";
+    if (outputDiv) outputDiv.innerHTML = "";
+    return;
+  }
+
+  currentTitleInfo = null;
+  for (let n = 1; n < hymn.length; n++) {
+    if (hymn[n][0].trim() === value.trim()) {
+      currentTitleInfo = hymn[n];
+      break;
     }
+  }
+
+  if (!currentTitleInfo) return;
+
+  try {
+    const response = await fetch(`./lyrics/${value}.txt`);
+    if (response.ok) {
+      const text = await response.text();
+      // パース処理呼び出し
+      currentLyricsSections = parseLyrics(text);
+
+      if (lyricsArea) {
+        let buttonsHTML = "";
+        currentLyricsSections.forEach((sec, index) => {
+          buttonsHTML += `<button onclick="showLyricsVerse(${index})" style="padding:10px 20px; font-size:1.2rem; cursor:pointer; margin-right:5px; margin-bottom:5px;">${sec.label}</button>`;
+        });
+        lyricsArea.innerHTML = buttonsHTML;
+      }
+      showTitleInPopup();
+    } else {
+      throw new Error("Lyrics file not found");
+    }
+  } catch (e) {
+    if (lyricsArea)
+      lyricsArea.innerHTML =
+        "<span style='color:gray; font-size:0.8rem;'>※歌詞なし</span>";
+    showTitleInPopup();
+  }
 }
+
+// ★追加: ルビ変換関数
+// 漢字(ふりがな) のパターンを検出し、<ruby>タグに変換します
+function convertRuby(text) {
+  // 漢字（一-龠々）の直後に (ひらがなorカタカナor長音) がある場合をマッチ
+  // 必要に応じて正規表現の範囲は調整してください
+  return text.replace(
+    /([一-龠々]+)\(([ぁ-んァ-ヶー]+)\)/g,
+    "<ruby>$1<rt>$2</rt></ruby>"
+  );
+}
+
+// script.js 内の parseLyrics を修正
+
+function parseLyrics(text) {
+  const regex = /\[(.*?)\]/g;
+  let match;
+  let lastIndex = 0;
+  const sections = [];
+  let currentLabel = null;
+
+  // 内部関数: コンテンツを処理してHTML化する
+  const processContent = (rawText) => {
+    // ★修正: 前後の空白・改行を削除して、意図しない空行を防ぐ
+    rawText = rawText.trim();
+    if (!rawText) return "";
+
+    // 1. ルビ変換を実行
+    let processed = convertRuby(rawText);
+
+    // 2. 改行コードで分割し、各行をdivで囲む
+    return processed
+      .split(/\r\n|\n/)
+      .map((line) => {
+        // 空行（歌詞の間のスペース）の場合
+        if (!line.trim()) return '<div style="min-height: 1.2em;">&nbsp;</div>';
+
+        // 通常行
+        return `<div style="white-space: nowrap; text-align: center; margin: 2px 0;">${line}</div>`;
+      })
+      .join("");
+  };
+
+  while ((match = regex.exec(text)) !== null) {
+    if (currentLabel) {
+      sections.push({
+        label: currentLabel,
+        content: processContent(text.substring(lastIndex, match.index)),
+      });
+    }
+    currentLabel = match[1];
+    lastIndex = regex.lastIndex;
+  }
+  if (currentLabel) {
+    sections.push({
+      label: currentLabel,
+      content: processContent(text.substring(lastIndex)),
+    });
+  }
+  return sections;
+}
+
+// ★変更: showLyricsVerse
+// parseLyricsで既にHTML化（行ごとのdiv化）が済んでいるため、シンプルに表示するだけにする
+function showLyricsVerse(index) {
+  if (!hymn_win || hymn_win.closed || !currentTitleInfo) return;
+
+  // 既にHTMLタグ(rubyやdiv)が含まれた文字列
+  const contentHtml = currentLyricsSections[index].content;
+  const doc = hymn_win.document;
+
+  const headerHtml = `
+    <div style="flex: 0 0 auto; width: 100%; text-align: center; padding: 10px; background: rgba(255,255,255,0.9); border-bottom: 2px solid #ccc;">
+      <span style="font-size: 3rem; font-weight: bold;">${currentTitleInfo[0]} ${currentTitleInfo[2]}</span>
+    </div>
+  `;
+
+  const bodyHtml = `
+    <div id="lyric-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;">
+      <div id="lyric-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; line-height: 1.5;">
+        ${contentHtml}
+      </div>
+    </div>
+  `;
+
+  doc.getElementById("output").innerHTML = `
+    <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; margin: 0; padding: 0;">
+      ${headerHtml}
+      ${bodyHtml}
+    </div>
+  `;
+
+  // フォントサイズ調整実行
+  const container = doc.getElementById("lyric-container");
+  const textEl = doc.getElementById("lyric-text");
+
+  // 少し待ってから調整（レンダリング待ち）
+  setTimeout(() => {
+    adjustFontSizeForLyrics(container, textEl);
+  }, 10);
+
+  hymn_win.onresize = function () {
+    adjustFontSizeForLyrics(container, textEl);
+  };
+}
+
+// script.js 内の adjustFontSizeForLyrics を修正
+
+function adjustFontSizeForLyrics(container, element) {
+  if (!container || !element) return;
+
+  const cWidth = container.clientWidth;
+  const cHeight = container.clientHeight;
+  if (cWidth === 0 || cHeight === 0) return;
+
+  // ★修正: 開始サイズ（最大サイズ）を15から8に下げる
+  // これにより、短い歌詞（アーメンなど）でも巨大になりすぎないようにする
+  let size = 8;
+  element.style.fontSize = size + "rem";
+
+  const minSize = 0.5;
+
+  let loopCount = 0;
+  // コンテナに収まるまで縮小する
+  while (
+    (element.scrollWidth > cWidth || element.scrollHeight > cHeight) &&
+    size > minSize &&
+    loopCount < 100
+  ) {
+    size -= 0.5;
+    element.style.fontSize = size + "rem";
+    loopCount++;
+  }
+}
+
+function showTitleInPopup() {
+  if (!hymn_win || hymn_win.closed || !currentTitleInfo) return;
+  const doc = hymn_win.document;
+  let wrap = "<div><p id='title'>" + currentTitleInfo[0] + "番</p>";
+  wrap += "<p id='ch'><<" + currentTitleInfo[1] + ">></p>";
+  wrap += "<p id='jp'><<" + currentTitleInfo[2] + ">></p>";
+  wrap += "</div>";
+  doc.getElementById("output").innerHTML = wrap;
+}
+
+// === 以下、既存ロジック（変更なし） ===
 
 let abbre = "";
 let syou = "";
 let setu = "";
-let j_title_font = 4.0;
-let c_title_font = 4.0;
-let person_font = 2.7;
-let bible_font = 3.7;
-let worship_font = 2.4;
 let disp_worship_font = 4.0;
 let disp_jtitle_font = 5.0;
 let disp_ctitle_font = 5.0;
@@ -341,6 +585,11 @@ function showBible() {
         setu +
         '">' +
         bible[n][3] +
+        " / " +
+        kr[abbre] +
+        syou +
+        ":" +
+        setu +
         "</u></b></div>";
       result +=
         '<div class="target_jp" id="jp' +
@@ -410,7 +659,7 @@ function commit() {
   output += '<div id="hymn">';
   output += hymn_1nd != "" ? "讃美歌：" + hymn_1nd : "";
   output += hymn_2nd != "" ? "/" + hymn_2nd : "";
-  output += "</div></div>"; // Close hymn div and people div
+  output += "</div></div>";
 
   if (bible_win && bible_win.document.getElementById("title")) {
     bible_win.document.getElementById("title").innerHTML = output;
@@ -458,9 +707,6 @@ for (let n = 0; n < input_ranges.length; n++) {
 }
 
 function fontsizecommit() {
-  // bible_win のフォントサイズ設定は削除しました（自動調整になったため）
-
-  // title_win のみ調整
   if (title_win) {
     if (title_win.document.getElementById("worship"))
       title_win.document.getElementById("worship").style.fontSize =
