@@ -442,7 +442,7 @@ function showLyricsVerse(index) {
 
   const headerHtml = `
     <div style="flex: 0 0 auto; width: 100%; text-align: center; padding: 10px; background: rgba(255,255,255,0.9); border-bottom: 2px solid #ccc;">
-      <span style="font-size: 3rem; font-weight: bold;">${currentTitleInfo[0]} ${currentTitleInfo[2]}</span>
+      <span style="font-size: 3rem; font-weight: bold;">${currentTitleInfo[0]} ${currentTitleInfo[2]}/${currentTitleInfo[1]}</span>
     </div>
   `;
 
@@ -528,13 +528,50 @@ function memobible(num) {
   abbre = num;
   document.getElementById("syou").value = "";
   document.getElementById("setu").value = "";
+  countVersesInChapter(); // ★書簡変更時はクリアされるので再計算（表示消去）
 }
 function memosyou(num) {
   syou = num;
   document.getElementById("setu").value = "";
+  countVersesInChapter(); // ★章入力時に再計算
 }
 function memosetu(num) {
   setu = num;
+}
+
+// ★追加：選択中の章の節数をカウントして表示
+function countVersesInChapter() {
+  const display = document.getElementById("verse_count_display");
+  const syouInput = document.getElementById("syou").value;
+
+  if (!display) return;
+
+  // 章が未入力の場合は表示を消して終了
+  if (abbre === "" || !syouInput) {
+    display.innerText = "";
+    return;
+  }
+
+  const bookName = Abbre[abbre];
+  // 検索用のプレフィックスを作成（例: "創1:"）
+  const targetPrefix = bookName + syouInput + ":";
+
+  let count = 0;
+  // bible配列を走査してカウント
+  // bible[n][3] に日本語のリファレンスが入っている (例: "創1:1")
+  for (let i = 1; i < bible.length; i++) {
+    if (bible[i] && bible[i][3]) {
+      if (bible[i][3].indexOf(targetPrefix) === 0) {
+        count++;
+      }
+    }
+  }
+
+  if (count > 0) {
+    display.innerText = "この章の節数: " + count;
+  } else {
+    display.innerText = "";
+  }
 }
 
 function checkwindow(win_name) {
@@ -801,6 +838,7 @@ function display_history(element, index) {
   document.getElementById("setu").value = setu;
   showBible();
   element[0].selected = true;
+  countVersesInChapter(); // ★履歴呼び出し時に再計算
 }
 function append_history() {
   const history = document.getElementById("history");

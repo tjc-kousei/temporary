@@ -67,6 +67,9 @@
           <input type="search" id="prehymn" tabindex="9" list="hymnlist" oninput="this.value = this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); recievehymn((this.value).trim());" maxlength="4" placeholder="番号を入力">
         </div>
         <div id="lyrics_area" style="margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap;"></div>
+        <p style="margin-top: 15px; font-size: 0.8rem; color: #666; text-align: right;">
+          讃美歌の歌詞に間違いがあれば川口教会 林までご連絡ください
+        </p>
       </div>
     </div>
 
@@ -115,6 +118,7 @@
         <div class="search-tools">
            <button id="openSearchModalBtn" class="primary-btn">聖句全文検索</button>
         </div>
+        <div id="verse_count_display" style="text-align: right; font-size: small; color: gray; margin-top: 5px;"></div>
       </div>
     </div>
 
