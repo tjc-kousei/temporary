@@ -412,3 +412,104 @@ input[type=range]::-webkit-slider-thumb {
   .form-group.half-width { width: 100%; }
   .modal_abbre_btn button { width: calc(33.33% - 10px); } /* 3列 */
 }
+
+/* === ローディング画面 === */
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px); /* すりガラス効果 */
+  z-index: 9999; /* 最前面に表示 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-content {
+  text-align: center;
+  width: 80%;
+  max-width: 400px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e0f7fa;
+  border-top: 4px solid #00838f;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#loading-text {
+  color: #006064;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+#loading-detail {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  min-height: 1.2em;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00838f, #00bcd4);
+  transition: width 0.3s ease-out;
+  border-radius: 5px;
+}
+
+/* === 歌詞ボタン用スタイル === */
+.lyric-btn {
+  padding: 10px 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  background-color: #eceff1;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.lyric-btn:hover {
+  background-color: #b2ebf2;
+}
+
+/* 選択されているボタンのスタイル */
+.lyric-btn.active {
+  background-color: #00838f;
+  color: white;
+  border-color: #006064;
+  font-weight: bold;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}

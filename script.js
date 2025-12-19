@@ -235,23 +235,54 @@ let servicerList = {};
 let currentLyricsSections = [];
 let currentTitleInfo = null;
 
+// ★ヘルパー関数: CSV読み込みをPromise化（待機可能にする）
+function loadCSVAsync(url) {
+  return new Promise((resolve, reject) => {
+    const req = new XMLHttpRequest();
+    req.open("get", url, true);
+    req.onload = () => {
+      if (req.status >= 200 && req.status < 300) {
+        resolve(req.responseText);
+      } else {
+        reject(req.statusText);
+      }
+    };
+    req.onerror = () => reject(req.statusText);
+    req.send(null);
+  });
+}
+
+// ★進捗更新用関数
+function updateProgress(percent, message) {
+  const bar = document.getElementById("progress-bar");
+  const detail = document.getElementById("loading-detail");
+  if (bar) bar.style.width = percent + "%";
+  if (detail) detail.innerText = message;
+}
+
+// ★メインの読み込み関数（async/awaitに変更）
 async function loadInitialData() {
+  const overlay = document.getElementById("loading-overlay");
+
+  // 1. 初期状態 (0%)
+  updateProgress(5, "接続を開始します...");
+
   const urlParams = new URLSearchParams(window.location.search);
   const churchName = urlParams.get("church");
   const GAS_WEB_APP_URL =
     "https://script.google.com/macros/s/AKfycbyWVCbzcHS9n1ZzL21kLOLmjOJJT7s1U0qksIksyAbBYoA_k7iMKnQneYt1oveRwpBz/exec";
 
-  if (churchName) {
-    console.log(`現在のURLから取得した値: ${churchName}`);
-    const apiUrl = `${GAS_WEB_APP_URL}?church=${encodeURIComponent(
-      churchName
-    )}`;
-    try {
-      const response = await fetch(apiUrl);
-      const data = await response.json();
+  try {
+    // 2. Google Sheets データ取得 (30%まで)
+    if (churchName) {
+      updateProgress(15, `設定データを取得中 (${churchName})...`);
+      const apiUrl = `${GAS_WEB_APP_URL}?church=${encodeURIComponent(
+        churchName
+      )}`;
 
+      const response = await fetch(apiUrl);
       if (response.ok) {
-        recievedData = data;
+        recievedData = await response.json();
         if (recievedData) {
           servicerList = recievedData;
           const sekkyoulist = document.getElementById("sekkyoulist");
@@ -272,31 +303,37 @@ async function loadInitialData() {
           }
         }
       } else {
-        console.log(`APIエラー: ${data.error || "不明なエラー"}`);
+        console.log(`APIエラー: ${response.status}`);
       }
-    } catch (error) {
-      console.error("Fetchエラー:", error);
+    } else {
+      console.log("現在のURLには 'church' パラメータが見つかりません。");
     }
-  } else {
-    console.log("現在のURLには 'church' パラメータが見つかりません。");
-  }
-  try {
-    let bibleReq = new XMLHttpRequest();
-    bibleReq.open("get", "./Data.csv", true);
-    bibleReq.send(null);
-    bibleReq.onload = function () {
-      convertbibleCSVtoArray(bibleReq.responseText);
-    };
 
-    let hymnReq = new XMLHttpRequest();
-    hymnReq.open("get", "./hymn.csv", true);
-    hymnReq.send(null);
-    hymnReq.onload = function () {
-      converthymnCSVtoArray(hymnReq.responseText);
-    };
+    // 3. 聖書データ読み込み (30% -> 60%)
+    updateProgress(40, "聖書データを読み込んでいます...");
+    const bibleData = await loadCSVAsync("./Data.csv");
+    convertbibleCSVtoArray(bibleData);
+
+    // 4. 讃美歌データ読み込み (60% -> 90%)
+    updateProgress(75, "讃美歌データを読み込んでいます...");
+    const hymnData = await loadCSVAsync("./hymn.csv");
+    converthymnCSVtoArray(hymnData);
+
+    // 5. 完了 (100%)
+    updateProgress(100, "準備完了！");
+
+    // 少し待ってからフェードアウト
+    setTimeout(() => {
+      if (overlay) overlay.classList.add("hidden");
+    }, 800);
   } catch (error) {
     console.error("Error loading initial data:", error);
-    alert("データの読み込みに失敗しました。");
+    updateProgress(100, "エラーが発生しました");
+    if (document.getElementById("loading-text")) {
+      document.getElementById("loading-text").innerText = "読み込み失敗";
+      document.getElementById("loading-text").style.color = "#e53935";
+    }
+    alert("データの読み込みに失敗しました。再読み込みしてください。");
   }
 }
 
@@ -320,7 +357,7 @@ function converthymnCSVtoArray(str) {
   document.getElementById("hymn").disabled = false;
 }
 
-// === 歌詞表示用ロジック（改修版） ===
+// === 歌詞表示用ロジック ===
 
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
@@ -346,19 +383,36 @@ async function recievehymn(value) {
 
   try {
     const response = await fetch(`./lyrics/${value}.txt`);
+
+    // 入力チェック（競合対策）
+    const currentInput = document.getElementById("prehymn").value.trim();
+    if (value !== currentInput) return;
+
     if (response.ok) {
       const text = await response.text();
-      // パース処理呼び出し
+
+      // HTML誤検知対策
+      if (text.trim().startsWith("<")) throw new Error("Invalid content");
+
       currentLyricsSections = parseLyrics(text);
 
       if (lyricsArea) {
-        let buttonsHTML = "";
+        // ★変更点: タイトルボタンを追加し、class="lyric-btn" を適用
+        let buttonsHTML = `<button onclick="showTitleInPopup(); updateActiveButton(this);" class="lyric-btn" id="btn-title">タイトル</button>`;
+
         currentLyricsSections.forEach((sec, index) => {
-          buttonsHTML += `<button onclick="showLyricsVerse(${index})" style="padding:10px 20px; font-size:1.2rem; cursor:pointer; margin-right:5px; margin-bottom:5px;">${sec.label}</button>`;
+          // ★変更点: 各ボタンにも class="lyric-btn" と updateActiveButton を追加
+          buttonsHTML += `<button onclick="showLyricsVerse(${index}); updateActiveButton(this);" class="lyric-btn">${sec.label}</button>`;
         });
         lyricsArea.innerHTML = buttonsHTML;
+
+        // 初期表示としてタイトルを表示し、ボタンをアクティブにする
+        showTitleInPopup();
+        const titleBtn = document.getElementById("btn-title");
+        if (titleBtn) updateActiveButton(titleBtn);
+      } else {
+        showTitleInPopup();
       }
-      showTitleInPopup();
     } else {
       throw new Error("Lyrics file not found");
     }
@@ -1012,5 +1066,17 @@ window.addEventListener("unload", (e) => {
   if (title_win) title_win.close();
   if (hymn_win) hymn_win.close();
 });
+
+// ★ボタンのハイライト切り替え用関数
+function updateActiveButton(activeBtn) {
+  // すべての歌詞ボタンから active クラスを削除
+  const buttons = document.querySelectorAll(".lyric-btn");
+  buttons.forEach((btn) => btn.classList.remove("active"));
+
+  // クリックされたボタンに active クラスを追加
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+  }
+}
 
 loadInitialData();
