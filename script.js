@@ -485,12 +485,11 @@ function parseLyrics(text) {
   return sections;
 }
 
-// ★変更: showLyricsVerse
-// parseLyricsで既にHTML化（行ごとのdiv化）が済んでいるため、シンプルに表示するだけにする
 function showLyricsVerse(index) {
   if (!hymn_win || hymn_win.closed || !currentTitleInfo) return;
 
   // 既にHTMLタグ(rubyやdiv)が含まれた文字列
+  let label = currentLyricsSections[index].label;
   const contentHtml = currentLyricsSections[index].content;
   const doc = hymn_win.document;
 
@@ -503,7 +502,7 @@ function showLyricsVerse(index) {
   const bodyHtml = `
     <div id="lyric-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;">
       <div id="lyric-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; line-height: 1.5;">
-        ${contentHtml}
+      ${label} ${contentHtml}
       </div>
     </div>
   `;
