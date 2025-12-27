@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スクリーン表示</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap');
+
+        /* === 共通設定 === */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100vh; width: 100vw; overflow: hidden;
+            /* 背景色はモードによって切り替えるため、ここでは指定しないかデフォルト白 */
+        }
+
+        /* === モードごとの表示制御 === */
+        #bible-view, #title-view, #hymn-view { display: none; height: 100%; width: 100%; }
+
+        /* bodyのクラスに応じて表示と背景色を切り替え */
+        body.bible-mode { background-color: beige; }
+        body.bible-mode #bible-view { display: flex; flex-direction: column; }
+
+        body.title-mode { background-color: beige; }
+        body.title-mode #title-view { display: flex; align-items: center; justify-content: center; }
+
+        body.hymn-mode { background-color: white; } /* 讃美歌は元の指定がないため白と仮定 */
+        body.hymn-mode #hymn-view { display: block; }
+
+        /* =========================================
+           1. 聖書モード (Bible Mode) - prefix: b_
+           ========================================= */
+        /* ヘッダー (#title -> #b_header) */
+        #b_header {
+            flex: 0 0 auto; width: 100%; height: 18vh;
+            background-color: #20604F; color: white;
+            display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+            white-space: nowrap; overflow: hidden; padding: 0 1vw; line-height: 1.1;
+        }
+
+        #b_thema { display: flex; flex-direction: column; justify-content: center; flex: 1; margin: 0 0.5em; text-align: center; }
+        #b_thema-jp { letter-spacing: 0.05em; }
+        #b_thema-ch { letter-spacing: 0.05em; font-family: "微软雅黑","宋体",'Noto Sans SC', sans-serif; }
+
+        #b_worship { color: #FAD689; font-weight: normal; flex: 0 0 auto; }
+
+        #b_people { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; text-align: right; }
+        #b_speech, #b_hymn { text-align: left; }
+
+        /* 本文 (#out -> #b_out) */
+        #b_out {
+            flex: 1; width: 100%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            padding: 2vmin; color: black;
+        }
+
+        /* 聖書本文内のクラス・ID (JSで生成される内部要素用) */
+        /* #master, #jp, #ch はJS生成HTML内で使われるため、ここでもスタイル定義が必要 */
+        /* display.html内ではスタイルがグローバルに当たるため、IDセレクタで指定すれば効きます */
+        #master { width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+        #jp, #ch { width: 48%; font-weight: bold; }
+        #jp { font-family: 'Noto Serif JP', serif; }
+        #ch { font-family: "微软雅黑","宋体","Noto Sans SC", sans-serif; }
+        u { text-decoration: none; margin-right: 0.5em; }
+
+
+        /* =========================================
+           2. タイトルモード (Title Mode) - prefix: t_
+           ========================================= */
+        /* メインコンテナは #title-view が main 相当 */
+        #title-view { padding: 20px; }
+
+        #t_wrap {
+            display: flex; flex-direction: column; width: 100%; max-width: 95%; text-align: center;
+            font-weight: bold; color: black;
+        }
+
+        #t_thema_ja, #t_thema_ch, #t_worship {
+            text-align: center; color: rgb(23,28,107);
+            word-wrap: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.2;
+        }
+
+        #t_worship { color: #3A8FB7; margin-bottom: 20px; }
+        #t_thema_ch { font-family: "微软雅黑","宋体","Noto Sans SC", sans-serif; margin-top: 10px; }
+
+        #t_info { display: inline-block; margin: 40px auto 0; }
+
+        #t_speech, #t_translator, #t_hymn { white-space: nowrap; }
+        #t_hymn { color: black; margin-top: 20px; }
+
+        @media (max-width: 800px) {
+            #t_speech, #t_translator, #t_hymn { white-space: normal; }
+        }
+
+        /* =========================================
+           3. 讃美歌モード (Hymn Mode) - prefix: h_
+           ========================================= */
+        #h_output { width: 100%; height: 100vh; }
+
+        /* 讃美歌のスタイル調整 */
+        #h_output > div {
+            width: 100%; height: 100vh; display: flex; place-items: center;
+            align-items: center; flex-direction: column; justify-content: center;
+        }
+
+        /* 讃美歌タイトル表示用 (JSで生成される要素用) */
+        #h_title_text { font-size: 14rem; font-weight: bold; }
+        #h_ch_text, #h_jp_text { font-size: 6rem; font-weight: 600; }
+
+    </style>
+</head>
+<body class="bible-mode">
+
+    <div id="bible-view">
+        <div id="b_header">
+            </div>
+        <div id="b_out"></div> </div>
+
+    <div id="title-view">
+        <div id="t_wrap">
+            <div id="t_worship"></div>
+            <div id="t_thema_ja"></div>
+            <div id="t_thema_ch"></div>
+            <div id="t_info">
+                <div id="t_speech"></div>
+                <div id="t_translator"></div>
+                <div id="t_hymn"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hymn-view">
+        <div id="h_output"></div>
+    </div>
+
+    <script>
+        // === 聖書画面用の自動サイズ調整ロジック (元 popwindow/bible.html) ===
+        function fitHeader() {
+            const header = document.getElementById('b_header');
+            if (!header || !header.offsetParent || !header.innerHTML.trim()) return;
+
+            header.style.fontSize = '10px';
+            let min = 10, max = 300, optimal = min;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                header.style.fontSize = mid + 'px';
+                if (header.scrollWidth > header.clientWidth || header.scrollHeight > header.clientHeight) {
+                    max = mid - 1;
+                } else {
+                    optimal = mid;
+                    min = mid + 1;
+                }
+            }
+            header.style.fontSize = (optimal * 0.95) + 'px';
+        }
+
+        function fitTextToContainer() {
+            const container = document.getElementById('b_out');
+            // #master はJSで生成される聖書本文のラッパー
+            const content = document.getElementById('master');
+            if (!container || !container.offsetParent || !content) return;
+
+            let min = 10, max = 150, optimal = min;
+            content.style.fontSize = max + 'px';
+
+            while (min <= max) {
+                const mid = Math.floor((min + max) / 2);
+                content.style.fontSize = mid + 'px';
+                if (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth) {
+                    max = mid - 1;
+                } else {
+                    optimal = mid;
+                    min = mid + 1;
+                }
+            }
+            content.style.fontSize = (optimal * 0.95) + 'px';
+        }
+
+        // サイズ変更監視
+        const observer = new MutationObserver(() => {
+            requestAnimationFrame(() => {
+                if(document.body.classList.contains('bible-mode')){
+                    fitHeader();
+                    fitTextToContainer();
+                }
+            });
+        });
+
+        const titleNode = document.getElementById('b_header');
+        const outNode = document.getElementById('b_out');
+        if(titleNode) observer.observe(titleNode, { childList: true, subtree: true, characterData: true });
+        if(outNode) observer.observe(outNode, { childList: true, subtree: true });
+
+        window.addEventListener('resize', () => {
+            if(document.body.classList.contains('bible-mode')){
+                fitHeader();
+                fitTextToContainer();
+            }
+            // Hymnのサイズ調整は親ウィンドウのJSから制御
+        });
+    </script>
+</body>
+</html>
