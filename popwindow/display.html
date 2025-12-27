@@ -192,7 +192,7 @@
             const content = document.getElementById('master');
             if (!container || !container.offsetParent || !content) return;
 
-            let min = 10, max = 150, optimal = min;
+            let min = 10, max = 80, optimal = min;
             content.style.fontSize = max + 'px';
             while (min <= max) {
                 const mid = Math.floor((min + max) / 2);
