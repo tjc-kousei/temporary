@@ -1,5 +1,6 @@
 let display_win; // 統合されたウィンドウ
 
+// ウィンドウオープン
 function openwindow() {
   display_win = window.open(
     "./popwindow/display.html",
@@ -9,7 +10,7 @@ function openwindow() {
 }
 openwindow();
 
-//事前に記憶する配列
+// === データ定義 ===
 let Abbre = [
   "創",
   "出エジ",
@@ -146,7 +147,6 @@ let en = [
   "Jude",
   "Rev.",
 ];
-// 韓国語の略称
 let kr = [
   "창",
   "출",
@@ -216,20 +216,33 @@ let kr = [
   "계",
 ];
 
-//データ読み込みエリア //
-let bible = []; //聖書用リスト
-let hymn = []; //讃美歌用リスト
-let TitleList = {};
+let bible = [];
+let hymn = [];
 let servicerList = {};
-
-// 歌詞データを一時保存する変数
 let currentLyricsSections = [];
 let currentTitleInfo = null;
-
-// ★モード管理用の変数 ('bible', 'title', 'hymn')
 let currentMode = "bible";
 
-// ★画面切り替え関数
+// モードに合わせてUIを更新（ボタンの色など）
+function updateModeUI(mode) {
+  const btnTitle = document.getElementById("btn-mode-title");
+  const btnBible = document.getElementById("btn-mode-bible");
+  const cardHymn = document.querySelector(".hymn-card");
+
+  if (btnTitle) btnTitle.classList.remove("primary");
+  if (btnBible) btnBible.classList.remove("primary");
+  if (cardHymn) cardHymn.style.border = "none";
+
+  if (mode === "title") {
+    if (btnTitle) btnTitle.classList.add("primary");
+  } else if (mode === "bible") {
+    if (btnBible) btnBible.classList.add("primary");
+  } else if (mode === "hymn") {
+    if (cardHymn) cardHymn.style.border = "3px solid #FF8C00";
+  }
+}
+
+// 画面切り替え
 function switchScreen(mode) {
   if (!display_win || display_win.closed) {
     openwindow();
@@ -238,11 +251,10 @@ function switchScreen(mode) {
 
   currentMode = mode;
   display_win.focus();
-
-  // display.htmlのbodyクラスを切り替えて表示を変更
   display_win.document.body.className = mode + "-mode";
 
-  // 聖書モードに切り替えたときは、再描画（サイズ調整）を走らせる
+  updateModeUI(mode);
+
   if (mode === "bible" && display_win.fitHeader) {
     setTimeout(() => {
       display_win.fitHeader();
@@ -251,18 +263,14 @@ function switchScreen(mode) {
   }
 }
 
-// ★ヘルパー関数: CSV読み込みをPromise化
 function loadCSVAsync(url) {
   return new Promise((resolve, reject) => {
     const req = new XMLHttpRequest();
     req.open("get", url, true);
-    req.onload = () => {
-      if (req.status >= 200 && req.status < 300) {
-        resolve(req.responseText);
-      } else {
-        reject(req.statusText);
-      }
-    };
+    req.onload = () =>
+      req.status >= 200 && req.status < 300
+        ? resolve(req.responseText)
+        : reject(req.statusText);
     req.onerror = () => reject(req.statusText);
     req.send(null);
   });
@@ -278,7 +286,6 @@ function updateProgress(percent, message) {
 async function loadInitialData() {
   const overlay = document.getElementById("loading-overlay");
   updateProgress(5, "接続を開始します...");
-
   const urlParams = new URLSearchParams(window.location.search);
   const churchName = urlParams.get("church");
   const GAS_WEB_APP_URL =
@@ -287,17 +294,15 @@ async function loadInitialData() {
   try {
     if (churchName) {
       updateProgress(15, `設定データを取得中 (${churchName})...`);
-      const apiUrl = `${GAS_WEB_APP_URL}?church=${encodeURIComponent(
-        churchName
-      )}`;
-      const response = await fetch(apiUrl);
+      const response = await fetch(
+        `${GAS_WEB_APP_URL}?church=${encodeURIComponent(churchName)}`
+      );
       if (response.ok) {
         recievedData = await response.json();
         if (recievedData) {
           servicerList = recievedData;
           const sekkyoulist = document.getElementById("sekkyoulist");
           const tuyakulist = document.getElementById("tuyakulist");
-
           for (const keys in servicerList) {
             for (const key in servicerList[keys]) {
               if (servicerList[keys][key].role == "sekkyou") {
@@ -314,40 +319,30 @@ async function loadInitialData() {
         }
       }
     }
-
     updateProgress(40, "聖書データを読み込んでいます...");
     const bibleData = await loadCSVAsync("./Data.csv");
     convertbibleCSVtoArray(bibleData);
-
     updateProgress(75, "讃美歌データを読み込んでいます...");
     const hymnData = await loadCSVAsync("./hymn.csv");
     converthymnCSVtoArray(hymnData);
-
     updateProgress(100, "準備完了！");
     setTimeout(() => {
       if (overlay) overlay.classList.add("hidden");
     }, 800);
   } catch (error) {
-    console.error("Error loading initial data:", error);
+    console.error(error);
     updateProgress(100, "エラーが発生しました");
-    if (document.getElementById("loading-text")) {
-      document.getElementById("loading-text").innerText = "読み込み失敗";
-      document.getElementById("loading-text").style.color = "#e53935";
-    }
-    alert("データの読み込みに失敗しました。再読み込みしてください。");
+    alert("データの読み込みに失敗しました。");
   }
 }
 
 function convertbibleCSVtoArray(str) {
   let tmp = str.split("\n");
-  for (let i = 0; i < tmp.length; ++i) {
-    bible[i] = tmp[i].split(",");
-  }
+  for (let i = 0; i < tmp.length; ++i) bible[i] = tmp[i].split(",");
 }
 
 function converthymnCSVtoArray(str) {
   let tmp = str.split("\n");
-  document.getElementById("hymn").disabled = true;
   const hymnlist = document.getElementById("hymnlist");
   for (let i = 1; i < tmp.length; ++i) {
     hymn[i] = tmp[i].split(",");
@@ -355,19 +350,14 @@ function converthymnCSVtoArray(str) {
     option.value = hymn[i][0].trim();
     hymnlist.appendChild(option);
   }
-  document.getElementById("hymn").disabled = false;
 }
-
-// === 歌詞表示用ロジック ===
 
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
-
   if (!value) {
     if (lyricsArea) lyricsArea.innerHTML = "";
     return;
   }
-
   currentTitleInfo = null;
   for (let n = 1; n < hymn.length; n++) {
     if (hymn[n][0].trim() === value.trim()) {
@@ -375,30 +365,28 @@ async function recievehymn(value) {
       break;
     }
   }
-
   if (!currentTitleInfo) return;
-
   try {
     const response = await fetch(`./lyrics/${value}.txt`);
-    const currentInput = document.getElementById("prehymn").value.trim();
-    if (value !== currentInput) return;
-
     if (response.ok) {
       const text = await response.text();
-      if (text.trim().startsWith("<")) throw new Error("Invalid content");
-
       currentLyricsSections = parseLyrics(text);
-
       if (lyricsArea) {
         let buttonsHTML = `<button onclick="switchScreen('hymn'); showTitleInPopup(); updateActiveButton(this);" class="lyric-btn" id="btn-title">タイトル</button>`;
-
         currentLyricsSections.forEach((sec, index) => {
           buttonsHTML += `<button onclick="switchScreen('hymn'); showLyricsVerse(${index}); updateActiveButton(this);" class="lyric-btn">${sec.label}</button>`;
         });
         lyricsArea.innerHTML = buttonsHTML;
+
+        // ▼▼▼ 追加: 読み込み完了時に自動でタイトルを表示し、ボタンもActiveにする ▼▼▼
+        switchScreen("hymn"); // 画面をHymnモードへ
+        showTitleInPopup(); // スクリーンにタイトルを表示
+        const titleBtn = document.getElementById("btn-title");
+        if (titleBtn) updateActiveButton(titleBtn); // 手元のボタンをActive表示
+        // ▲▲▲ 追加終わり ▲▲▲
       }
     } else {
-      throw new Error("Lyrics file not found");
+      throw new Error("File not found");
     }
   } catch (e) {
     if (lyricsArea)
@@ -416,11 +404,10 @@ function convertRuby(text) {
 
 function parseLyrics(text) {
   const regex = /\[(.*?)\]/g;
-  let match;
-  let lastIndex = 0;
+  let match,
+    lastIndex = 0,
+    currentLabel = null;
   const sections = [];
-  let currentLabel = null;
-
   const processContent = (rawText) => {
     rawText = rawText.trim();
     if (!rawText) return "";
@@ -433,23 +420,20 @@ function parseLyrics(text) {
       })
       .join("");
   };
-
   while ((match = regex.exec(text)) !== null) {
-    if (currentLabel) {
+    if (currentLabel)
       sections.push({
         label: currentLabel,
         content: processContent(text.substring(lastIndex, match.index)),
       });
-    }
     currentLabel = match[1];
     lastIndex = regex.lastIndex;
   }
-  if (currentLabel) {
+  if (currentLabel)
     sections.push({
       label: currentLabel,
       content: processContent(text.substring(lastIndex)),
     });
-  }
   return sections;
 }
 
@@ -458,8 +442,13 @@ function showLyricsVerse(index) {
   if (currentMode !== "hymn") switchScreen("hymn");
 
   const contentHtml = currentLyricsSections[index].content;
+  const verseLabel = currentLyricsSections[index].label;
+
   const doc = display_win.document;
-  const outputDiv = doc.getElementById("h_output"); // 新しいIDを使用
+  const outputDiv = doc.getElementById("h_output");
+  const bgNumDiv = doc.getElementById("h_bg_number");
+
+  if (bgNumDiv) bgNumDiv.innerText = verseLabel; // 背景番号更新
 
   if (!outputDiv) return;
 
@@ -468,50 +457,38 @@ function showLyricsVerse(index) {
       <span style="font-size: 4rem; font-weight: bold;">${currentTitleInfo[0]} ${currentTitleInfo[2]}/${currentTitleInfo[1]}</span>
     </div>
   `;
-
   const bodyHtml = `
     <div id="lyric-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;">
-      <div id="lyric-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; line-height: 1.5;">
-        ${contentHtml}
-      </div>
+      <div id="lyric-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; line-height: 1.5;">${contentHtml}</div>
     </div>
   `;
-
-  outputDiv.innerHTML = `
-    <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; margin: 0; padding: 0;">
-      ${headerHtml}
-      ${bodyHtml}
-    </div>
-  `;
-
-  // フォントサイズ調整
-  setTimeout(() => {
-    const container = doc.getElementById("lyric-container");
-    const textEl = doc.getElementById("lyric-text");
-    adjustFontSizeForLyrics(container, textEl);
-  }, 10);
-
-  display_win.onresize = function () {
-    const container = doc.getElementById("lyric-container");
-    const textEl = doc.getElementById("lyric-text");
-    if (currentMode === "hymn") adjustFontSizeForLyrics(container, textEl);
+  outputDiv.innerHTML = `<div style="display: flex; flex-direction: column; height: 100vh; width: 100%;">${headerHtml}${bodyHtml}</div>`;
+  setTimeout(
+    () =>
+      adjustFontSizeForLyrics(
+        doc.getElementById("lyric-container"),
+        doc.getElementById("lyric-text")
+      ),
+    10
+  );
+  display_win.onresize = () => {
+    if (currentMode === "hymn")
+      adjustFontSizeForLyrics(
+        doc.getElementById("lyric-container"),
+        doc.getElementById("lyric-text")
+      );
   };
 }
 
 function adjustFontSizeForLyrics(container, element) {
   if (!container || !element) return;
-  const cWidth = container.clientWidth;
-  const cHeight = container.clientHeight;
-  if (cWidth === 0 || cHeight === 0) return;
-
-  let size = 8;
+  let size = 8,
+    loopCount = 0;
   element.style.fontSize = size + "rem";
-  const minSize = 0.5;
-  let loopCount = 0;
-
   while (
-    (element.scrollWidth > cWidth || element.scrollHeight > cHeight) &&
-    size > minSize &&
+    (element.scrollWidth > container.clientWidth ||
+      element.scrollHeight > container.clientHeight) &&
+    size > 0.5 &&
     loopCount < 100
   ) {
     size -= 0.5;
@@ -523,28 +500,26 @@ function adjustFontSizeForLyrics(container, element) {
 function showTitleInPopup() {
   if (!display_win || display_win.closed || !currentTitleInfo) return;
   if (currentMode !== "hymn") switchScreen("hymn");
-
   const doc = display_win.document;
-  const outputDiv = doc.getElementById("h_output"); // 新しいID
+  const outputDiv = doc.getElementById("h_output");
+  const bgNumDiv = doc.getElementById("h_bg_number");
 
-  // 新しいID (h_...) を使用したHTML構造
+  if (bgNumDiv) bgNumDiv.innerText = ""; // 背景番号クリア
+
   let wrap = "<div><p id='h_title_text'>" + currentTitleInfo[0] + "番</p>";
   wrap += "<p id='h_ch_text'><<" + currentTitleInfo[1] + ">></p>";
   wrap += "<p id='h_jp_text'><<" + currentTitleInfo[2] + ">></p>";
   wrap += "</div>";
-
   if (outputDiv) outputDiv.innerHTML = wrap;
 }
 
-// === 以下、既存ロジック ===
-
-let abbre = "";
-let syou = "";
-let setu = "";
-let disp_worship_font = 4.0;
-let disp_jtitle_font = 5.0;
-let disp_ctitle_font = 5.0;
-let disp_person_font = 5.0;
+let abbre = "",
+  syou = "",
+  setu = "";
+let disp_worship_font = 4.0,
+  disp_jtitle_font = 5.0,
+  disp_ctitle_font = 5.0,
+  disp_person_font = 5.0;
 
 function memobible(num) {
   abbre = num;
@@ -569,20 +544,13 @@ function countVersesInChapter() {
     display.innerText = "";
     return;
   }
-  const bookName = Abbre[abbre];
-  const targetPrefix = bookName + syouInput + ":";
+  const prefix = Abbre[abbre] + syouInput + ":";
   let count = 0;
-  for (let i = 1; i < bible.length; i++) {
-    if (bible[i] && bible[i][3]) {
-      if (bible[i][3].indexOf(targetPrefix) === 0) {
-        count++;
-      }
-    }
-  }
+  for (let i = 1; i < bible.length; i++)
+    if (bible[i] && bible[i][3] && bible[i][3].indexOf(prefix) === 0) count++;
   display.innerText = count > 0 ? "この章の節数: " + count : "";
 }
 
-// ★修正: checkwindow は指定モードに切り替える
 function checkwindow(mode) {
   let targetMode = "bible";
   if (mode === "bible_win" || mode === "bible") targetMode = "bible";
@@ -604,16 +572,12 @@ function checkwindow(mode) {
 }
 
 function showBible() {
-  if (display_win && !display_win.closed && currentMode !== "bible") {
+  if (display_win && !display_win.closed && currentMode !== "bible")
     switchScreen("bible");
-  }
-
   let where = Abbre[abbre] + syou + ":" + setu;
   let flag = false;
-
   if (!display_win || display_win.closed) return;
-
-  const outDiv = display_win.document.getElementById("b_out"); // 新しいID
+  const outDiv = display_win.document.getElementById("b_out");
 
   for (let n = 1; n < bible.length; n++) {
     if (bible[n] && bible[n][3] && where == bible[n][3]) {
@@ -630,14 +594,12 @@ function showBible() {
         syou +
         ":" +
         setu +
-        "</u></b></div>";
-      result +=
+        "</u></b></div>" +
         '<div class="target_jp" id="jp' +
         setu +
         '">' +
         bible[n][4] +
-        "</div></div>";
-      result +=
+        "</div></div>" +
         '<div id="ch"><div id="setu' +
         setu +
         '"><b><u id="' +
@@ -649,22 +611,17 @@ function showBible() {
         syou +
         ":" +
         setu +
-        "</u></b></div>";
-      result +=
+        "</u></b></div>" +
         '<div class="target_ch" id="ch' +
         setu +
         '">' +
         bible[n][2] +
         "</div></div></div><br>";
-
-      if (outDiv) {
-        outDiv.innerHTML = result;
-      }
+      if (outDiv) outDiv.innerHTML = result;
     }
     if (flag) break;
   }
   if (!flag && outDiv) outDiv.innerHTML = "";
-
   commit();
 }
 
@@ -672,12 +629,14 @@ function commit() {
   const worship = document.getElementById("worship").value;
   const thema_ja = document.getElementById("jtitle").value;
   const thema_ch = document.getElementById("ctitle").value;
-  const speecherVal = document.getElementById("speecher").value;
-  const translatorVal = document.getElementById("translator").value;
-
-  const speech = speecherVal != "" ? "説教者：" + speecherVal : "";
-  const translator = translatorVal != "" ? "通訳者：" + translatorVal : "";
-
+  const speech =
+    document.getElementById("speecher").value != ""
+      ? "説教者：" + document.getElementById("speecher").value
+      : "";
+  const translator =
+    document.getElementById("translator").value != ""
+      ? "通訳者：" + document.getElementById("translator").value
+      : "";
   const hymn_1nd = document.getElementById("hymn").value;
   const hymn_2nd = document.getElementById("hymn2nd").value;
   let hymnText = "讃美歌：" + hymn_1nd;
@@ -687,13 +646,10 @@ function commit() {
     saveCookies();
     return;
   }
-
   const doc = display_win.document;
 
-  // 1. 聖書モード用ヘッダーの更新 (ID: b_header 内)
   const bibleHeader = doc.getElementById("b_header");
   if (bibleHeader) {
-    // 聖書ヘッダー内のIDも b_ をつけて定義済み
     let output =
       '<div id="b_thema"><div id="b_worship">' +
       worship +
@@ -701,22 +657,19 @@ function commit() {
       thema_ja +
       '</div><div id="b_thema-ch">' +
       thema_ch +
-      "</div></div>";
-    output +=
+      "</div></div>" +
       '<div id="b_people"><div id="b_speech">' +
       speech +
       "<br>" +
       translator +
-      "</div>";
-    output += '<div id="b_hymn">';
+      "</div>" +
+      '<div id="b_hymn">';
     output += hymn_1nd != "" ? "讃美歌：" + hymn_1nd : "";
     output += hymn_2nd != "" ? "/" + hymn_2nd : "";
     output += "</div></div>";
-
     bibleHeader.innerHTML = output;
   }
 
-  // 2. タイトルモード用の更新 (ID: t_... を使用)
   if (doc.getElementById("t_worship"))
     doc.getElementById("t_worship").innerHTML = worship;
   if (doc.getElementById("t_thema_ja"))
@@ -746,20 +699,16 @@ function saveCookies() {
 
 const input_ranges = document.querySelectorAll(".change_size");
 for (let n = 0; n < input_ranges.length; n++) {
-  input_ranges[n].addEventListener("input", () => {
-    fontsizecommit();
-  });
+  input_ranges[n].addEventListener("input", () => fontsizecommit());
 }
 
 function fontsizecommit() {
   if (!display_win || display_win.closed) return;
   const doc = display_win.document;
-
   const setSize = (id, size) => {
     const el = doc.getElementById(id);
     if (el) el.style.fontSize = size + "em";
   };
-
   setSize("t_worship", disp_worship_font);
   setSize("t_thema_ja", disp_jtitle_font);
   setSize("t_thema_ch", disp_ctitle_font);
@@ -768,13 +717,11 @@ function fontsizecommit() {
   setSize("t_hymn", disp_person_font);
 }
 
-// クッキー処理と初期化
 let r = document.cookie.split(";");
 r.forEach((value) => {
   let content = value.split("=");
   let key = content[0].trim();
   let val = content[1];
-
   if (key == "worship") document.getElementById("worship").value = val;
   if (key == "jtitle") document.getElementById("jtitle").value = val;
   if (key == "ctitle") document.getElementById("ctitle").value = val;
@@ -789,7 +736,6 @@ setTimeout(commit, 2000);
 const switch_lang = document.querySelectorAll(".switch");
 switch_lang[0].click();
 let lang_type_id = "ja_ot";
-
 switch_lang[0].addEventListener("click", () => {
   document.getElementById("ot").innerHTML = "旧約";
   document.getElementById("nt").innerHTML = "新約";
@@ -858,7 +804,6 @@ function clear_history() {
   ).innerHTML = `<option value="">履歴</option>`;
 }
 
-// 検索モーダル関係はそのまま維持（省略なし）
 const bibleSearchModal = document.getElementById("bibleSearchModal");
 const openSearchModalBtn = document.getElementById("openSearchModalBtn");
 const closeSearchModalBtn = document.getElementById("closeSearchModalBtn");
@@ -875,7 +820,6 @@ function openBibleSearchModal() {
   if (searchResultsDiv)
     searchResultsDiv.innerHTML =
       "<p>検索キーワードを入力して「検索」ボタンを押してください。</p>";
-
   if (
     typeof bible === "undefined" ||
     !Array.isArray(bible) ||
@@ -891,7 +835,6 @@ function openBibleSearchModal() {
     if (executeSearchBtn) executeSearchBtn.disabled = false;
   }
 }
-
 function closeBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "none";
 }
@@ -941,7 +884,6 @@ function displayResults(results, query) {
           ? chReference
           : `${chReference} / ${jpReference}`
         : chReference || jpReference || "参照情報なし";
-
     let contentHTML = `<p class="verse-ref">${highlight(
       displayReferenceText,
       query
@@ -956,7 +898,6 @@ function displayResults(results, query) {
         chFullText,
         query
       )}</p>`;
-
     resultItem.innerHTML = contentHTML;
     searchResultsDiv.appendChild(resultItem);
   });
@@ -1012,9 +953,7 @@ window.addEventListener("unload", (e) => {
 function updateActiveButton(activeBtn) {
   const buttons = document.querySelectorAll(".lyric-btn");
   buttons.forEach((btn) => btn.classList.remove("active"));
-  if (activeBtn) {
-    activeBtn.classList.add("active");
-  }
+  if (activeBtn) activeBtn.classList.add("active");
 }
 
 loadInitialData();
