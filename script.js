@@ -250,7 +250,6 @@ function switchScreen(mode) {
   }
 
   currentMode = mode;
-  display_win.focus();
   display_win.document.body.className = mode + "-mode";
 
   updateModeUI(mode);
@@ -815,7 +814,6 @@ function openBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "block";
   if (searchInput) {
     searchInput.value = "";
-    searchInput.focus();
   }
   if (searchResultsDiv)
     searchResultsDiv.innerHTML =
