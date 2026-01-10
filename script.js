@@ -353,44 +353,59 @@ function converthymnCSVtoArray(str) {
 
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
-  if (!value) {
-    if (lyricsArea) lyricsArea.innerHTML = "";
-    return;
-  }
+  if (!lyricsArea) return;
+
+  // 1. 操作パネル（手元）のボタンをクリア
+  lyricsArea.innerHTML = "";
   currentTitleInfo = null;
+  currentLyricsSections = [];
+
+  // 2. スクリーン表示側（display.html）の内容もクリア
+  if (display_win && !display_win.closed) {
+    const doc = display_win.document;
+    const hOutput = doc.getElementById("h_output");
+    const hBgNum = doc.getElementById("h_bg_number");
+    if (hOutput) hOutput.innerHTML = "";
+    if (hBgNum) hBgNum.innerText = "";
+  }
+
+  // 入力が空、または存在しない場合はここで終了（画面は空白のまま）
+  if (!value) return;
+
+  // 3. hymn.csv から該当する讃美歌情報を探す
   for (let n = 1; n < hymn.length; n++) {
     if (hymn[n][0].trim() === value.trim()) {
       currentTitleInfo = hymn[n];
       break;
     }
   }
+
+  // リストに存在しない場合は終了
   if (!currentTitleInfo) return;
+
   try {
     const response = await fetch(`./lyrics/${value}.txt`);
     if (response.ok) {
       const text = await response.text();
       currentLyricsSections = parseLyrics(text);
-      if (lyricsArea) {
+
+      if (currentLyricsSections.length > 0) {
+        // ボタンの生成
         let buttonsHTML = `<button onclick="switchScreen('hymn'); showTitleInPopup(); updateActiveButton(this);" class="lyric-btn" id="btn-title">タイトル</button>`;
         currentLyricsSections.forEach((sec, index) => {
           buttonsHTML += `<button onclick="switchScreen('hymn'); showLyricsVerse(${index}); updateActiveButton(this);" class="lyric-btn">${sec.label}</button>`;
         });
         lyricsArea.innerHTML = buttonsHTML;
 
-        // ▼▼▼ 追加: 読み込み完了時に自動でタイトルを表示し、ボタンもActiveにする ▼▼▼
-        switchScreen("hymn"); // 画面をHymnモードへ
-        showTitleInPopup(); // スクリーンにタイトルを表示
+        // 正常なデータがある時のみ、スクリーンにタイトルを表示
+        switchScreen("hymn");
+        showTitleInPopup();
         const titleBtn = document.getElementById("btn-title");
-        if (titleBtn) updateActiveButton(titleBtn); // 手元のボタンをActive表示
-        // ▲▲▲ 追加終わり ▲▲▲
+        if (titleBtn) updateActiveButton(titleBtn);
       }
-    } else {
-      throw new Error("File not found");
     }
   } catch (e) {
-    if (lyricsArea)
-      lyricsArea.innerHTML =
-        "<span style='color:gray; font-size:0.8rem;'>※歌詞なし</span>";
+    console.warn("歌詞の取得に失敗しました:", value);
   }
 }
 
