@@ -575,6 +575,7 @@ function checkwindow(mode) {
     switchScreen(targetMode);
     if (targetMode === "bible") showBible();
     if (targetMode === "title") commit();
+    display_win.focus();
   } else {
     openwindow();
     display_win.onload = () => {
@@ -582,6 +583,7 @@ function checkwindow(mode) {
       if (targetMode === "bible") showBible();
       if (targetMode === "title") commit();
     };
+    display_win.focus();
   }
 }
 
