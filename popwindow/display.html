@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -15,27 +16,53 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-weight: bold; /* ★元のスタイルの「太字」を再現 */
+            font-weight: bold;
+            /* ★元のスタイルの「太字」を再現 */
         }
 
-        html, body {
+        html,
+        body {
             height: 100vh;
             width: 100vw;
             overflow: hidden;
         }
 
         /* === モード別表示制御 === */
-        #bible-view, #title-view, #hymn-view { display: none; width: 100%; height: 100%; }
+        #bible-view,
+        #title-view,
+        #hymn-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
 
         /* bodyクラスで切り替え */
-        body.bible-mode { background-color: beige; }
-        body.bible-mode #bible-view { display: flex; flex-direction: column; }
+        body.bible-mode {
+            background-color: beige;
+        }
 
-        body.title-mode { background-color: beige; }
-        body.title-mode #title-view { display: flex; align-items: center; justify-content: center; }
+        body.bible-mode #bible-view {
+            display: flex;
+            flex-direction: column;
+        }
 
-        body.hymn-mode { background-color: white; }
-        body.hymn-mode #hymn-view { display: block; }
+        body.title-mode {
+            background-color: beige;
+        }
+
+        body.title-mode #title-view {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.hymn-mode {
+            background-color: white;
+        }
+
+        body.hymn-mode #hymn-view {
+            display: block;
+        }
 
 
         /* =========================================
@@ -43,67 +70,201 @@
            ========================================= */
         /* ヘッダー */
         #b_header {
-            flex: 0 0 auto; width: 100%; height: 18vh;
-            background-color: #20604F; color: white;
-            display: flex; flex-direction: row; align-items: center; justify-content: space-between;
-            white-space: nowrap; overflow: hidden; padding: 0 1vw; line-height: 1.1;
+            flex: 0 0 auto;
+            width: 100%;
+            height: 18vh;
+            background-color: #20604F;
+            color: white;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            white-space: nowrap;
+            overflow: hidden;
+            padding: 0 1vw;
+            line-height: 1.1;
         }
 
-        #b_thema { display: flex; flex-direction: column; justify-content: center; flex: 1; margin: 0 0.5em; text-align: center; }
+        #b_thema {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+            margin: 0 0.5em;
+            text-align: center;
+        }
 
-        #b_thema-jp { letter-spacing: 0.05em; }
-        #b_thema-ch { letter-spacing: 0.05em; font-family: "微软雅黑","宋体",'Noto Sans SC', sans-serif; }
+        #b_thema-jp {
+            letter-spacing: 0.05em;
+        }
 
-        #b_worship { color: #FAD689; font-weight: normal; flex: 0 0 auto; }
-        #b_people { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; text-align: right; }
-        #b_speech, #b_hymn { text-align: left; }
+        #b_thema-ch {
+            letter-spacing: 0.05em;
+            font-family: "微软雅黑", "宋体", 'Noto Sans SC', sans-serif;
+        }
+
+        #b_worship {
+            color: #FAD689;
+            font-weight: normal;
+            flex: 0 0 auto;
+        }
+
+        #b_people {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: right;
+        }
+
+        #b_speech,
+        #b_hymn {
+            text-align: left;
+        }
 
         /* 本文エリア */
         #b_out {
-            flex: 1; width: 100%; overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
-            padding: 2vmin; color: black;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2vmin;
+            color: black;
         }
 
         /* JSで生成される聖書本文用 */
-        #master { width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; }
+        #master {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-        #jp, #ch { width: 48%; }
-        #jp { font-family: 'Noto Serif JP', serif; }
-        #ch { font-family: "微软雅黑","宋体","Noto Sans SC", sans-serif; }
+        #jp,
+        #ch {
+            width: 48%;
+        }
 
-        u { text-decoration: none; margin-right: 0.5em; }
+        #jp {
+            font-family: 'Noto Serif JP', serif;
+        }
+
+        #ch {
+            font-family: "微软雅黑", "宋体", "Noto Sans SC", sans-serif;
+        }
+
+        u {
+            text-decoration: none;
+            margin-right: 0.5em;
+        }
 
 
         /* =========================================
            2. タイトルモード (Title Mode)
            ========================================= */
-        #title-view { padding: 20px; }
+        #title-view {
+            padding: 20px;
+        }
 
         #t_wrap {
-            display: flex; flex-direction: column; width: 100%; max-width: 95%; text-align: center;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 95%;
+            text-align: center;
             color: black;
         }
 
-        #t_thema_ja, #t_thema_ch, #t_worship {
-            text-align: center; color: rgb(23,28,107);
-            word-wrap: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.2;
+        #t_thema_ja,
+        #t_thema_ch,
+        #t_worship {
+            text-align: center;
+            color: rgb(23, 28, 107);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            line-height: 1.2;
         }
 
-        #t_worship { color: #3A8FB7; margin-bottom: 20px; }
+        #t_worship {
+            color: #3A8FB7;
+            margin-bottom: 20px;
+        }
 
         #t_thema_ch {
-            font-family: "微软雅黑","宋体","Noto Sans SC", sans-serif;
+            font-family: "微软雅黑", "宋体", "Noto Sans SC", sans-serif;
             margin-top: 10px;
         }
 
-        #t_info { display: inline-block; margin: 40px auto 0; }
+        #t_info {
+            display: inline-block;
+            margin: 40px auto 0;
+        }
 
-        #t_speech, #t_translator, #t_hymn { white-space: nowrap; }
-        #t_hymn { color: black; margin-top: 20px; }
+        #t_speech,
+        #t_translator,
+        #t_hymn {
+            white-space: nowrap;
+        }
+
+        #t_hymn {
+            color: black;
+            margin-top: 20px;
+        }
+
+        #b_footer_ticker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 12vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            /* 初期は非表示 */
+            color: white;
+            z-index: 1000;
+            border-top: 3px solid #4CAF50;
+        }
+
+        body.title-mode #b_footer_ticker {
+            display: flex;
+        }
+
+        .ticker-label {
+            background-color: #4CAF50;
+            width: 10vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5vh;
+            flex-shrink: 0;
+        }
+
+        .ticker-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 3vw;
+            font-size: 4.5vh;
+            gap: 0.5vh;
+        }
+
+        .ticker-ch {
+            color: #FFEB3B;
+        }
 
         @media (max-width: 800px) {
-            #t_speech, #t_translator, #t_hymn { white-space: normal; }
+
+            #t_speech,
+            #t_translator,
+            #t_hymn {
+                white-space: normal;
+            }
         }
 
 
@@ -111,18 +272,32 @@
            3. 讃美歌モード (Hymn Mode)
            ========================================= */
         #h_output {
-            width: 100%; height: 100vh;
+            width: 100%;
+            height: 100vh;
             position: relative;
             z-index: 10;
         }
 
-        #h_output > div {
-            width: 100%; height: 100vh; display: flex; place-items: center;
-            align-items: center; flex-direction: column; justify-content: center;
+        #h_output>div {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            place-items: center;
+            align-items: center;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        #h_title_text { font-size: 14rem; font-weight: bold; }
-        #h_ch_text, #h_jp_text { font-size: 6rem; font-weight: 600; }
+        #h_title_text {
+            font-size: 14rem;
+            font-weight: bold;
+        }
+
+        #h_ch_text,
+        #h_jp_text {
+            font-size: 6rem;
+            font-weight: 600;
+        }
 
         /* 歌詞番号の背景表示用スタイル  */
         #h_bg_number {
@@ -140,8 +315,14 @@
             white-space: nowrap;
         }
 
+        /* 聖書表示の箇所の色 */
+        .target_ref_jp,
+        .target_ref_ch {
+            color: #e53935 !important;
+        }
     </style>
 </head>
+
 <body class="bible-mode">
 
     <div id="bible-view">
@@ -159,6 +340,16 @@
                 <div id="t_translator"></div>
                 <div id="t_hymn"></div>
             </div>
+        </div>
+    </div>
+    <div id="b_footer_ticker">
+        <div class="ticker-label">
+            <div>聖</div>
+            <div>書</div>
+        </div>
+        <div class="ticker-content">
+            <div class="ticker-row" id="ticker-jp"></div>
+            <div class="ticker-row ticker-ch" id="ticker-ch"></div>
         </div>
     </div>
 
@@ -209,7 +400,7 @@
 
         const observer = new MutationObserver(() => {
             requestAnimationFrame(() => {
-                if(document.body.classList.contains('bible-mode')){
+                if (document.body.classList.contains('bible-mode')) {
                     fitHeader();
                     fitTextToContainer();
                 }
@@ -218,15 +409,16 @@
 
         const bHeader = document.getElementById('b_header');
         const bOut = document.getElementById('b_out');
-        if(bHeader) observer.observe(bHeader, { childList: true, subtree: true, characterData: true });
-        if(bOut) observer.observe(bOut, { childList: true, subtree: true });
+        if (bHeader) observer.observe(bHeader, { childList: true, subtree: true, characterData: true });
+        if (bOut) observer.observe(bOut, { childList: true, subtree: true });
 
         window.addEventListener('resize', () => {
-            if(document.body.classList.contains('bible-mode')){
+            if (document.body.classList.contains('bible-mode')) {
                 fitHeader();
                 fitTextToContainer();
             }
         });
     </script>
 </body>
+
 </html>

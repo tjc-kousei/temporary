@@ -223,6 +223,66 @@ let currentLyricsSections = [];
 let currentTitleInfo = null;
 let currentMode = "bible";
 
+// フル名称データ (略称に対応するフル名称)
+const FullNameJP = ["創世記","出エジプト記","レビ記","民数記","申命記","ヨシュア記","士師記","ルツ記","サムエル記上","サムエル記下","列王記上","列王記下","歴代志上","歴代志下","エズラ記","ネヘミヤ記","エステル記","ヨブ記","詩篇","箴言","伝道の書","雅歌","イザヤ書","エレミヤ書","哀歌","エゼキエル書","ダニエル書","ホセア書","ヨエル書","アモス書","オバデア書","ヨナ書","ミカ書","ナホム書","ハバクク書","ゼパニヤ書","ハガイ書","ゼカリヤ書","マラキ書","マタイによる福音書","マルコによる福音書","ルカによる福音書","ヨハネによる福音書","使徒行伝","ローマ人への手紙","コリント人への第一の手紙","コリント人への第二の手紙","ガラテヤ人への手紙","エペソ人への手紙","ピリピ人への手紙","コロサイ人への手紙","テサロニケ人への第一の手紙","テサロニケ人への第二の手紙","テモテへの第一の手紙","テモテへの第二の手紙","テトスへの手紙","ピレモンへの手紙","ヘブル人への手紙","ヤコブの手紙","ペテロの第一の手紙","ペテロの第二の手紙","ヨハネの第一の手紙","ヨハネの第二の手紙","ヨハネの第三の手紙","ユダの手紙","ヨハネの黙示録"];
+const FullNameCH = ["创世记","出埃及记","利未记","民数记","申命记","约书亚记","士师记","路得记","撒母耳记上","撒母耳记下","列王纪上","列王纪下","历代志上","历代志下","以斯拉记","尼希米记","以斯帖记","约伯记","诗篇","箴言","传道书","雅歌","以赛亚书","耶利米书","耶利米哀歌","以西结书","但以理书","何西阿书","约珥书","阿摩司书","俄巴底亚书","约拿书","弥迦书","那鸿书","哈巴谷书","西番雅书","哈该书","撒迦利亚书","玛拉基书","马太福音","马可福音","路加福音","约翰福音","使徒行传","罗马书","哥林多前书","哥林多后书","加拉太书","以弗所书","腓立比书","歌罗西书","帖撒罗尼迦前书","帖撒罗尼迦后书","提摩太前书","提摩太后书","提多书","腓利门书","希伯来书","雅各书","彼得前书","彼得后书","约翰一书","约翰二书","约翰三书","犹大书","启示录"];
+
+// 1. IndexedDB 制御
+let db;
+const request = indexedDB.open("TJC_Meeting_DB", 1);
+request.onupgradeneeded = (e) => {
+  db = e.target.result;
+  db.createObjectStore("servicers", { keyPath: "id", autoIncrement: true });
+};
+request.onsuccess = (e) => {
+  db = e.target.result;
+  updateDatalistFromDB();
+};
+
+function openServicerManager() {
+  const modal = document.getElementById("servicerManagerModal");
+  if (modal) {
+    modal.style.display = "block";
+    loadServicersList();
+  }
+}
+function closeServicerManager() { document.getElementById("servicerManagerModal").style.display = "none"; }
+
+function addServicerToDB() {
+  const name = document.getElementById("newServicerName").value.trim();
+  const role = document.getElementById("newServicerRole").value;
+  if (!name) return;
+  const transaction = db.transaction(["servicers"], "readwrite");
+  transaction.objectStore("servicers").add({ name, role });
+  transaction.oncomplete = () => {
+    document.getElementById("newServicerName").value = "";
+    loadServicersList();
+  };
+}
+
+function loadServicersList() {
+  const container = document.getElementById("servicerListTable");
+  container.innerHTML = "";
+  db.transaction("servicers").objectStore("servicers").getAll().onsuccess = (e) => {
+    e.target.result.forEach(s => {
+      container.innerHTML += `<div class="servicer-item">
+        <span>[${s.role === 'sekkyou' ? '説教' : '通訳'}] ${s.name}</span>
+        <button onclick="deleteServicer(${s.id})" class="del-btn">削除</button>
+      </div>`;
+    });
+  };
+}
+
+function deleteServicer(id) {
+  const transaction = db.transaction(["servicers"], "readwrite");
+    transaction.objectStore("servicers").delete(id);
+
+    transaction.oncomplete = () => {
+        loadServicersList();     // モーダル内リスト更新
+        updateDatalistFromDB();  // 入力欄の候補（datalist/select）を更新
+    };
+}
+
 // モードに合わせてUIを更新（ボタンの色など）
 function updateModeUI(mode) {
   const btnTitle = document.getElementById("btn-mode-title");
@@ -282,6 +342,9 @@ function updateProgress(percent, message) {
   if (detail) detail.innerText = message;
 }
 
+// GASから取得した一時的なデータを保持する変数
+let tempGASData = null;
+
 async function loadInitialData() {
   const overlay = document.getElementById("loading-overlay");
   updateProgress(5, "接続を開始します...");
@@ -300,6 +363,12 @@ async function loadInitialData() {
         recievedData = await response.json();
         if (recievedData) {
           servicerList = recievedData;
+
+          tempGASData = recievedData; // データを一時保存
+        // 登録ボタンをUI上に表示させる（ID: gas-import-btn はHTMLに作成）
+        const importBtn = document.getElementById("gas-import-btn");
+        if (importBtn) importBtn.style.display = "inline-block";
+
           const sekkyoulist = document.getElementById("sekkyoulist");
           const tuyakulist = document.getElementById("tuyakulist");
           for (const keys in servicerList) {
@@ -333,6 +402,37 @@ async function loadInitialData() {
     updateProgress(100, "エラーが発生しました");
     alert("データの読み込みに失敗しました。");
   }
+}
+
+// ボタンクリックで呼ばれる一括登録関数
+function importGASDataToDB() {
+  if (!tempGASData) return;
+  if (!confirm("GASから取得した名簿をブラウザのデータベースに登録しますか？")) return;
+
+  const transaction = db.transaction(["servicers"], "readwrite");
+  const store = transaction.objectStore("servicers");
+
+  // すでに登録されている名前を取得して重複を避ける（任意）
+  store.getAll().onsuccess = (e) => {
+    const existingNames = e.target.result.map(s => s.name);
+
+    // GASデータの階層構造に合わせてループ（servicerList[keys][key] の構造を想定）
+    for (const keys in tempGASData) {
+      for (const key in tempGASData[keys]) {
+        const item = tempGASData[keys][key];
+        // 重複していなければ追加
+        if (!existingNames.includes(item.name)) {
+          store.add({ name: item.name, role: item.role });
+        }
+      }
+    }
+  };
+
+  transaction.oncomplete = () => {
+    alert("一括登録が完了しました。");
+    updateDatalistFromDB(); // リストを更新
+    document.getElementById("gas-import-btn").style.display = "none"; // ボタンを隠す
+  };
 }
 
 function convertbibleCSVtoArray(str) {
@@ -588,63 +688,34 @@ function checkwindow(mode) {
 }
 
 function showBible() {
-  if (display_win && !display_win.closed && currentMode !== "bible")
-    switchScreen("bible");
-  let where = Abbre[abbre] + syou + ":" + setu;
-  let flag = false;
   if (!display_win || display_win.closed) return;
+  let where = Abbre[abbre] + syou + ":" + setu;
   const outDiv = display_win.document.getElementById("b_out");
-
   for (let n = 1; n < bible.length; n++) {
-    if (bible[n] && bible[n][3] && where == bible[n][3]) {
-      flag = true;
-      let result =
-        '<div id="master"><div id="jp"><div id="setu' +
-        setu +
-        '"><b><u id="' +
-        setu +
-        '">' +
-        bible[n][3] +
-        " / " +
-        kr[abbre] +
-        syou +
-        ":" +
-        setu +
-        "</u></b></div>" +
-        '<div class="target_jp" id="jp' +
-        setu +
-        '">' +
-        bible[n][4] +
-        "</div></div>" +
-        '<div id="ch"><div id="setu' +
-        setu +
-        '"><b><u id="' +
-        setu +
-        '">' +
-        bible[n][1] +
-        "/" +
-        en[abbre] +
-        syou +
-        ":" +
-        setu +
-        "</u></b></div>" +
-        '<div class="target_ch" id="ch' +
-        setu +
-        '">' +
-        bible[n][2] +
-        "</div></div></div><br>";
-      if (outDiv) outDiv.innerHTML = result;
+    if (bible[n][3] == where) {
+      // 導入：箇所表示をクラス化して赤色に (target_ref_jp/ch)
+      outDiv.innerHTML = `<div id="master">
+        <div id="jp">
+          <div><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
+          <div class="target_jp">${bible[n][4]}</div>
+        </div>
+        <div id="ch">
+          <div><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
+          <div class="target_ch">${bible[n][2]}</div>
+        </div>
+      </div>`;
+      break;
     }
-    if (flag) break;
   }
-  if (!flag && outDiv) outDiv.innerHTML = "";
   commit();
 }
 
 function commit() {
+  // 入力値の取得
   const worship = document.getElementById("worship").value;
   const thema_ja = document.getElementById("jtitle").value;
   const thema_ch = document.getElementById("ctitle").value;
+
   const speech =
     document.getElementById("speecher").value != ""
       ? "説教者：" + document.getElementById("speecher").value
@@ -658,10 +729,7 @@ function commit() {
   let hymnText = "讃美歌：" + hymn_1nd;
   hymnText += hymn_2nd != "" ? "/" + hymn_2nd : "";
 
-  if (!display_win || display_win.closed) {
-    saveCookies();
-    return;
-  }
+  if (!display_win || display_win.closed) return;
   const doc = display_win.document;
 
   const bibleHeader = doc.getElementById("b_header");
@@ -698,6 +766,19 @@ function commit() {
     doc.getElementById("t_translator").innerHTML = translator;
   if (doc.getElementById("t_hymn"))
     doc.getElementById("t_hymn").innerHTML = hymnText;
+
+  const tickerJp = doc.getElementById('ticker-jp');
+  const tickerCh = doc.getElementById('ticker-ch');
+
+  if (tickerJp && tickerCh) {
+    if (abbre !== "" && syou !== "") {
+      tickerJp.innerText = `${FullNameJP[abbre]} ${syou}章 ${setu}節`;
+      tickerCh.innerText = `${FullNameCH[abbre]} ${syou}章 ${setu}節`;
+    } else {
+      tickerJp.innerText = "";
+      tickerCh.innerText = "";
+    }
+  }
 
   saveCookies();
   fontsizecommit();
@@ -969,6 +1050,73 @@ function updateActiveButton(activeBtn) {
   const buttons = document.querySelectorAll(".lyric-btn");
   buttons.forEach((btn) => btn.classList.remove("active"));
   if (activeBtn) activeBtn.classList.add("active");
+}
+// 入力候補（datalist）を最新の状態に更新する関数
+function updateDatalistFromDB() {
+  const sekkyoulist = document.getElementById("sekkyoulist");
+  const tuyakulist = document.getElementById("tuyakulist");
+  const sekkyouSelect = document.getElementById("sekkyouSelect");
+  const tuyakuSelect = document.getElementById("tuyakuSelect");
+
+  // 一旦クリア
+  if (sekkyoulist) sekkyoulist.innerHTML = "";
+  if (tuyakulist) tuyakulist.innerHTML = "";
+  if (sekkyouSelect) sekkyouSelect.innerHTML = '<option value="">選択</option>';
+  if (tuyakuSelect) tuyakuSelect.innerHTML = '<option value="">選択</option>';
+
+  const transaction = db.transaction("servicers", "readonly");
+  const store = transaction.objectStore("servicers");
+
+  store.getAll().onsuccess = (e) => {
+    const data = e.target.result;
+    data.forEach(s => {
+      // datalist用のoption作成
+      const dlOption = document.createElement("option");
+      dlOption.value = s.name;
+
+      // select用のoption作成
+      const selOption = document.createElement("option");
+      selOption.value = s.name;
+      selOption.innerText = s.name;
+
+      if (s.role === 'sekkyou') {
+        if (sekkyoulist) sekkyoulist.appendChild(dlOption);
+        if (sekkyouSelect) sekkyouSelect.appendChild(selOption);
+      } else if (s.role === 'tuyaku') {
+        if (tuyakulist) tuyakulist.appendChild(dlOption);
+        if (tuyakuSelect) tuyakuSelect.appendChild(selOption);
+      }
+    });
+  };
+}
+// HTML側に onchange="syncSelectToInput('speecher', this)" のように記述
+function syncSelectToInput(inputId, selectElement) {
+  if (selectElement.value) {
+      document.getElementById(inputId).value = selectElement.value;
+      commit(); // 変更を即座に反映
+      selectElement.selectedIndex = 0; // 選択後は「選択」に戻す
+  }
+}
+// 4. バックアップ
+function exportServicers() {
+  db.transaction("servicers").objectStore("servicers").getAll().onsuccess = (e) => {
+    const blob = new Blob([JSON.stringify(e.target.result)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "servicer_list_backup.json";
+    a.click();
+  };
+}
+
+function importServicers(event) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = JSON.parse(e.target.result);
+    const tx = db.transaction(["servicers"], "readwrite");
+    data.forEach(s => tx.objectStore("servicers").put({ name: s.name, role: s.role }));
+    tx.oncomplete = () => { alert("インポート完了"); loadServicersList(); };
+  };
+  reader.readAsText(event.target.files[0]);
 }
 
 loadInitialData();

@@ -15,8 +15,8 @@ body {
 /* === ダッシュボードレイアウト === */
 .dashboard-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 10px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -68,7 +68,7 @@ body {
 /* === フォーム要素スタイル === */
 .form-grid {
   display: flex;
-  flex-wrap: wrap;
+  /* flex-wrap: wrap; */
   gap: 15px;
 }
 
@@ -83,7 +83,8 @@ body {
 }
 
 .form-group.half-width {
-  width: calc(50% - 8px);
+  flex: 1 1 calc(50% - 10px);
+  min-width: 300px;
 }
 
 label {
@@ -283,6 +284,32 @@ button {
 .memory-tools button,
 .memory-tools select {
   flex: 1;
+}
+
+.hybrid-input {
+  display: flex;
+  position: relative;
+}
+
+.hybrid-input input {
+  flex: 1;
+  border-radius: 6px 0 0 6px;
+  /* 左側を丸く */
+}
+
+.list-select-btn {
+  width: 40px;
+  background: #eee;
+  border: 1px solid #ddd;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  /* 右側を丸く */
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.list-select-btn:hover {
+  background: #e0e0e0;
 }
 
 /* === 言語スイッチ === */
@@ -736,4 +763,39 @@ input[type=range]::-webkit-slider-thumb {
   font-weight: bold;
   padding: 0 2px;
   border-radius: 2px;
+}
+
+/* 奉仕者横並びのための調整 */
+.form-group.half-width {
+  width: calc(50% - 10px);
+}
+
+
+/* 管理画面用スタイル */
+.mgmt-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed #ccc;
+}
+
+.servicer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.servicer-item:hover {
+  background: #f9f9f9;
+}
+
+.del-btn {
+  background: #ff5252;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
 }

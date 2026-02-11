@@ -27,12 +27,15 @@
     <div class="card info-card">
       <div class="card-header">
         <h3>基本情報</h3>
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          class="humbleicons hi-cog">
-          <path stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path stroke-linejoin="round" stroke-width="2"
-            d="M10.47 4.32c.602-1.306 2.458-1.306 3.06 0l.218.473a1.684 1.684 0 002.112.875l.49-.18c1.348-.498 2.66.814 2.162 2.163l-.18.489a1.684 1.684 0 00.875 2.112l.474.218c1.305.602 1.305 2.458 0 3.06l-.474.218a1.684 1.684 0 00-.875 2.112l.18.49c.498 1.348-.814 2.66-2.163 2.162l-.489-.18a1.684 1.684 0 00-2.112.875l-.218.473c-.602 1.306-2.458 1.306-3.06 0l-.218-.473a1.684 1.684 0 00-2.112-.875l-.49.18c-1.348.498-2.66-.814-2.163-2.163l.181-.489a1.684 1.684 0 00-.875-2.112l-.474-.218c-1.305-.602-1.305-2.458 0-3.06l.474-.218a1.684 1.684 0 00.875-2.112l-.18-.49c-.498-1.348.814-2.66 2.163-2.163l.489.181a1.684 1.684 0 002.112-.875l.218-.474z" />
-        </svg>
+        <button class="icon-btn" onclick="openServicerManager();" style="background:none; border:none; cursor:pointer;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hi-cog">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
+          </svg>
+        </button>
       </div>
       <div class="card-content form-grid">
         <div class="form-group full-width">
@@ -48,22 +51,20 @@
           <label for="ctitle">中国語タイトル</label>
           <input type="search" id="ctitle" list="ctitlelist" tabindex="2" oninput="commit();" autocomplete="off">
         </div>
-        <div class="form-group half-width">
-          <label for="speecher">説教者</label>
-          <input type="search" id="speecher" list="sekkyoulist" tabindex="3" oninput="commit();">
+        <button id="gas-import-btn" style="display:none; background-color: #4CAF50; color: white;"
+          onclick="importGASDataToDB()">
+          名簿をDBに保存
+        </button>
+        <div class="input-row">
+          <div>
+            <label for="speecher">説教者</label>
+            <input type="search" id="speecher" list="sekkyoulist" tabindex="3" oninput="commit();">
+          </div>
+          <div>
+            <label for="translator">通訳者</label>
+            <input type="search" id="translator" list="tuyakulist" tabindex="4" oninput="commit();">
+          </div>
         </div>
-        <div class="form-group half-width">
-          <label for="translator">通訳者</label>
-          <input type="search" id="translator" list="tuyakulist" tabindex="4" oninput="commit();">
-        </div>
-      </div>
-    </div>
-
-    <div class="card hymn-card">
-      <div class="card-header">
-        <h3>讃美歌</h3>
-      </div>
-      <div class="card-content">
         <div class="form-group">
           <label>礼拝讃美</label>
           <div class="input-row">
@@ -76,6 +77,14 @@
               placeholder="2曲目">
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="card hymn-card">
+      <div class="card-header">
+        <h3>讃美歌</h3>
+      </div>
+      <div class="card-content">
         <div class="form-group">
           <button onclick="checkwindow('hymn_win');" class="outline-btn">集会前讃美歌</button>
           <input type="search" id="prehymn" tabindex="9" list="hymnlist"
@@ -219,6 +228,10 @@
   </div>
 
   <div id="ja_ot" class="modal_abbre_btn" style="left: -100%;">
+    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
+      <button class="primary-btn" style="width: 200px; background: #1976d2;"
+        onclick="document.getElementById('ja_ot').style.left='-100%'; active_abbre('nt');">新約聖書へ切替</button>
+    </div>
     <button value="0" onclick="abbre_btn(this.value,this.innerHTML);">01 創世記</button><button value="1"
       onclick="abbre_btn(this.value,this.innerHTML);">02 出エジプト記</button><button value="2"
       onclick="abbre_btn(this.value,this.innerHTML);">03 レビ記</button><button value="3"
@@ -260,6 +273,10 @@
       onclick="abbre_btn(this.value,this.innerHTML);">39 マラキ書</button>
   </div>
   <div id="ja_nt" class="modal_abbre_btn" style="left: -100%;">
+    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
+      <button class="primary-btn" style="width: 200px; background: #1976d2;"
+        onclick="document.getElementById('ja_nt').style.left='-100%'; active_abbre('ot');">旧約聖書へ切替</button>
+    </div>
     <button value="39" onclick="abbre_btn(this.value,this.innerHTML);">40 マタイによる福音書</button><button value="40"
       onclick="abbre_btn(this.value,this.innerHTML);">41 マルコによる福音書</button><button value="41"
       onclick="abbre_btn(this.value,this.innerHTML);">42 ルカによる福音書</button><button value="42"
@@ -289,6 +306,10 @@
       onclick="abbre_btn(this.value,this.innerHTML);">66 ヨハネの黙示録</button>
   </div>
   <div id="ch_ot" class="modal_abbre_btn" style="left: -100%;">
+    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
+      <button class="primary-btn" style="width: 200px; background: #1976d2;"
+        onclick="document.getElementById('ch_ot').style.left='-100%'; active_abbre('nt');">切换成新约</button>
+    </div>
     <button value="0" onclick="abbre_btn(this.value,this.innerHTML);">01 创世记</button><button value="1"
       onclick="abbre_btn(this.value,this.innerHTML);">02 出埃及记</button><button value="2"
       onclick="abbre_btn(this.value,this.innerHTML);">03 利未记</button><button value="3"
@@ -330,6 +351,10 @@
       onclick="abbre_btn(this.value,this.innerHTML);">39 玛拉基书</button>
   </div>
   <div id="ch_nt" class="modal_abbre_btn" style="left: -100%;">
+    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
+      <button class="primary-btn" style="width: 200px; background: #1976d2;"
+        onclick="document.getElementById('ch_nt').style.left='-100%'; active_abbre('ot');">切换成旧约</button>
+    </div>
     <button value="39" onclick="abbre_btn(this.value,this.innerHTML);">40 马太福音</button><button value="40"
       onclick="abbre_btn(this.value,this.innerHTML);">41 马可福音</button><button value="41"
       onclick="abbre_btn(this.value,this.innerHTML);">42 路加福音</button><button value="42"
@@ -370,18 +395,32 @@
     </div>
   </div>
 
+  <div id="servicerManagerModal" class="search-modal">
+    <div class="search-modal-content">
+      <span class="search-modal-close" onclick="closeServicerManager();">&times;</span>
+      <h2>奉仕者リスト管理 (IndexedDB)</h2>
+      <div style="margin-bottom: 15px; display: flex; gap: 5px;">
+        <input type="text" id="newServicerName" placeholder="氏名">
+        <select id="newServicerRole">
+          <option value="sekkyou">説教者</option>
+          <option value="tuyaku">通訳者</option>
+        </select>
+        <button onclick="addServicerToDB();" class="primary-btn" style="width: auto;">追加</button>
+      </div>
+      <div id="servicerListTable"
+        style="flex: 1; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px;"></div>
+      <div class="mgmt-actions">
+        <button onclick="exportServicers();" class="secondary-btn" style="flex:1;">エクスポート (JSON)</button>
+        <button onclick="document.getElementById('importFile').click();" class="secondary-btn"
+          style="flex:1;">インポート</button>
+        <input type="file" id="importFile" style="display:none;" onchange="importServicers(event);">
+      </div>
+    </div>
+  </div>
+
   <script src="./worship.js"></script>
   <script src="./script.js"></script>
   <script>
-
-
-    // 設定アイコン押した時の挙動
-    document.querySelector('.hi-cog').addEventListener('click', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const churchKeyword = urlParams.get("church");
-      let setting = window.open(`https://script.google.com/macros/s/AKfycbyrJEpuQmgEFwBFU0PX_MUv3bX6rayt7tHV0QO9FxD9xZ73KXPS8FJnEE-kRXlii781/exec?church=${churchKeyword}`, "win4", "width=756,height=700");
-    });
-
     // アコーディオンの動作
     const accordionHeaders = document.querySelectorAll('.accordion-header');
     accordionHeaders.forEach(header => {
