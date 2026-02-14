@@ -221,7 +221,7 @@ let hymn = [];
 let servicerList = {};
 let currentLyricsSections = [];
 let currentTitleInfo = null;
-let currentMode = "bible";
+let currentMode = "title";
 
 // フル名称データ (略称に対応するフル名称)
 const FullNameJP = ["創世記","出エジプト記","レビ記","民数記","申命記","ヨシュア記","士師記","ルツ記","サムエル記上","サムエル記下","列王記上","列王記下","歴代志上","歴代志下","エズラ記","ネヘミヤ記","エステル記","ヨブ記","詩篇","箴言","伝道の書","雅歌","イザヤ書","エレミヤ書","哀歌","エゼキエル書","ダニエル書","ホセア書","ヨエル書","アモス書","オバデア書","ヨナ書","ミカ書","ナホム書","ハバクク書","ゼパニヤ書","ハガイ書","ゼカリヤ書","マラキ書","マタイによる福音書","マルコによる福音書","ルカによる福音書","ヨハネによる福音書","使徒行伝","ローマ人への手紙","コリント人への第一の手紙","コリント人への第二の手紙","ガラテヤ人への手紙","エペソ人への手紙","ピリピ人への手紙","コロサイ人への手紙","テサロニケ人への第一の手紙","テサロニケ人への第二の手紙","テモテへの第一の手紙","テモテへの第二の手紙","テトスへの手紙","ピレモンへの手紙","ヘブル人への手紙","ヤコブの手紙","ペテロの第一の手紙","ペテロの第二の手紙","ヨハネの第一の手紙","ヨハネの第二の手紙","ヨハネの第三の手紙","ユダの手紙","ヨハネの黙示録"];
@@ -287,18 +287,33 @@ function deleteServicer(id) {
 function updateModeUI(mode) {
   const btnTitle = document.getElementById("btn-mode-title");
   const btnBible = document.getElementById("btn-mode-bible");
+  const btnHymn  = document.getElementById("btn-mode-hymn");
+  const cardInfo = document.querySelector(".info-card");
   const cardHymn = document.querySelector(".hymn-card");
+  const cardBible = document.querySelector(".bible-card");
 
   if (btnTitle) btnTitle.classList.remove("primary");
   if (btnBible) btnBible.classList.remove("primary");
+  if (btnHymn)  btnHymn.classList.remove("primary");
+  if (cardInfo) cardInfo.style.border = "none";
   if (cardHymn) cardHymn.style.border = "none";
+  if (cardBible) cardBible.style.border = "none";
 
   if (mode === "title") {
-    if (btnTitle) btnTitle.classList.add("primary");
+    if (btnTitle) {
+      btnTitle.classList.add("primary");
+      cardInfo.style.border = "3px solid #FF8C00";
+    }
   } else if (mode === "bible") {
-    if (btnBible) btnBible.classList.add("primary");
+    if (btnBible) {
+      btnBible.classList.add("primary");
+      cardBible.style.border = "3px solid #FF8C00";
+    }
   } else if (mode === "hymn") {
-    if (cardHymn) cardHymn.style.border = "3px solid #FF8C00";
+    if (cardHymn) {
+      btnHymn.classList.add("primary");
+      cardHymn.style.border = "3px solid #FF8C00";
+    }
   }
 }
 
@@ -366,8 +381,12 @@ async function loadInitialData() {
 
           tempGASData = recievedData; // データを一時保存
         // 登録ボタンをUI上に表示させる（ID: gas-import-btn はHTMLに作成）
+        const isImported = localStorage.getItem(`imported`);
         const importBtn = document.getElementById("gas-import-btn");
-        if (importBtn) importBtn.style.display = "inline-block";
+
+        if (importBtn && !isImported) {
+          importBtn.style.display = "inline-block";
+        }
 
           const sekkyoulist = document.getElementById("sekkyoulist");
           const tuyakulist = document.getElementById("tuyakulist");
@@ -429,6 +448,9 @@ function importGASDataToDB() {
   };
 
   transaction.oncomplete = () => {
+    // インポート済みフラグをLocalStorageに保存
+    localStorage.setItem(`imported`, "true");
+
     alert("一括登録が完了しました。");
     updateDatalistFromDB(); // リストを更新
     document.getElementById("gas-import-btn").style.display = "none"; // ボタンを隠す
@@ -705,6 +727,8 @@ function showBible() {
         </div>
       </div>`;
       break;
+    } else {
+      outDiv.innerHTML = "";
     }
   }
   commit();
@@ -771,7 +795,7 @@ function commit() {
   const tickerCh = doc.getElementById('ticker-ch');
 
   if (tickerJp && tickerCh) {
-    if (abbre !== "" && syou !== "") {
+    if (abbre !== "" && syou !== "" && setu !== "") {
       tickerJp.innerText = `${FullNameJP[abbre]} ${syou}章 ${setu}節`;
       tickerCh.innerText = `${FullNameCH[abbre]} ${syou}章 ${setu}節`;
     } else {
