@@ -770,32 +770,584 @@ input[type=range]::-webkit-slider-thumb {
   width: calc(50% - 10px);
 }
 
+/* 検索結果の反映ボタン */
+.apply-verse-btn {
+  display: block;
+  margin-top: 8px;
+  margin-left: auto;
+  padding: 5px 14px;
+  background: #e0f7fa;
+  color: #00838f;
+  border: 1px solid #b2ebf2;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
 
-/* 管理画面用スタイル */
+.apply-verse-btn:hover {
+  background: #00838f;
+  color: white;
+  border-color: #00838f;
+}
+
+
+/* === 奉仕者管理画面スタイル === */
+
+.servicer-modal {
+  max-width: 650px;
+}
+
+.servicer-modal-title {
+  margin-bottom: 5px;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+/* 追加フォーム */
+.servicer-add-form {
+  background: #f0f7fa;
+  border: 1px solid #d0e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.servicer-form-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.servicer-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.servicer-form-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.servicer-form-action {
+  flex: 0 0 auto;
+}
+
+.servicer-add-btn {
+  width: auto !important;
+  white-space: nowrap;
+  padding: 10px 20px;
+}
+
+/* フィルタータブ */
+.servicer-filter-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.servicer-tab {
+  padding: 7px 14px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.servicer-tab:hover {
+  background: #e0f7fa;
+  border-color: #b2ebf2;
+  color: #006064;
+}
+
+.servicer-tab.active {
+  background: #00838f;
+  color: white;
+  border-color: #00838f;
+}
+
+.servicer-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #999;
+  font-weight: 500;
+}
+
+/* テーブルヘッダー */
+.servicer-table-header {
+  display: flex;
+  padding: 8px 12px;
+  background: #eceff1;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #546e7a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.servicer-col-name {
+  flex: 2;
+}
+
+.servicer-col-role {
+  flex: 1;
+  text-align: center;
+}
+
+.servicer-col-action {
+  flex: 0 0 60px;
+  text-align: center;
+}
+
+/* リストコンテナ */
+.servicer-list-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 300px;
+  min-height: 100px;
+}
+
+/* リスト項目 */
+.servicer-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.servicer-item:last-child {
+  border-bottom: none;
+}
+
+.servicer-item:hover {
+  background: #f5fafb;
+}
+
+.servicer-item .servicer-name {
+  flex: 2;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.servicer-item .servicer-role-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.servicer-item .servicer-action-cell {
+  flex: 0 0 60px;
+  text-align: center;
+}
+
+/* 役職バッジ */
+.servicer-role-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.servicer-role-badge.role-sekkyou {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.servicer-role-badge.role-tuyaku {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+/* 削除ボタン */
+.del-btn {
+  background: transparent;
+  color: #bbb;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.del-btn:hover {
+  background: #ffebee;
+  color: #e53935;
+  border-color: #ef9a9a;
+}
+
+/* アクションボタン */
 .mgmt-actions {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 15px;
   padding-top: 15px;
   border-top: 1px dashed #ccc;
 }
 
-.servicer-item {
+.mgmt-btn {
+  border-radius: 6px;
+  font-size: 0.9rem;
+  padding: 10px;
+  transition: all 0.2s;
+}
+
+.mgmt-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* 空リストメッセージ */
+.servicer-empty {
+  text-align: center;
+  padding: 30px;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+/* === 並び替えボタン === */
+.servicer-order-btns {
+  flex: 0 0 40px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #eee;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.servicer-item:hover {
-  background: #f9f9f9;
+.move-btn {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  cursor: pointer;
+  color: #888;
+  transition: all 0.15s;
 }
 
-.del-btn {
-  background: #ff5252;
-  color: white;
+.move-btn:hover:not([disabled]) {
+  background: #e0f7fa;
+  color: #00838f;
+  border-color: #b2ebf2;
+}
+
+.move-btn[disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* === 編集ボタン === */
+.edit-btn {
+  background: transparent;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: #e3f2fd;
+  border-color: #90caf9;
+}
+
+/* 保存・キャンセルボタン */
+.save-btn {
+  background: transparent;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: #e8f5e9;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #999;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #fafafa;
+  color: #666;
+}
+
+/* インライン編集時のスタイル */
+.servicer-item.editing {
+  background: #fafbfe;
+  border-left: 3px solid #1976d2;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+}
+
+.edit-select {
+  padding: 5px;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
   font-size: 0.8rem;
+  background: white;
+}
+
+/* テーブルヘッダー/項目の列幅再調整（orderボタン追加対応） */
+.servicer-table-header {
+  padding-left: 52px;
+}
+
+.servicer-col-action {
+  flex: 0 0 80px;
+  text-align: center;
+}
+
+.servicer-item .servicer-action-cell {
+  flex: 0 0 80px;
+  text-align: center;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+/* === コンボボックス（説教者・通訳者入力） === */
+.combobox-wrapper {
+  display: flex;
+  align-items: stretch;
+}
+
+.combobox-wrapper input {
+  flex: 1;
+  border-radius: 6px 0 0 6px;
+  border-right: none;
+  min-width: 0;
+}
+
+.combobox-wrapper select {
+  width: 42px;
+  padding: 0;
+  border-radius: 0 6px 6px 0;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: center;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.combobox-wrapper select:hover {
+  background: #e0f7fa;
+  border-color: #b2ebf2;
+}
+
+.combobox-wrapper select:focus {
+  outline: none;
+  background: #e0f7fa;
+}
+
+/* === 聖書セクション 記憶・履歴ツール === */
+.memory-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.memory-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.memory-btn.save-btn {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.memory-btn.save-btn:hover {
+  background: #bbdefb;
+}
+
+.memory-btn.clear-btn {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+.memory-btn.clear-btn:hover {
+  background: #ffe0b2;
+}
+
+.history-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.history-select:hover {
+  border-color: #b2ebf2;
+}
+
+.history-select:focus {
+  outline: none;
+  border-color: #00838f;
+  box-shadow: 0 0 0 2px rgba(0, 131, 143, 0.1);
+}
+
+/* === トースト通知 === */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-success {
+  background: #43a047;
+}
+
+.toast-error {
+  background: #e53935;
+}
+
+.toast-info {
+  background: #00838f;
+}
+
+/* === PWA更新通知バナー === */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10001;
+  background: linear-gradient(135deg, #00838f, #00acc1);
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.update-btn {
+  background: white;
+  color: #00838f;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.update-btn:hover {
+  background: #e0f7fa;
+}
+
+.update-dismiss {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+}
+
+.update-dismiss:hover {
+  color: white;
+}
+
+/* レスポンシブ */
+@media (max-width: 500px) {
+  .servicer-form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .servicer-form-action {
+    align-self: flex-end;
+  }
 }

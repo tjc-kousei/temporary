@@ -248,32 +248,188 @@ function openServicerManager() {
 }
 function closeServicerManager() { document.getElementById("servicerManagerModal").style.display = "none"; }
 
+// === トースト通知 ===
+function showToast(message, type) {
+  type = type || 'info';
+  const existing = document.getElementById('app-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'app-toast';
+  toast.className = 'toast toast-' + type;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
 function addServicerToDB() {
-  const name = document.getElementById("newServicerName").value.trim();
+  const nameInput = document.getElementById("newServicerName");
+  const name = nameInput.value.trim();
   const role = document.getElementById("newServicerRole").value;
   if (!name) return;
-  const transaction = db.transaction(["servicers"], "readwrite");
-  transaction.objectStore("servicers").add({ name, role });
-  transaction.oncomplete = () => {
-    document.getElementById("newServicerName").value = "";
+
+  const tx = db.transaction(["servicers"], "readwrite");
+  const store = tx.objectStore("servicers");
+  store.getAll().onsuccess = (e) => {
+    const all = e.target.result;
+    const maxOrder = all.length > 0 ? Math.max(...all.map(s => s.order || 0)) : 0;
+    store.add({ name, role, order: maxOrder + 1 });
+  };
+  tx.oncomplete = () => {
+    nameInput.value = "";
+    nameInput.focus();
+    showToast(`${name} を追加しました`, 'success');
     loadServicersList();
+    updateDatalistFromDB();
   };
 }
 
-function loadServicersList() {
+let currentServicerFilter = "all";
+
+// orderが未設定のレコードにorderを自動付与する
+function ensureOrderFields(allData, store) {
+  let needsFix = false;
+  let maxOrder = 0;
+  allData.forEach(s => { if (s.order) maxOrder = Math.max(maxOrder, s.order); });
+  allData.forEach(s => {
+    if (s.order === undefined || s.order === null) {
+      maxOrder++;
+      s.order = maxOrder;
+      if (store) store.put(s);
+      needsFix = true;
+    }
+  });
+  return needsFix;
+}
+
+function loadServicersList(filter) {
+  if (filter !== undefined) currentServicerFilter = filter;
   const container = document.getElementById("servicerListTable");
+  const countEl = document.getElementById("servicerCount");
   container.innerHTML = "";
-  db.transaction("servicers").objectStore("servicers").getAll().onsuccess = (e) => {
-    e.target.result.forEach(s => {
-      container.innerHTML += `<div class="servicer-item">
-        <span>[${s.role === 'sekkyou' ? '説教' : '通訳'}] ${s.name}</span>
-        <button onclick="deleteServicer(${s.id})" class="del-btn">削除</button>
+
+  // readwriteで開き、order未設定のレコードを自動修正
+  const tx = db.transaction("servicers", "readwrite");
+  const store = tx.objectStore("servicers");
+  store.getAll().onsuccess = (e) => {
+    const allData = e.target.result;
+    ensureOrderFields(allData, store);
+    allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const filtered = currentServicerFilter === "all"
+      ? allData
+      : allData.filter(s => s.role === currentServicerFilter);
+
+    if (countEl) countEl.textContent = `${filtered.length} / ${allData.length} 件`;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="servicer-empty">登録された奉仕者がいません</div>`;
+      return;
+    }
+
+    filtered.forEach((s, idx) => {
+      const roleLabel = s.role === 'sekkyou' ? '説教者' : '通訳者';
+      const roleClass = s.role === 'sekkyou' ? 'role-sekkyou' : 'role-tuyaku';
+      const safeName = (s.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      container.innerHTML += `<div class="servicer-item" data-role="${s.role}" data-id="${s.id}" id="servicer-row-${s.id}">
+        <span class="servicer-order-btns">
+          <button class="move-btn" onclick="moveServicer(${s.id}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="move-btn" onclick="moveServicer(${s.id}, 1)" ${idx === filtered.length - 1 ? 'disabled' : ''}>▼</button>
+        </span>
+        <span class="servicer-name">${s.name}</span>
+        <span class="servicer-role-cell"><span class="servicer-role-badge ${roleClass}">${roleLabel}</span></span>
+        <span class="servicer-action-cell">
+          <button onclick="editServicer(${s.id})" class="edit-btn" title="編集">✏️</button>
+          <button onclick="deleteServicer(${s.id}, '${safeName}')" class="del-btn" title="削除">🗑</button>
+        </span>
       </div>`;
     });
   };
 }
 
-function deleteServicer(id) {
+function editServicer(id) {
+  db.transaction("servicers").objectStore("servicers").get(id).onsuccess = (e) => {
+    const s = e.target.result;
+    if (!s) return;
+    const row = document.getElementById(`servicer-row-${id}`);
+    if (!row) return;
+    const safeName = (s.name || '').replace(/"/g, '&quot;');
+    const roleLabel = s.role === 'sekkyou' ? '説教者' : '通訳者';
+    const roleClass = s.role === 'sekkyou' ? 'role-sekkyou' : 'role-tuyaku';
+    row.classList.add("editing");
+    row.innerHTML = `
+      <span class="servicer-order-btns"></span>
+      <span class="servicer-name">
+        <input type="text" id="edit-name-${id}" value="${safeName}" class="edit-input"
+          onkeydown="if(event.key==='Enter')saveServicer(${id}); if(event.key==='Escape')loadServicersList();">
+      </span>
+      <span class="servicer-role-cell"><span class="servicer-role-badge ${roleClass}">${roleLabel}</span></span>
+      <span class="servicer-action-cell">
+        <button onclick="saveServicer(${id})" class="save-btn" title="保存">💾</button>
+        <button onclick="loadServicersList()" class="cancel-btn" title="キャンセル">✖</button>
+      </span>
+    `;
+    document.getElementById(`edit-name-${id}`).focus();
+  };
+}
+
+function saveServicer(id) {
+  const nameInput = document.getElementById(`edit-name-${id}`);
+  if (!nameInput) return;
+  const newName = nameInput.value.trim();
+  if (!newName) { showToast('名前を入力してください', 'error'); return; }
+
+  const tx = db.transaction(["servicers"], "readwrite");
+  const store = tx.objectStore("servicers");
+  store.get(id).onsuccess = (e) => {
+    const s = e.target.result;
+    if (!s) return;
+    s.name = newName;
+    store.put(s);
+  };
+  tx.oncomplete = () => {
+    showToast('更新しました', 'success');
+    loadServicersList();
+    updateDatalistFromDB();
+  };
+}
+
+function moveServicer(id, direction) {
+  const tx = db.transaction(["servicers"], "readwrite");
+  const store = tx.objectStore("servicers");
+  store.getAll().onsuccess = (e) => {
+    let all = e.target.result;
+    // まずorder未設定を修正
+    ensureOrderFields(all, store);
+    // フィルター適用中は同じロール内で並び替え
+    if (currentServicerFilter !== "all") {
+      all = all.filter(s => s.role === currentServicerFilter);
+    }
+    all.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const idx = all.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    const swapIdx = idx + direction;
+    if (swapIdx < 0 || swapIdx >= all.length) return;
+    const tempOrder = all[idx].order;
+    all[idx].order = all[swapIdx].order;
+    all[swapIdx].order = tempOrder;
+    store.put(all[idx]);
+    store.put(all[swapIdx]);
+  };
+  tx.oncomplete = () => loadServicersList();
+}
+
+function filterServicerList(filter, btn) {
+  document.querySelectorAll(".servicer-tab").forEach(t => t.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  loadServicersList(filter);
+}
+
+function deleteServicer(id, name) {
+  if (!confirm(`「${name || ''}」を削除してもよろしいですか？`)) return;
   const transaction = db.transaction(["servicers"], "readwrite");
     transaction.objectStore("servicers").delete(id);
 
@@ -880,14 +1036,14 @@ function active_abbre(type) {
 }
 document.querySelectorAll(".modal_abbre_btn").forEach((ele) => {
   ele.addEventListener("click", (e) => {
-    if (e.target.className == "modal_abbre_btn") ele.style.left = "-100%";
+    if (e.target.className == "modal_abbre_btn") ele.style.left = "-100vw";
   });
 });
 
 function abbre_btn(num, value) {
   memobible(num);
   document.getElementById("abbre_memo").innerHTML = value;
-  document.getElementById(lang_type_id).style.left = "-100%";
+  document.getElementById(lang_type_id).style.left = "-100vw";
 }
 
 function display_history(element, index) {
@@ -905,6 +1061,10 @@ function display_history(element, index) {
   countVersesInChapter();
 }
 function append_history() {
+  if (abbre === "" || syou === "" || setu === "") {
+    showToast('聖書箇所を選択してください', 'error');
+    return;
+  }
   const history = document.getElementById("history");
   const option = document.createElement("option");
   option.value = abbre + "," + syou + "," + setu;
@@ -918,11 +1078,17 @@ function append_history() {
     }
   }
   history[0].after(option);
+  showToast('📌 聖句を記憶しました', 'success');
 }
 function clear_history() {
-  document.getElementById(
-    "history"
-  ).innerHTML = `<option value="">履歴</option>`;
+  const history = document.getElementById("history");
+  if (history.length <= 1) {
+    showToast('消去する履歴がありません', 'error');
+    return;
+  }
+  if (!confirm('履歴をすべて消去しますか？')) return;
+  history.innerHTML = `<option value="">📖 履歴</option>`;
+  showToast('🗑️ 履歴を消去しました', 'info');
 }
 
 const bibleSearchModal = document.getElementById("bibleSearchModal");
@@ -1018,9 +1184,45 @@ function displayResults(results, query) {
         chFullText,
         query
       )}</p>`;
+    // 「反映」ボタンを追加（rowArray[3]が日本語参照 例: 創1:1）
+    const safeRef = (rowArray[3] || '').replace(/'/g, "\\'");
+    contentHTML += `<button class="apply-verse-btn" onclick="applySearchResult('${safeRef}')">➜ 反映</button>`;
     resultItem.innerHTML = contentHTML;
     searchResultsDiv.appendChild(resultItem);
   });
+}
+
+// 検索結果を聖書セクションの入力に反映して表示
+function applySearchResult(jpRef) {
+  if (!jpRef) return;
+  // bibleデータから直接検索して該当行を特定
+  for (let n = 1; n < bible.length; n++) {
+    if (bible[n][3] === jpRef) {
+      // どの書・章・節かをAbbre配列から逆引き
+      for (let i = Abbre.length - 1; i >= 0; i--) {
+        if (jpRef.startsWith(Abbre[i])) {
+          const rest = jpRef.substring(Abbre[i].length);
+          const parts = rest.split(':');
+          if (parts.length === 2) {
+            abbre = i;
+            syou = parts[0];
+            setu = parts[1];
+            document.getElementById('abbre_memo').innerHTML = Abbre[i];
+            document.getElementById('syou').value = syou;
+            document.getElementById('setu').value = setu;
+            showBible();
+            checkwindow('bible');
+            countVersesInChapter();
+            closeBibleSearchModal();
+            showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
+            return;
+          }
+        }
+      }
+      break;
+    }
+  }
+  showToast('参照情報を解析できませんでした', 'error');
 }
 
 function escapeHTML(str) {
@@ -1075,7 +1277,7 @@ function updateActiveButton(activeBtn) {
   buttons.forEach((btn) => btn.classList.remove("active"));
   if (activeBtn) activeBtn.classList.add("active");
 }
-// 入力候補（datalist）を最新の状態に更新する関数
+// 入力候補（select）を最新の状態に更新する関数
 function updateDatalistFromDB() {
   const sekkyoulist = document.getElementById("sekkyoulist");
   const tuyakulist = document.getElementById("tuyakulist");
@@ -1085,16 +1287,17 @@ function updateDatalistFromDB() {
   // 一旦クリア
   if (sekkyoulist) sekkyoulist.innerHTML = "";
   if (tuyakulist) tuyakulist.innerHTML = "";
-  if (sekkyouSelect) sekkyouSelect.innerHTML = '<option value="">選択</option>';
-  if (tuyakuSelect) tuyakuSelect.innerHTML = '<option value="">選択</option>';
+  if (sekkyouSelect) sekkyouSelect.innerHTML = '<option value="">▼</option>';
+  if (tuyakuSelect) tuyakuSelect.innerHTML = '<option value="">▼</option>';
 
   const transaction = db.transaction("servicers", "readonly");
   const store = transaction.objectStore("servicers");
 
   store.getAll().onsuccess = (e) => {
     const data = e.target.result;
+    data.sort((a, b) => (a.order || 9999) - (b.order || 9999));
     data.forEach(s => {
-      // datalist用のoption作成
+      // datalist用のoption作成（後方互換）
       const dlOption = document.createElement("option");
       dlOption.value = s.name;
 

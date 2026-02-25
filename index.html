@@ -7,6 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>集会管理</title>
   <link href="./tjc.png" type="image/x-icon" rel="shortcut icon">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#00838f">
+  <link rel="apple-touch-icon" href="./tjc.png">
   <link rel="stylesheet" href="./style.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
@@ -56,13 +61,25 @@
           名簿をDBに保存
         </button>
         <div class="input-row">
-          <div>
+          <div style="flex:1;">
             <label for="speecher">説教者</label>
-            <input type="search" id="speecher" list="sekkyoulist" tabindex="3" oninput="commit();">
+            <div class="combobox-wrapper">
+              <input type="text" id="speecher" tabindex="3" oninput="commit();" placeholder="名前を入力..."
+                autocomplete="off">
+              <select id="sekkyouSelect" onchange="syncSelectToInput('speecher', this);" tabindex="-1">
+                <option value="">▼</option>
+              </select>
+            </div>
           </div>
-          <div>
+          <div style="flex:1;">
             <label for="translator">通訳者</label>
-            <input type="search" id="translator" list="tuyakulist" tabindex="4" oninput="commit();">
+            <div class="combobox-wrapper">
+              <input type="text" id="translator" tabindex="4" oninput="commit();" placeholder="名前を入力..."
+                autocomplete="off">
+              <select id="tuyakuSelect" onchange="syncSelectToInput('translator', this);" tabindex="-1">
+                <option value="">▼</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -145,10 +162,11 @@
         </div>
 
         <div class="memory-tools">
-          <button onclick="append_history();" class="secondary-btn">聖句記憶</button>
-          <button onclick="clear_history();" class="danger-btn">記憶消去</button>
-          <select name="history" id="history" onchange="display_history(this,this.selectedIndex);">
-            <option value="">履歴を選択</option>
+          <button onclick="append_history();" class="memory-btn save-btn">📌 記憶</button>
+          <button onclick="clear_history();" class="memory-btn clear-btn">🗑️ 消去</button>
+          <select name="history" id="history" class="history-select"
+            onchange="display_history(this,this.selectedIndex);">
+            <option value="">📖 履歴</option>
           </select>
         </div>
 
@@ -394,23 +412,48 @@
   </div>
 
   <div id="servicerManagerModal" class="search-modal">
-    <div class="search-modal-content">
+    <div class="search-modal-content servicer-modal">
       <span class="search-modal-close" onclick="closeServicerManager();">&times;</span>
-      <h2>奉仕者リスト管理 (IndexedDB)</h2>
-      <div style="margin-bottom: 15px; display: flex; gap: 5px;">
-        <input type="text" id="newServicerName" placeholder="氏名">
-        <select id="newServicerRole">
-          <option value="sekkyou">説教者</option>
-          <option value="tuyaku">通訳者</option>
-        </select>
-        <button onclick="addServicerToDB();" class="primary-btn" style="width: auto;">追加</button>
+      <h2 class="servicer-modal-title">👥 奉仕者リスト管理</h2>
+
+      <div class="servicer-add-form">
+        <div class="servicer-form-row">
+          <div class="servicer-form-field" style="flex: 2;">
+            <label for="newServicerName">氏名</label>
+            <input type="text" id="newServicerName" placeholder="名前を入力...">
+          </div>
+          <div class="servicer-form-field" style="flex: 1;">
+            <label for="newServicerRole">役職</label>
+            <select id="newServicerRole">
+              <option value="sekkyou">説教者</option>
+              <option value="tuyaku">通訳者</option>
+            </select>
+          </div>
+          <div class="servicer-form-field servicer-form-action">
+            <button onclick="addServicerToDB();" class="primary-btn servicer-add-btn">＋ 追加</button>
+          </div>
+        </div>
       </div>
-      <div id="servicerListTable"
-        style="flex: 1; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px;"></div>
+
+      <div class="servicer-filter-tabs">
+        <button class="servicer-tab active" data-filter="all" onclick="filterServicerList('all', this);">すべて</button>
+        <button class="servicer-tab" data-filter="sekkyou" onclick="filterServicerList('sekkyou', this);">🎤
+          説教者</button>
+        <button class="servicer-tab" data-filter="tuyaku" onclick="filterServicerList('tuyaku', this);">🌐 通訳者</button>
+        <span id="servicerCount" class="servicer-count"></span>
+      </div>
+
+      <div class="servicer-table-header">
+        <span class="servicer-col-name">名前</span>
+        <span class="servicer-col-role">役職</span>
+        <span class="servicer-col-action">操作</span>
+      </div>
+      <div id="servicerListTable" class="servicer-list-container"></div>
+
       <div class="mgmt-actions">
-        <button onclick="exportServicers();" class="secondary-btn" style="flex:1;">エクスポート (JSON)</button>
-        <button onclick="document.getElementById('importFile').click();" class="secondary-btn"
-          style="flex:1;">インポート</button>
+        <button onclick="exportServicers();" class="secondary-btn mgmt-btn" style="flex:1;">📥 エクスポート</button>
+        <button onclick="document.getElementById('importFile').click();" class="secondary-btn mgmt-btn"
+          style="flex:1;">📤 インポート</button>
         <input type="file" id="importFile" style="display:none;" onchange="importServicers(event);">
       </div>
     </div>
@@ -432,6 +475,46 @@
         }
       });
     });
+  </script>
+
+  <!-- 更新通知バナー -->
+  <div id="update-banner" class="update-banner" style="display:none;">
+    <span>🔄 新しいバージョンが利用可能です</span>
+    <button onclick="location.reload();" class="update-btn">更新する</button>
+    <button onclick="this.parentElement.style.display='none';" class="update-dismiss">✕</button>
+  </div>
+
+  <!-- Service Worker 登録 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+          console.log('[PWA] Service Worker 登録成功');
+
+          // 更新チェック
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // 新しいバージョンが待機中 → バナー表示
+                document.getElementById('update-banner').style.display = 'flex';
+              }
+            });
+          });
+        }).catch((err) => {
+          console.warn('[PWA] Service Worker 登録失敗:', err);
+        });
+
+        // 別タブでSWが更新された場合にリロード
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // リロード済みでない場合のみ
+          if (!window.__swReloading) {
+            window.__swReloading = true;
+            location.reload();
+          }
+        });
+      });
+    }
   </script>
 </body>
 
