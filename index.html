@@ -141,6 +141,10 @@
               <input type="text" id="setu" tabindex="8" maxlength="3"
                 oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); memosetu(this.value); showBible();"
                 placeholder="節">
+              <button
+                onclick="document.getElementById('syou').value=''; document.getElementById('setu').value=''; memosyou(''); memosetu(''); showBible();"
+                style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#F44336; margin-left:8px;"
+                title="クリア">✖</button>
             </div>
           </div>
           <div class="verse-control">

@@ -1,219 +1,35 @@
+// ==========================================
+// 1. GLOBALS & STATE
+// ==========================================
 let display_win; // 統合されたウィンドウ
 
-// ウィンドウオープン
-function openwindow() {
-  display_win = window.open(
-    "./popwindow/display.html",
-    "display_win",
-    "width=800,height=600"
-  );
-}
-openwindow();
-
-// === データ定義 ===
 let Abbre = [
-  "創",
-  "出エジ",
-  "レビ",
-  "民",
-  "申",
-  "ヨシュ",
-  "士",
-  "ルツ",
-  "サム上",
-  "サム下",
-  "列王上",
-  "列王下",
-  "歴代上",
-  "歴代下",
-  "エズ",
-  "ネヘ",
-  "エス",
-  "ヨブ",
-  "詩",
-  "箴",
-  "伝",
-  "雅",
-  "イザ",
-  "エレ",
-  "哀",
-  "エゼ",
-  "ダニ",
-  "ホセ",
-  "ヨエ",
-  "アモ",
-  "オバ",
-  "ヨナ",
-  "ミカ",
-  "ナホ",
-  "ハバ",
-  "ゼパ",
-  "ハガ",
-  "ゼカ",
-  "マラ",
-  "マタ",
-  "マル",
-  "ルカ",
-  "ヨハ",
-  "使徒",
-  "ロマ",
-  "Ⅰコリ",
-  "Ⅱコリ",
-  "ガラ",
-  "エペ",
-  "ピリ",
-  "コロ",
-  "Ⅰテサ",
-  "Ⅱテサ",
-  "Ⅰテモ",
-  "Ⅱテモ",
-  "テト",
-  "ピレ",
-  "ヘブ",
-  "ヤコ",
-  "Ⅰペテ",
-  "Ⅱペテ",
-  "Ⅰヨハ",
-  "Ⅱヨハ",
-  "Ⅲヨハ",
-  "ユダ",
-  "黙",
+  "創", "出エジ", "レビ", "民", "申", "ヨシュ", "士", "ルツ", "サム上", "サム下",
+  "列王上", "列王下", "歴代上", "歴代下", "エズ", "ネヘ", "エス", "ヨブ", "詩",
+  "箴", "伝", "雅歌", "イザ", "エレ", "哀", "エゼ", "ダニ", "ホセ", "ヨエ", "アモ",
+  "オバ", "ヨナ", "ミカ", "ナホ", "ハバ", "ゼパ", "ハガ", "ゼカ", "マラ", "マタ",
+  "マル", "ルカ", "ヨハ", "使", "ロマ", "Ⅰコリ", "Ⅱコリ", "ガラ", "エペ", "ピリ",
+  "コロ", "Ⅰテサ", "Ⅱテサ", "Ⅰテモ", "Ⅱテモ", "テト", "ピレ", "ヘブ", "ヤコ",
+  "Ⅰペテ", "Ⅱペテ", "Ⅰヨハ", "Ⅱヨハ", "Ⅲヨハ", "ユダ", "黙",
 ];
-let en = [
-  "Gen.",
-  "Ex.",
-  "Lev.",
-  "Num.",
-  "Deut.",
-  "Josh.",
-  "Judg.",
-  "Ruth",
-  "1Sam.",
-  "2Sam.",
-  "1Kgs.",
-  "2Kgs.",
-  "1Chr.",
-  "2Chr.",
-  "Ezra",
-  "Neh.",
-  "Esth.",
-  "Job",
-  "Ps.",
-  "Prov.",
-  "Eccl.",
-  "Song",
-  "Is.",
-  "Jer.",
-  "Lam.",
-  "Ezek.",
-  "Dan.",
-  "Hos.",
-  "Joel",
-  "Amos",
-  "Obad.",
-  "Jon.",
-  "Mic.",
-  "Nah.",
-  "Hab.",
-  "Zeph.",
-  "Hag.",
-  "Zech.",
-  "Mal.",
-  "Mt.",
-  "Mk.",
-  "Lk.",
-  "Jn.",
-  "Acts",
-  "Rom.",
-  "1Cor.",
-  "2Cor.",
-  "Gal.",
-  "Eph.",
-  "Phil.",
-  "Col.",
-  "1Thes.",
-  "2Thes.",
-  "1Tim.",
-  "2Tim.",
-  "Tit.",
-  "Phlm.",
-  "Heb.",
-  "Jas.",
-  "1Pet.",
-  "2Pet.",
-  "1Jn.",
-  "2Jn.",
-  "3Jn.",
-  "Jude",
-  "Rev.",
-];
+
 let kr = [
-  "창",
-  "출",
-  "레",
-  "민",
-  "신",
-  "수",
-  "사",
-  "룻",
-  "삼상",
-  "삼하",
-  "왕상",
-  "왕하",
-  "대상",
-  "대하",
-  "스",
-  "느",
-  "에",
-  "욥",
-  "시",
-  "잠",
-  "전",
-  "아",
-  "사",
-  "렘",
-  "애",
-  "겔",
-  "단",
-  "호",
-  "욜",
-  "암",
-  "옵",
-  "욘",
-  "미",
-  "나",
-  "합",
-  "습",
-  "학",
-  "슥",
-  "말",
-  "마",
-  "막",
-  "눅",
-  "요",
-  "행",
-  "롬",
-  "고전",
-  "고후",
-  "갈",
-  "엡",
-  "빌",
-  "골",
-  "살전",
-  "살후",
-  "딤전",
-  "딤후",
-  "딛",
-  "몬",
-  "히",
-  "약",
-  "벧전",
-  "벧후",
-  "요일",
-  "요이",
-  "요삼",
-  "유",
-  "계",
+  "창", "출", "레", "민", "신", "수", "삿", "룻", "삼상", "삼하", "왕상", "왕하",
+  "대상", "대하", "스", "느", "에", "욥", "시", "잠", "전", "아", "사", "렘", "애",
+  "겔", "단", "호", "욜", "암", "옵", "욘", "미", "나", "합", "습", "학", "슥", "말",
+  "마", "막", "눅", "요", "행", "롬", "고전", "고후", "갈", "엡", "빌", "골", "살전",
+  "살후", "딤전", "딤후", "딛", "몬", "히", "약", "벧전", "벧후", "요일", "요이",
+  "요삼", "유", "계",
+];
+
+let en = [
+  "Gen.", "Ex.", "Lev.", "Num.", "Deut.", "Josh.", "Judg.", "Ruth", "1Sam.", "2Sam.",
+  "1Kgs.", "2Kgs.", "1Chr.", "2Chr.", "Ezra", "Neh.", "Esth.", "Job", "Ps.", "Prov.",
+  "Eccl.", "Song", "Is.", "Jer.", "Lam.", "Ezek.", "Dan.", "Hos.", "Joel", "Amos",
+  "Obad.", "Jonah", "Mic.", "Nah.", "Hab.", "Zeph.", "Hag.", "Zech.", "Mal.", "Matt.",
+  "Mark", "Luke", "John", "Acts", "Rom.", "1Cor.", "2Cor.", "Gal.", "Eph.", "Phil.",
+  "Col.", "1Thess.", "2Thess.", "1Tim.", "2Tim.", "Titus", "Philem.", "Heb.", "James",
+  "1Pet.", "2Pet.", "1John", "2John", "3John", "Jude", "Rev.",
 ];
 
 let bible = [];
@@ -221,282 +37,61 @@ let hymn = [];
 let servicerList = {};
 let currentLyricsSections = [];
 let currentTitleInfo = null;
+
 let currentMode = "title";
 
-// フル名称データ (略称に対応するフル名称)
-const FullNameJP = ["創世記","出エジプト記","レビ記","民数記","申命記","ヨシュア記","士師記","ルツ記","サムエル記上","サムエル記下","列王記上","列王記下","歴代志上","歴代志下","エズラ記","ネヘミヤ記","エステル記","ヨブ記","詩篇","箴言","伝道の書","雅歌","イザヤ書","エレミヤ書","哀歌","エゼキエル書","ダニエル書","ホセア書","ヨエル書","アモス書","オバデア書","ヨナ書","ミカ書","ナホム書","ハバクク書","ゼパニヤ書","ハガイ書","ゼカリヤ書","マラキ書","マタイによる福音書","マルコによる福音書","ルカによる福音書","ヨハネによる福音書","使徒行伝","ローマ人への手紙","コリント人への第一の手紙","コリント人への第二の手紙","ガラテヤ人への手紙","エペソ人への手紙","ピリピ人への手紙","コロサイ人への手紙","テサロニケ人への第一の手紙","テサロニケ人への第二の手紙","テモテへの第一の手紙","テモテへの第二の手紙","テトスへの手紙","ピレモンへの手紙","ヘブル人への手紙","ヤコブの手紙","ペテロの第一の手紙","ペテロの第二の手紙","ヨハネの第一の手紙","ヨハネの第二の手紙","ヨハネの第三の手紙","ユダの手紙","ヨハネの黙示録"];
-const FullNameCH = ["创世记","出埃及记","利未记","民数记","申命记","约书亚记","士师记","路得记","撒母耳记上","撒母耳记下","列王纪上","列王纪下","历代志上","历代志下","以斯拉记","尼希米记","以斯帖记","约伯记","诗篇","箴言","传道书","雅歌","以赛亚书","耶利米书","耶利米哀歌","以西结书","但以理书","何西阿书","约珥书","阿摩司书","俄巴底亚书","约拿书","弥迦书","那鸿书","哈巴谷书","西番雅书","哈该书","撒迦利亚书","玛拉基书","马太福音","马可福音","路加福音","约翰福音","使徒行传","罗马书","哥林多前书","哥林多后书","加拉太书","以弗所书","腓立比书","歌罗西书","帖撒罗尼迦前书","帖撒罗尼迦后书","提摩太前书","提摩太后书","提多书","腓利门书","希伯来书","雅各书","彼得前书","彼得后书","约翰一书","约翰二书","约翰三书","犹大书","启示录"];
-
-// 1. IndexedDB 制御
-let db;
-const request = indexedDB.open("TJC_Meeting_DB", 1);
-request.onupgradeneeded = (e) => {
-  db = e.target.result;
-  db.createObjectStore("servicers", { keyPath: "id", autoIncrement: true });
-};
-request.onsuccess = (e) => {
-  db = e.target.result;
-  updateDatalistFromDB();
-};
-
-function openServicerManager() {
-  const modal = document.getElementById("servicerManagerModal");
-  if (modal) {
-    modal.style.display = "block";
-    loadServicersList();
-  }
-}
-function closeServicerManager() { document.getElementById("servicerManagerModal").style.display = "none"; }
-
-// === トースト通知 ===
-function showToast(message, type) {
-  type = type || 'info';
-  const existing = document.getElementById('app-toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.id = 'app-toast';
-  toast.className = 'toast toast-' + type;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add('show'));
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-function addServicerToDB() {
-  const nameInput = document.getElementById("newServicerName");
-  const name = nameInput.value.trim();
-  const role = document.getElementById("newServicerRole").value;
-  if (!name) return;
-
-  const tx = db.transaction(["servicers"], "readwrite");
-  const store = tx.objectStore("servicers");
-  store.getAll().onsuccess = (e) => {
-    const all = e.target.result;
-    const maxOrder = all.length > 0 ? Math.max(...all.map(s => s.order || 0)) : 0;
-    store.add({ name, role, order: maxOrder + 1 });
-  };
-  tx.oncomplete = () => {
-    nameInput.value = "";
-    nameInput.focus();
-    showToast(`${name} を追加しました`, 'success');
-    loadServicersList();
-    updateDatalistFromDB();
-  };
-}
+let abbre = "", syou = "", setu = "";
+let disp_worship_font = 4.0, disp_jtitle_font = 5.0, disp_ctitle_font = 5.0, disp_person_font = 5.0;
 
 let currentServicerFilter = "all";
+let tempGASData = null; // GASから取得した一時的なデータを保持する変数
 
-// orderが未設定のレコードにorderを自動付与する
-function ensureOrderFields(allData, store) {
-  let needsFix = false;
-  let maxOrder = 0;
-  allData.forEach(s => { if (s.order) maxOrder = Math.max(maxOrder, s.order); });
-  allData.forEach(s => {
-    if (s.order === undefined || s.order === null) {
-      maxOrder++;
-      s.order = maxOrder;
-      if (store) store.put(s);
-      needsFix = true;
-    }
-  });
-  return needsFix;
-}
+// フル名称データ (略称に対応するフル名称)
+const FullNameJP = [
+  "創世記", "出エジプト記", "レビ記", "民数記", "申命記", "ヨシュア記", "士師記", "ルツ記", "サムエル記上", "サムエル記下",
+  "列王記上", "列王記下", "歴代志上", "歴代志下", "エズラ記", "ネヘミヤ記", "エステル記", "ヨブ記", "詩篇", "箴言",
+  "伝道の書", "雅歌", "イザヤ書", "エレミヤ書", "哀歌", "エゼキエル書", "ダニエル書", "ホセア書", "ヨエル書", "アモス書",
+  "オバデア書", "ヨナ書", "ミカ書", "ナホム書", "ハバクク書", "ゼパニヤ書", "ハガイ書", "ゼカリヤ書", "マラキ書",
+  "マタイによる福音書", "マルコによる福音書", "ルカによる福音書", "ヨハネによる福音書", "使徒行伝", "ローマ人への手紙",
+  "コリント人への第一の手紙", "コリント人への第二の手紙", "ガラテヤ人への手紙", "エペソ人への手紙", "ピリピ人への手紙",
+  "コロサイ人への手紙", "テサロニケ人への第一の手紙", "テサロニケ人への第二の手紙", "テモテへの第一の手紙",
+  "テモテへの第二の手紙", "テトスへの手紙", "ピレモンへの手紙", "ヘブル人への手紙", "ヤコブの手紙", "ペテロの第一の手紙",
+  "ペテロの第二の手紙", "ヨハネの第一の手紙", "ヨハネの第二の手紙", "ヨハネの第三の手紙", "ユダの手紙", "ヨハネの黙示録",
+];
 
-function loadServicersList(filter) {
-  if (filter !== undefined) currentServicerFilter = filter;
-  const container = document.getElementById("servicerListTable");
-  const countEl = document.getElementById("servicerCount");
-  container.innerHTML = "";
+const FullNameCH = [
+  "创世记", "出埃及记", "利未记", "民数记", "申命记", "约书亚记", "士师记", "路得记", "撒母耳记上", "撒母耳记下",
+  "列王纪上", "列王纪下", "历代志上", "历代志下", "以斯拉记", "尼希米记", "以斯帖记", "约伯记", "诗篇", "箴言",
+  "传道书", "雅歌", "以赛亚书", "耶利米书", "耶利米哀歌", "以西结书", "但以理书", "何西阿书", "约珥书", "阿摩司书",
+  "俄巴底亚书", "约拿书", "弥迦书", "那鸿书", "哈巴谷书", "西番雅书", "哈该书", "撒迦利亚书", "玛拉基书",
+  "马太福音", "马可福音", "路加福音", "约翰福音", "使徒行传", "罗马书", "哥林多前书", "哥林多后书", "加拉太书",
+  "以弗所书", "腓立比书", "歌罗西书", "帖撒罗尼迦前书", "帖撒罗尼迦后书", "提摩太前书", "提摩太后书", "提多书",
+  "腓利门书", "希伯来书", "雅各书", "彼得前书", "彼得后书", "约翰一书", "约翰二书", "约翰三书", "犹大书", "启示录",
+];
 
-  // readwriteで開き、order未設定のレコードを自動修正
-  const tx = db.transaction("servicers", "readwrite");
-  const store = tx.objectStore("servicers");
-  store.getAll().onsuccess = (e) => {
-    const allData = e.target.result;
-    ensureOrderFields(allData, store);
-    allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+// ==========================================
+// 2. INITIALIZATION & DATA LOADING
+// ==========================================
+let db;
+let lang_type_id = 'ja_ot';
+let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, searchResultsDiv;
 
-    const filtered = currentServicerFilter === "all"
-      ? allData
-      : allData.filter(s => s.role === currentServicerFilter);
+// ==========================================
+// 2. INITIALIZATION & DATA LOADING (CSV, GAS)
+// ==========================================
 
-    if (countEl) countEl.textContent = `${filtered.length} / ${allData.length} 件`;
-
-    if (filtered.length === 0) {
-      container.innerHTML = `<div class="servicer-empty">登録された奉仕者がいません</div>`;
-      return;
-    }
-
-    filtered.forEach((s, idx) => {
-      const roleLabel = s.role === 'sekkyou' ? '説教者' : '通訳者';
-      const roleClass = s.role === 'sekkyou' ? 'role-sekkyou' : 'role-tuyaku';
-      const safeName = (s.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      container.innerHTML += `<div class="servicer-item" data-role="${s.role}" data-id="${s.id}" id="servicer-row-${s.id}">
-        <span class="servicer-order-btns">
-          <button class="move-btn" onclick="moveServicer(${s.id}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
-          <button class="move-btn" onclick="moveServicer(${s.id}, 1)" ${idx === filtered.length - 1 ? 'disabled' : ''}>▼</button>
-        </span>
-        <span class="servicer-name">${s.name}</span>
-        <span class="servicer-role-cell"><span class="servicer-role-badge ${roleClass}">${roleLabel}</span></span>
-        <span class="servicer-action-cell">
-          <button onclick="editServicer(${s.id})" class="edit-btn" title="編集">✏️</button>
-          <button onclick="deleteServicer(${s.id}, '${safeName}')" class="del-btn" title="削除">🗑</button>
-        </span>
-      </div>`;
-    });
-  };
-}
-
-function editServicer(id) {
-  db.transaction("servicers").objectStore("servicers").get(id).onsuccess = (e) => {
-    const s = e.target.result;
-    if (!s) return;
-    const row = document.getElementById(`servicer-row-${id}`);
-    if (!row) return;
-    const safeName = (s.name || '').replace(/"/g, '&quot;');
-    const roleLabel = s.role === 'sekkyou' ? '説教者' : '通訳者';
-    const roleClass = s.role === 'sekkyou' ? 'role-sekkyou' : 'role-tuyaku';
-    row.classList.add("editing");
-    row.innerHTML = `
-      <span class="servicer-order-btns"></span>
-      <span class="servicer-name">
-        <input type="text" id="edit-name-${id}" value="${safeName}" class="edit-input"
-          onkeydown="if(event.key==='Enter')saveServicer(${id}); if(event.key==='Escape')loadServicersList();">
-      </span>
-      <span class="servicer-role-cell"><span class="servicer-role-badge ${roleClass}">${roleLabel}</span></span>
-      <span class="servicer-action-cell">
-        <button onclick="saveServicer(${id})" class="save-btn" title="保存">💾</button>
-        <button onclick="loadServicersList()" class="cancel-btn" title="キャンセル">✖</button>
-      </span>
-    `;
-    document.getElementById(`edit-name-${id}`).focus();
-  };
-}
-
-function saveServicer(id) {
-  const nameInput = document.getElementById(`edit-name-${id}`);
-  if (!nameInput) return;
-  const newName = nameInput.value.trim();
-  if (!newName) { showToast('名前を入力してください', 'error'); return; }
-
-  const tx = db.transaction(["servicers"], "readwrite");
-  const store = tx.objectStore("servicers");
-  store.get(id).onsuccess = (e) => {
-    const s = e.target.result;
-    if (!s) return;
-    s.name = newName;
-    store.put(s);
-  };
-  tx.oncomplete = () => {
-    showToast('更新しました', 'success');
-    loadServicersList();
-    updateDatalistFromDB();
-  };
-}
-
-function moveServicer(id, direction) {
-  const tx = db.transaction(["servicers"], "readwrite");
-  const store = tx.objectStore("servicers");
-  store.getAll().onsuccess = (e) => {
-    let all = e.target.result;
-    // まずorder未設定を修正
-    ensureOrderFields(all, store);
-    // フィルター適用中は同じロール内で並び替え
-    if (currentServicerFilter !== "all") {
-      all = all.filter(s => s.role === currentServicerFilter);
-    }
-    all.sort((a, b) => (a.order || 0) - (b.order || 0));
-    const idx = all.findIndex(s => s.id === id);
-    if (idx < 0) return;
-    const swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= all.length) return;
-    const tempOrder = all[idx].order;
-    all[idx].order = all[swapIdx].order;
-    all[swapIdx].order = tempOrder;
-    store.put(all[idx]);
-    store.put(all[swapIdx]);
-  };
-  tx.oncomplete = () => loadServicersList();
-}
-
-function filterServicerList(filter, btn) {
-  document.querySelectorAll(".servicer-tab").forEach(t => t.classList.remove("active"));
-  if (btn) btn.classList.add("active");
-  loadServicersList(filter);
-}
-
-function deleteServicer(id, name) {
-  if (!confirm(`「${name || ''}」を削除してもよろしいですか？`)) return;
-  const transaction = db.transaction(["servicers"], "readwrite");
-    transaction.objectStore("servicers").delete(id);
-
-    transaction.oncomplete = () => {
-        loadServicersList();     // モーダル内リスト更新
-        updateDatalistFromDB();  // 入力欄の候補（datalist/select）を更新
-    };
-}
-
-// モードに合わせてUIを更新（ボタンの色など）
-function updateModeUI(mode) {
-  const btnTitle = document.getElementById("btn-mode-title");
-  const btnBible = document.getElementById("btn-mode-bible");
-  const btnHymn  = document.getElementById("btn-mode-hymn");
-  const cardInfo = document.querySelector(".info-card");
-  const cardHymn = document.querySelector(".hymn-card");
-  const cardBible = document.querySelector(".bible-card");
-
-  if (btnTitle) btnTitle.classList.remove("primary");
-  if (btnBible) btnBible.classList.remove("primary");
-  if (btnHymn)  btnHymn.classList.remove("primary");
-  if (cardInfo) cardInfo.style.border = "none";
-  if (cardHymn) cardHymn.style.border = "none";
-  if (cardBible) cardBible.style.border = "none";
-
-  if (mode === "title") {
-    if (btnTitle) {
-      btnTitle.classList.add("primary");
-      cardInfo.style.border = "3px solid #FF8C00";
-    }
-  } else if (mode === "bible") {
-    if (btnBible) {
-      btnBible.classList.add("primary");
-      cardBible.style.border = "3px solid #FF8C00";
-    }
-  } else if (mode === "hymn") {
-    if (cardHymn) {
-      btnHymn.classList.add("primary");
-      cardHymn.style.border = "3px solid #FF8C00";
-    }
-  }
-}
-
-// 画面切り替え
-function switchScreen(mode) {
-  if (!display_win || display_win.closed) {
-    openwindow();
-    return;
-  }
-
-  currentMode = mode;
-  display_win.document.body.className = mode + "-mode";
-
-  updateModeUI(mode);
-
-  if (mode === "bible" && display_win.fitHeader) {
-    setTimeout(() => {
-      display_win.fitHeader();
-      display_win.fitTextToContainer();
-    }, 50);
-  }
+function updateProgress(percent, message) {
+  const bar = document.getElementById("progress-bar");
+  const detail = document.getElementById("loading-detail");
+  if (bar) bar.style.width = percent + "%";
+  if (detail) detail.innerText = message;
 }
 
 function loadCSVAsync(url) {
   return new Promise((resolve, reject) => {
-    const req = new XMLHttpRequest();
+    let req = new XMLHttpRequest();
     req.open("get", url, true);
+    req.overrideMimeType("text/plain; charset=utf-8");
     req.onload = () =>
       req.status >= 200 && req.status < 300
         ? resolve(req.responseText)
@@ -506,15 +101,21 @@ function loadCSVAsync(url) {
   });
 }
 
-function updateProgress(percent, message) {
-  const bar = document.getElementById("progress-bar");
-  const detail = document.getElementById("loading-detail");
-  if (bar) bar.style.width = percent + "%";
-  if (detail) detail.innerText = message;
+function convertbibleCSVtoArray(str) {
+  let tmp = str.split("\n");
+  for (let i = 0; i < tmp.length; ++i) bible[i] = tmp[i].split(",");
 }
 
-// GASから取得した一時的なデータを保持する変数
-let tempGASData = null;
+function converthymnCSVtoArray(str) {
+  let tmp = str.split("\n");
+  const hymnlist = document.getElementById("hymnlist");
+  for (let i = 1; i < tmp.length; ++i) {
+    hymn[i] = tmp[i].split(",");
+    let option = document.createElement("option");
+    option.value = hymn[i][0].trim();
+    hymnlist.appendChild(option);
+  }
+}
 
 async function loadInitialData() {
   const overlay = document.getElementById("loading-overlay");
@@ -531,18 +132,17 @@ async function loadInitialData() {
         `${GAS_WEB_APP_URL}?church=${encodeURIComponent(churchName)}`
       );
       if (response.ok) {
-        recievedData = await response.json();
+        let recievedData = await response.json();
         if (recievedData) {
           servicerList = recievedData;
-
           tempGASData = recievedData; // データを一時保存
-        // 登録ボタンをUI上に表示させる（ID: gas-import-btn はHTMLに作成）
-        const isImported = localStorage.getItem(`imported`);
-        const importBtn = document.getElementById("gas-import-btn");
+          // 登録ボタンをUI上に表示させる（ID: gas-import-btn はHTMLに作成）
+          const isImported = localStorage.getItem(`imported`);
+          const importBtn = document.getElementById("gas-import-btn");
 
-        if (importBtn && !isImported) {
-          importBtn.style.display = "inline-block";
-        }
+          if (importBtn && !isImported) {
+            importBtn.style.display = "inline-block";
+          }
 
           const sekkyoulist = document.getElementById("sekkyoulist");
           const tuyakulist = document.getElementById("tuyakulist");
@@ -613,32 +213,361 @@ function importGASDataToDB() {
   };
 }
 
-function convertbibleCSVtoArray(str) {
-  let tmp = str.split("\n");
-  for (let i = 0; i < tmp.length; ++i) bible[i] = tmp[i].split(",");
+// ==========================================
+// 3. DATABASE CONTROL (IndexedDB)
+// ==========================================
+
+function initDB() {
+  const request = indexedDB.open('TJC_Meeting_DB', 1);
+  request.onupgradeneeded = function (e) {
+    db = e.target.result;
+    if (!db.objectStoreNames.contains("servicers")) {
+      const objectStore = db.createObjectStore("servicers", { keyPath: "id", autoIncrement: true });
+      objectStore.createIndex("role", "role", { unique: false });
+      // 追加: orderフィールドのインデックス
+      objectStore.createIndex("order", "order", { unique: false });
+    }
+  };
+  request.onsuccess = function (e) {
+    db = e.target.result;
+    updateDatalistFromDB();
+  };
 }
 
-function converthymnCSVtoArray(str) {
-  let tmp = str.split("\n");
-  const hymnlist = document.getElementById("hymnlist");
-  for (let i = 1; i < tmp.length; ++i) {
-    hymn[i] = tmp[i].split(",");
-    let option = document.createElement("option");
-    option.value = hymn[i][0].trim();
-    hymnlist.appendChild(option);
+function ensureOrderFields(allData, store) {
+  let modified = false;
+  // 最大のorderを見つける（新規追加時の基準用）
+  let maxOrder = 0;
+
+  allData.forEach(item => {
+    if (item.order && item.order > maxOrder) {
+      maxOrder = item.order;
+    }
+  });
+
+  allData.forEach(item => {
+    if (typeof item.order === 'undefined') {
+      maxOrder += 10;
+      item.order = maxOrder;
+      store.put(item);
+      modified = true;
+    }
+  });
+  return modified;
+}
+
+// 入力候補（select）を最新の状態に更新する関数
+function updateDatalistFromDB() {
+  const sekkyoulist = document.getElementById("sekkyoulist");
+  const tuyakulist = document.getElementById("tuyakulist");
+  const sekkyouSelect = document.getElementById("sekkyouSelect");
+  const tuyakuSelect = document.getElementById("tuyakuSelect");
+
+  // 一旦クリア
+  if (sekkyoulist) sekkyoulist.innerHTML = "";
+  if (tuyakulist) tuyakulist.innerHTML = "";
+  if (sekkyouSelect) sekkyouSelect.innerHTML = '<option value="">▼</option>';
+  if (tuyakuSelect) tuyakuSelect.innerHTML = '<option value="">▼</option>';
+
+  const transaction = db.transaction("servicers", "readonly");
+  const store = transaction.objectStore("servicers");
+
+  store.getAll().onsuccess = (e) => {
+    const data = e.target.result;
+    data.sort((a, b) => (a.order || 9999) - (b.order || 9999));
+    data.forEach(s => {
+      // datalist用のoption作成（後方互換）
+      const listOption = document.createElement("option");
+      listOption.value = s.name;
+      // combobox用のoption作成
+      const selectOption = document.createElement("option");
+      selectOption.value = s.name;
+      selectOption.textContent = s.name;
+
+      if (s.role === "sekkyou") {
+        if (sekkyoulist) sekkyoulist.appendChild(listOption);
+        if (sekkyouSelect) sekkyouSelect.appendChild(selectOption);
+      } else if (s.role === "tuyaku") {
+        if (tuyakulist) tuyakulist.appendChild(listOption);
+        if (tuyakuSelect) tuyakuSelect.appendChild(selectOption);
+      }
+    });
+
+    // 初期化時、すでに入力欄にCookie等で値が入っている場合
+    // comboboxの選択状態を同期する
+    syncInputToSelect("speecher", "sekkyouSelect");
+    syncInputToSelect("translator", "tuyakuSelect");
+  };
+}
+
+// Selectが変更されたときInputに反映
+function syncSelectToInput(inputId, selectElem) {
+  const input = document.getElementById(inputId);
+  if (selectElem.value) {
+    input.value = selectElem.value;
+    commit(); // 値が変わったのでタイトル画面にも反映
   }
+}
+
+// Inputの値に合わせてSelectの初期選択状態を合わせる
+function syncInputToSelect(inputId, selectId) {
+  const inputVal = document.getElementById(inputId).value;
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  // 一致するoptionがあれば選択状態にする
+  for (let i = 0; i < select.options.length; i++) {
+    if (select.options[i].value === inputVal && inputVal !== "") {
+      select.selectedIndex = i;
+      return;
+    }
+  }
+  select.selectedIndex = 0; // 見つからなければデフォルト
+}
+
+function addServicerToDB() {
+  const nameInput = document.getElementById("newServicerName");
+  const roleSelect = document.getElementById("newServicerRole");
+  const name = nameInput.value.trim();
+  const role = roleSelect.value;
+  if (!name) {
+    showToast("名前を入力してください", "error");
+    return;
+  }
+  const transaction = db.transaction(["servicers"], "readwrite");
+  const store = transaction.objectStore("servicers");
+  const addRequest = store.add({ name, role });
+
+  addRequest.onsuccess = (e) => {
+    nameInput.value = "";
+    showToast("追加しました", "success");
+    loadServicersList(currentServicerFilter);
+    updateDatalistFromDB();
+  };
+  addRequest.onerror = (e) => {
+    // 重複エラーなどの処理が必要なら追加
+    showToast("追加に失敗しました", "error");
+  };
+}
+
+function loadServicersList(filter) {
+  const tbody = document.getElementById("servicerListTable");
+  tbody.innerHTML = "";
+  const transaction = db.transaction("servicers", "readwrite");
+  const store = transaction.objectStore("servicers");
+
+  store.getAll().onsuccess = (e) => {
+    const allData = e.target.result;
+
+    if (ensureOrderFields(allData, store)) {
+        // 更新があった場合は、再度読み込み直す
+        loadServicersList(filter);
+        return;
+    }
+
+    // orderでソート
+    allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    let count = 0;
+    allData.forEach(s => {
+      if (filter === "all" || filter === s.role) {
+        count++;
+        const row = document.createElement("div");
+        row.className = "servicer-list-row";
+        row.id = `servicer-row-${s.id}`;
+
+        const roleLabel = s.role === "sekkyou" ? "🎤 説教者" : "🌐 通訳者";
+        const roleClass = s.role === "sekkyou" ? "primary-text" : "secondary-text";
+
+        row.innerHTML = `
+          <div class="servicer-col-name servicer-name-display">${escapeHTML(s.name)}</div>
+          <div class="servicer-col-role ${roleClass}"><small>${roleLabel}</small></div>
+          <div class="servicer-col-action">
+            <button onclick="moveServicer(${s.id}, 'up')" class="icon-btn" title="上へ">⬆️</button>
+            <button onclick="moveServicer(${s.id}, 'down')" class="icon-btn" title="下へ">⬇️</button>
+            <button onclick="editServicer(${s.id})" class="icon-btn" title="編集">✏️</button>
+            <button onclick="deleteServicer(${s.id}, '${s.name}')" class="icon-btn danger-text" title="削除">🗑️</button>
+          </div>
+        `;
+        tbody.appendChild(row);
+      }
+    });
+
+    document.getElementById("servicerCount").innerText = `${count} 名`;
+  };
+}
+
+function editServicer(id) {
+  const row = document.getElementById(`servicer-row-${id}`);
+  const nameDiv = row.querySelector(".servicer-name-display");
+  const currentName = nameDiv.innerText;
+
+  row.innerHTML = `
+    <div class="servicer-col-name" style="flex: 2;">
+      <input type="text" id="edit-name-${id}" value="${escapeHTML(currentName)}" style="width: 100%; padding: 4px; box-sizing: border-box;">
+    </div>
+    <div class="servicer-col-role"></div>
+    <div class="servicer-col-action">
+      <button onclick="saveServicer(${id})" class="primary-btn p-1" style="width: auto;">保存</button>
+      <button onclick="loadServicersList(currentServicerFilter)" class="outline-btn p-1" style="width: auto; margin-bottom: 0;">取消</button>
+    </div>
+  `;
+}
+
+function saveServicer(id) {
+  const nameInput = document.getElementById(`edit-name-${id}`);
+  const newName = nameInput.value.trim();
+
+  if (!newName) {
+    showToast("名前を入力してください", "error");
+    return;
+  }
+
+  const transaction = db.transaction(["servicers"], "readwrite");
+  const store = transaction.objectStore("servicers");
+
+  store.get(id).onsuccess = (e) => {
+    const data = e.target.result;
+    data.name = newName;
+    store.put(data);
+  };
+
+  transaction.oncomplete = () => {
+    showToast("更新しました", "success");
+    loadServicersList(currentServicerFilter);
+    updateDatalistFromDB();
+  };
+}
+
+function moveServicer(id, direction) {
+    const transaction = db.transaction(["servicers"], "readwrite");
+    const store = transaction.objectStore("servicers");
+
+    store.getAll().onsuccess = (e) => {
+        let allData = e.target.result;
+        allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const currentIndex = allData.findIndex(item => item.id === id);
+        if (currentIndex === -1) return;
+
+        if (direction === 'up' && currentIndex > 0) {
+            // 上と入れ替え
+            const currentItem = allData[currentIndex];
+            const prevItem = allData[currentIndex - 1];
+
+            const tempOrder = currentItem.order;
+            currentItem.order = prevItem.order;
+            prevItem.order = tempOrder;
+
+            store.put(currentItem);
+            store.put(prevItem);
+
+        } else if (direction === 'down' && currentIndex < allData.length - 1) {
+            // 下と入れ替え
+            const currentItem = allData[currentIndex];
+            const nextItem = allData[currentIndex + 1];
+
+            const tempOrder = currentItem.order;
+            currentItem.order = nextItem.order;
+            nextItem.order = tempOrder;
+
+            store.put(currentItem);
+            store.put(nextItem);
+        }
+    };
+
+    transaction.oncomplete = () => {
+        loadServicersList(currentServicerFilter);
+        updateDatalistFromDB();
+    };
+}
+
+function deleteServicer(id, name) {
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  const transaction = db.transaction(["servicers"], "readwrite");
+  const store = transaction.objectStore("servicers");
+  store.delete(id);
+
+  transaction.oncomplete = () => {
+    showToast("削除しました", "info");
+    loadServicersList(currentServicerFilter);
+    updateDatalistFromDB();
+  };
+}
+
+function exportServicers() {
+  const transaction = db.transaction(["servicers"], "readonly");
+  const store = transaction.objectStore("servicers");
+  store.getAll().onsuccess = (e) => {
+    const data = e.target.result;
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "servicers_backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("エクスポートしました", "success");
+  };
+}
+
+function importServicers(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error("不正なフォーマットです");
+
+      const transaction = db.transaction(["servicers"], "readwrite");
+      const store = transaction.objectStore("servicers");
+
+      data.forEach(item => {
+        if (item.name && item.role) {
+          // IDは自動インクリメントさせるため削除するか維持するか要検討だがここではIDを含めない
+          store.add({ name: item.name, role: item.role, order: item.order || new Date().getTime() });
+        }
+      });
+
+      transaction.oncomplete = () => {
+        showToast("インポートしました", "success");
+        loadServicersList(currentServicerFilter);
+        updateDatalistFromDB();
+      };
+    } catch (err) {
+      showToast("インポートに失敗しました", "error");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ""; // リセット
+}
+
+// ==========================================
+// 4. DATA PROCESSING & UTILITIES
+// ==========================================
+
+function escapeHTML(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/[&<>"']/g, function (match) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[match];
+  });
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
   if (!lyricsArea) return;
 
-  // 1. 操作パネル（手元）のボタンをクリア
   lyricsArea.innerHTML = "";
   currentTitleInfo = null;
   currentLyricsSections = [];
 
-  // 2. スクリーン表示側（display.html）の内容もクリア
   if (display_win && !display_win.closed) {
     const doc = display_win.document;
     const hOutput = doc.getElementById("h_output");
@@ -647,10 +576,8 @@ async function recievehymn(value) {
     if (hBgNum) hBgNum.innerText = "";
   }
 
-  // 入力が空、または存在しない場合はここで終了（画面は空白のまま）
   if (!value) return;
 
-  // 3. hymn.csv から該当する讃美歌情報を探す
   for (let n = 1; n < hymn.length; n++) {
     if (hymn[n][0].trim() === value.trim()) {
       currentTitleInfo = hymn[n];
@@ -658,7 +585,6 @@ async function recievehymn(value) {
     }
   }
 
-  // リストに存在しない場合は終了
   if (!currentTitleInfo) return;
 
   try {
@@ -668,14 +594,12 @@ async function recievehymn(value) {
       currentLyricsSections = parseLyrics(text);
 
       if (currentLyricsSections.length > 0) {
-        // ボタンの生成
         let buttonsHTML = `<button onclick="switchScreen('hymn'); showTitleInPopup(); updateActiveButton(this);" class="lyric-btn" id="btn-title">タイトル</button>`;
         currentLyricsSections.forEach((sec, index) => {
           buttonsHTML += `<button onclick="switchScreen('hymn'); showLyricsVerse(${index}); updateActiveButton(this);" class="lyric-btn">${sec.label}</button>`;
         });
         lyricsArea.innerHTML = buttonsHTML;
 
-        // 正常なデータがある時のみ、スクリーンにタイトルを表示
         switchScreen("hymn");
         showTitleInPopup();
         const titleBtn = document.getElementById("btn-title");
@@ -728,7 +652,366 @@ function parseLyrics(text) {
     });
   return sections;
 }
+function saveCookies() {
+  document.cookie = "worship=" + document.getElementById("worship").value;
+  document.cookie = "jtitle=" + document.getElementById("jtitle").value;
+  document.cookie = "ctitle=" + document.getElementById("ctitle").value;
+  document.cookie = "speecher=" + document.getElementById("speecher").value;
+  document.cookie = "translator=" + document.getElementById("translator").value;
+  document.cookie = "hymn=" + document.getElementById("hymn").value;
+  document.cookie = "hymn2nd=" + document.getElementById("hymn2nd").value;
+}
 
+// ==========================================
+// 5. UI EVENT LOGIC & MODALS
+// ==========================================
+
+function countVersesInChapter() {
+  const display = document.getElementById("verse_count_display");
+  const syouInput = document.getElementById("syou").value;
+  if (!display) return;
+  if (abbre === "" || !syouInput) {
+    display.innerText = "";
+    return;
+  }
+  const prefix = Abbre[abbre] + syouInput + ":";
+  let count = 0;
+  for (let i = 1; i < bible.length; i++)
+    if (bible[i] && bible[i][3] && bible[i][3].indexOf(prefix) === 0) count++;
+  display.innerText = count > 0 ? "この章の節数: " + count : "";
+}
+
+function memobible(num) {
+  abbre = num;
+  document.getElementById("syou").value = "";
+  document.getElementById("setu").value = "";
+  countVersesInChapter();
+}
+function memosyou(num) {
+  syou = num;
+  document.getElementById("setu").value = "";
+  countVersesInChapter();
+}
+function memosetu(num) {
+  setu = num;
+}
+
+function openwindow() {
+  if (display_win && !display_win.closed) {
+    display_win.focus();
+  } else {
+    display_win = window.open(
+      "./popwindow/display.html",
+      "display",
+      "width=1500,height=800,scrollbars=yes,resizable=yes"
+    );
+  }
+}
+
+function openServicerManager() {
+  const modal = document.getElementById("servicerManagerModal");
+  if (modal) {
+    modal.style.display = "block";
+    loadServicersList("all");
+  }
+}
+
+function closeServicerManager() {
+  const modal = document.getElementById("servicerManagerModal");
+  if (modal) modal.style.display = "none";
+}
+function filterServicerList(filter, btn) {
+  currentServicerFilter = filter;
+  document.querySelectorAll(".servicer-tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  loadServicersList(filter);
+}
+function updateModeUI(mode) {
+  const btnTitle = document.getElementById("btn-mode-title");
+  const btnHymn = document.getElementById("btn-mode-hymn");
+  const btnBible = document.getElementById("btn-mode-bible");
+
+  if (btnTitle) btnTitle.classList.remove("primary");
+  if (btnHymn) btnHymn.classList.remove("primary");
+  if (btnBible) btnBible.classList.remove("primary");
+
+  if (mode === "title" && btnTitle) btnTitle.classList.add("primary");
+  else if (mode === "hymn" && btnHymn) btnHymn.classList.add("primary");
+  else if (mode === "bible" && btnBible) btnBible.classList.add("primary");
+}
+
+function updateActiveButton(activeBtn) {
+  const buttons = document.querySelectorAll(".lyric-btn");
+  buttons.forEach((btn) => btn.classList.remove("active"));
+  if (activeBtn) activeBtn.classList.add("active");
+}
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.innerText = message;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.padding = '12px 24px';
+  toast.style.borderRadius = '8px';
+  toast.style.color = 'white';
+  toast.style.fontWeight = 'bold';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.zIndex = '9999';
+  toast.style.transition = 'opacity 0.3s ease';
+
+  if (type === 'success') toast.style.backgroundColor = '#4CAF50';
+  else if (type === 'error') toast.style.backgroundColor = '#F44336';
+  else if (type === 'info') toast.style.backgroundColor = '#2196F3';
+
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+  setTimeout(() => { document.body.removeChild(toast); }, 3300);
+}
+function openBibleSearchModal() {
+  if (bibleSearchModal) bibleSearchModal.style.display = "block";
+  if (searchInput) searchInput.value = "";
+  if (searchResultsDiv)
+    searchResultsDiv.innerHTML = "<p>検索キーワードを入力して「検索」ボタンを押してください。</p>";
+
+  if (typeof bible === "undefined" || !Array.isArray(bible) || bible.length === 0) {
+    if (searchResultsDiv)
+      searchResultsDiv.innerHTML = '<p style="color: red; font-weight: bold;">エラー: 聖書データが正しく読み込まれていません。</p>';
+    if (searchInput) searchInput.disabled = true;
+    if (executeSearchBtn) executeSearchBtn.disabled = true;
+  } else {
+    if (searchInput) searchInput.disabled = false;
+    if (executeSearchBtn) executeSearchBtn.disabled = false;
+  }
+}
+
+function closeBibleSearchModal() {
+  if (bibleSearchModal) bibleSearchModal.style.display = "none";
+}
+
+function performSearch() {
+  const query = searchInput.value.trim();
+  if (!query) {
+    searchResultsDiv.innerHTML = "<p>検索キーワードを入力してください。</p>";
+    return;
+  }
+  const lowerCaseQuery = query.toLowerCase();
+  const results = bible.filter((rowArray) => {
+    const chineseReference = (rowArray[2] || "").toLowerCase();
+    const japaneseReference = (rowArray[4] || "").toLowerCase();
+    return chineseReference.includes(lowerCaseQuery) || japaneseReference.includes(lowerCaseQuery);
+  });
+  displayResults(results, query);
+}
+
+function displayResults(results, query) {
+  searchResultsDiv.innerHTML = "";
+  if (results.length === 0) {
+    searchResultsDiv.innerHTML = "<p>「" + escapeHTML(query) + "」に一致する情報は見つかりませんでした。</p>";
+    return;
+  }
+  const highlight = (text, queryToHighlight) => {
+    if (!text || !queryToHighlight) return escapeHTML(text || "");
+    const regex = new RegExp("(" + escapeRegExp(queryToHighlight) + ")", "gi");
+    return escapeHTML(text).replace(regex, '<span class="highlight">$1</span>');
+  };
+  results.forEach((rowArray) => {
+    const resultItem = document.createElement("div");
+    resultItem.className = "result-item";
+    const chFullText = rowArray[1] || "";
+    const chReference = rowArray[2] || "";
+    const jpFullText = rowArray[3] || "";
+    const jpReference = rowArray[4] || "";
+    let displayReferenceText =
+      chReference && jpReference
+        ? chReference === jpReference ? chReference : `${chReference} / ${jpReference}`
+        : chReference || jpReference || "参照情報なし";
+    let contentHTML = `<p class="verse-ref">${highlight(displayReferenceText, query)}</p>`;
+    if (jpFullText) contentHTML += `<p><span class="lang-label">日本語:</span> ${highlight(jpFullText, query)}</p>`;
+    if (chFullText) contentHTML += `<p><span class="lang-label">中文:</span> ${highlight(chFullText, query)}</p>`;
+    const safeRef = (rowArray[3] || '').replace(/'/g, "\\'");
+    contentHTML += `<button class="apply-verse-btn" onclick="applySearchResult('${safeRef}')">➜ 反映</button>`;
+    resultItem.innerHTML = contentHTML;
+    searchResultsDiv.appendChild(resultItem);
+  });
+}
+
+function applySearchResult(jpRef) {
+  if (!jpRef) return;
+  for (let n = 1; n < bible.length; n++) {
+    if (bible[n][3] === jpRef) {
+      for (let i = Abbre.length - 1; i >= 0; i--) {
+        if (jpRef.startsWith(Abbre[i])) {
+          const rest = jpRef.substring(Abbre[i].length);
+          const parts = rest.split(':');
+          if (parts.length === 2) {
+            abbre = i;
+            syou = parts[0];
+            setu = parts[1];
+            document.getElementById('abbre_memo').innerHTML = Abbre[i];
+            document.getElementById('syou').value = syou;
+            document.getElementById('setu').value = setu;
+            showBible();
+            checkwindow('bible');
+            countVersesInChapter();
+            closeBibleSearchModal();
+            showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
+            return;
+          }
+        }
+      }
+      break;
+    }
+  }
+  showToast('参照情報を解析できませんでした', 'error');
+}
+function active_abbre(type) {
+  const switch_lang = document.querySelectorAll(".switch");
+  if (switch_lang[0].checked) {
+    const id_name = "ja_" + type;
+    document.getElementById(id_name).style.left = "0";
+    lang_type_id = id_name;
+  }
+  if (switch_lang[1].checked) {
+    const id_name = "ch_" + type;
+    document.getElementById(id_name).style.left = "0";
+    lang_type_id = id_name;
+  }
+}
+
+function abbre_btn(num, value) {
+  memobible(num);
+  document.getElementById("abbre_memo").innerHTML = value;
+  document.getElementById(lang_type_id).style.left = "-100vw";
+}
+
+function display_history(element, index) {
+  if (index == 0) return;
+  const arr = element[index].value.split(",");
+  abbre = arr[0];
+  syou = arr[1];
+  setu = arr[2];
+  const text = element[index].innerHTML;
+  abbre_btn(abbre, text);
+  document.getElementById("syou").value = syou;
+  document.getElementById("setu").value = setu;
+  showBible();
+  element[0].selected = true;
+  countVersesInChapter();
+}
+
+function append_history() {
+  if (abbre === "" || syou === "" || setu === "") {
+    showToast('聖書箇所を選択してください', 'error');
+    return;
+  }
+  const history = document.getElementById("history");
+  const option = document.createElement("option");
+  option.value = abbre + "," + syou + "," + setu;
+  option.innerHTML = document.getElementById("abbre_memo").innerHTML;
+  option.label = document.getElementById("abbre_memo").innerHTML + " " + syou + ":" + setu;
+  for (let n = 1; n < history.length; n++) {
+    if (history[n].label == option.label) {
+      history[n].remove();
+      break;
+    }
+  }
+  history[0].after(option);
+  showToast('📌 聖句を記憶しました', 'success');
+}
+
+function clear_history() {
+  const history = document.getElementById("history");
+  if (history.length <= 1) {
+    showToast('消去する履歴がありません', 'error');
+    return;
+  }
+  if (!confirm('履歴をすべて消去しますか？')) return;
+  history.innerHTML = `<option value="">📖 履歴</option>`;
+  showToast('🗑️ 履歴を消去しました', 'info');
+}
+
+// ==========================================
+// 6. DISPLAY POPUP CONTROL & SYNCHRONIZATION
+// ==========================================
+
+function switchScreen(mode) {
+  if (!display_win || display_win.closed) return;
+  currentMode = mode;
+  updateModeUI(mode);
+  const dBody = display_win.document.body;
+  dBody.classList.remove("bible-mode", "title-mode", "hymn-mode");
+  dBody.classList.add(mode + "-mode");
+
+  const views = ["bible-view", "title-view", "hymn-view"];
+  views.forEach((v) => {
+    const el = display_win.document.getElementById(v);
+    if (el) el.style.display = "none";
+  });
+  const viewEl = display_win.document.getElementById(mode + "-view");
+  if (viewEl) viewEl.style.display = "";
+}
+
+function checkwindow(mode) {
+  let targetMode = "bible";
+  if (mode === "bible_win" || mode === "bible") targetMode = "bible";
+  if (mode === "title_win" || mode === "title") targetMode = "title";
+  if (mode === "hymn_win" || mode === "hymn") targetMode = "hymn";
+
+  if (display_win && !display_win.closed) {
+    switchScreen(targetMode);
+    if (targetMode === "bible") showBible();
+    if (targetMode === "title") commit();
+    display_win.focus();
+  } else {
+    openwindow();
+    display_win.onload = () => {
+      switchScreen(targetMode);
+      if (targetMode === "bible") showBible();
+      if (targetMode === "title") commit();
+    };
+    display_win.focus();
+  }
+}
+
+function showBible() {
+  if (!display_win || display_win.closed) return;
+  let where = Abbre[abbre] + syou + ":" + setu;
+  const outDiv = display_win.document.getElementById("b_out");
+  for (let n = 1; n < bible.length; n++) {
+    if (bible[n][3] == where) {
+      outDiv.innerHTML = `<div id="master">
+        <div id="jp">
+          <div><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
+          <div class="target_jp">${bible[n][4]}</div>
+        </div>
+        <div id="ch">
+          <div><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
+          <div class="target_ch">${bible[n][2]}</div>
+        </div>
+      </div>`;
+      break;
+    } else {
+      outDiv.innerHTML = "";
+    }
+  }
+  commit();
+}
+
+function showTitleInPopup() {
+  if (!display_win || display_win.closed || !currentTitleInfo) return;
+  if (currentMode !== "hymn") switchScreen("hymn");
+  const doc = display_win.document;
+  const outputDiv = doc.getElementById("h_output");
+  const bgNumDiv = doc.getElementById("h_bg_number");
+
+  if (bgNumDiv) bgNumDiv.innerText = ""; // 背景番号クリア
+
+  let wrap = "<div><p id='h_title_text'>" + currentTitleInfo[0] + "番</p>";
+  wrap += "<p id='h_ch_text'><<" + currentTitleInfo[1] + ">></p>";
+  wrap += "<p id='h_jp_text'><<" + currentTitleInfo[2] + ">></p>";
+  wrap += "</div>";
+  if (outputDiv) outputDiv.innerHTML = wrap;
+}
 function showLyricsVerse(index) {
   if (!display_win || display_win.closed || !currentTitleInfo) return;
   if (currentMode !== "hymn") switchScreen("hymn");
@@ -740,7 +1023,7 @@ function showLyricsVerse(index) {
   const outputDiv = doc.getElementById("h_output");
   const bgNumDiv = doc.getElementById("h_bg_number");
 
-  if (bgNumDiv) bgNumDiv.innerText = verseLabel; // 背景番号更新
+  if (bgNumDiv) bgNumDiv.innerText = verseLabel;
 
   if (!outputDiv) return;
 
@@ -774,8 +1057,7 @@ function showLyricsVerse(index) {
 
 function adjustFontSizeForLyrics(container, element) {
   if (!container || !element) return;
-  let size = 8,
-    loopCount = 0;
+  let size = 8, loopCount = 0;
   element.style.fontSize = size + "rem";
   while (
     (element.scrollWidth > container.clientWidth ||
@@ -788,122 +1070,13 @@ function adjustFontSizeForLyrics(container, element) {
     loopCount++;
   }
 }
-
-function showTitleInPopup() {
-  if (!display_win || display_win.closed || !currentTitleInfo) return;
-  if (currentMode !== "hymn") switchScreen("hymn");
-  const doc = display_win.document;
-  const outputDiv = doc.getElementById("h_output");
-  const bgNumDiv = doc.getElementById("h_bg_number");
-
-  if (bgNumDiv) bgNumDiv.innerText = ""; // 背景番号クリア
-
-  let wrap = "<div><p id='h_title_text'>" + currentTitleInfo[0] + "番</p>";
-  wrap += "<p id='h_ch_text'><<" + currentTitleInfo[1] + ">></p>";
-  wrap += "<p id='h_jp_text'><<" + currentTitleInfo[2] + ">></p>";
-  wrap += "</div>";
-  if (outputDiv) outputDiv.innerHTML = wrap;
-}
-
-let abbre = "",
-  syou = "",
-  setu = "";
-let disp_worship_font = 4.0,
-  disp_jtitle_font = 5.0,
-  disp_ctitle_font = 5.0,
-  disp_person_font = 5.0;
-
-function memobible(num) {
-  abbre = num;
-  document.getElementById("syou").value = "";
-  document.getElementById("setu").value = "";
-  countVersesInChapter();
-}
-function memosyou(num) {
-  syou = num;
-  document.getElementById("setu").value = "";
-  countVersesInChapter();
-}
-function memosetu(num) {
-  setu = num;
-}
-
-function countVersesInChapter() {
-  const display = document.getElementById("verse_count_display");
-  const syouInput = document.getElementById("syou").value;
-  if (!display) return;
-  if (abbre === "" || !syouInput) {
-    display.innerText = "";
-    return;
-  }
-  const prefix = Abbre[abbre] + syouInput + ":";
-  let count = 0;
-  for (let i = 1; i < bible.length; i++)
-    if (bible[i] && bible[i][3] && bible[i][3].indexOf(prefix) === 0) count++;
-  display.innerText = count > 0 ? "この章の節数: " + count : "";
-}
-
-function checkwindow(mode) {
-  let targetMode = "bible";
-  if (mode === "bible_win" || mode === "bible") targetMode = "bible";
-  if (mode === "title_win" || mode === "title") targetMode = "title";
-  if (mode === "hymn_win" || mode === "hymn") targetMode = "hymn";
-
-  if (display_win && !display_win.closed) {
-    switchScreen(targetMode);
-    if (targetMode === "bible") showBible();
-    if (targetMode === "title") commit();
-    display_win.focus();
-  } else {
-    openwindow();
-    display_win.onload = () => {
-      switchScreen(targetMode);
-      if (targetMode === "bible") showBible();
-      if (targetMode === "title") commit();
-    };
-    display_win.focus();
-  }
-}
-
-function showBible() {
-  if (!display_win || display_win.closed) return;
-  let where = Abbre[abbre] + syou + ":" + setu;
-  const outDiv = display_win.document.getElementById("b_out");
-  for (let n = 1; n < bible.length; n++) {
-    if (bible[n][3] == where) {
-      // 導入：箇所表示をクラス化して赤色に (target_ref_jp/ch)
-      outDiv.innerHTML = `<div id="master">
-        <div id="jp">
-          <div><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
-          <div class="target_jp">${bible[n][4]}</div>
-        </div>
-        <div id="ch">
-          <div><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
-          <div class="target_ch">${bible[n][2]}</div>
-        </div>
-      </div>`;
-      break;
-    } else {
-      outDiv.innerHTML = "";
-    }
-  }
-  commit();
-}
-
 function commit() {
-  // 入力値の取得
   const worship = document.getElementById("worship").value;
   const thema_ja = document.getElementById("jtitle").value;
   const thema_ch = document.getElementById("ctitle").value;
 
-  const speech =
-    document.getElementById("speecher").value != ""
-      ? "説教者：" + document.getElementById("speecher").value
-      : "";
-  const translator =
-    document.getElementById("translator").value != ""
-      ? "通訳者：" + document.getElementById("translator").value
-      : "";
+  const speech = document.getElementById("speecher").value != "" ? "説教者：" + document.getElementById("speecher").value : "";
+  const translator = document.getElementById("translator").value != "" ? "通訳者：" + document.getElementById("translator").value : "";
   const hymn_1nd = document.getElementById("hymn").value;
   const hymn_2nd = document.getElementById("hymn2nd").value;
   let hymnText = "讃美歌：" + hymn_1nd;
@@ -914,38 +1087,19 @@ function commit() {
 
   const bibleHeader = doc.getElementById("b_header");
   if (bibleHeader) {
-    let output =
-      '<div id="b_thema"><div id="b_worship">' +
-      worship +
-      '</div><div id="b_thema-jp">' +
-      thema_ja +
-      '</div><div id="b_thema-ch">' +
-      thema_ch +
-      "</div></div>" +
-      '<div id="b_people"><div id="b_speech">' +
-      speech +
-      "<br>" +
-      translator +
-      "</div>" +
-      '<div id="b_hymn">';
+    let output = '<div id="b_thema"><div id="b_worship">' + worship + '</div><div id="b_thema-jp">' + thema_ja + '</div><div id="b_thema-ch">' + thema_ch + "</div></div>" + '<div id="b_people"><div id="b_speech">' + speech + "<br>" + translator + "</div>" + '<div id="b_hymn">';
     output += hymn_1nd != "" ? "讃美歌：" + hymn_1nd : "";
     output += hymn_2nd != "" ? "/" + hymn_2nd : "";
     output += "</div></div>";
     bibleHeader.innerHTML = output;
   }
 
-  if (doc.getElementById("t_worship"))
-    doc.getElementById("t_worship").innerHTML = worship;
-  if (doc.getElementById("t_thema_ja"))
-    doc.getElementById("t_thema_ja").innerHTML = thema_ja;
-  if (doc.getElementById("t_thema_ch"))
-    doc.getElementById("t_thema_ch").innerHTML = thema_ch;
-  if (doc.getElementById("t_speech"))
-    doc.getElementById("t_speech").innerHTML = speech;
-  if (doc.getElementById("t_translator"))
-    doc.getElementById("t_translator").innerHTML = translator;
-  if (doc.getElementById("t_hymn"))
-    doc.getElementById("t_hymn").innerHTML = hymnText;
+  if (doc.getElementById("t_worship")) doc.getElementById("t_worship").innerHTML = worship;
+  if (doc.getElementById("t_thema_ja")) doc.getElementById("t_thema_ja").innerHTML = thema_ja;
+  if (doc.getElementById("t_thema_ch")) doc.getElementById("t_thema_ch").innerHTML = thema_ch;
+  if (doc.getElementById("t_speech")) doc.getElementById("t_speech").innerHTML = speech;
+  if (doc.getElementById("t_translator")) doc.getElementById("t_translator").innerHTML = translator;
+  if (doc.getElementById("t_hymn")) doc.getElementById("t_hymn").innerHTML = hymnText;
 
   const tickerJp = doc.getElementById('ticker-jp');
   const tickerCh = doc.getElementById('ticker-ch');
@@ -964,21 +1118,6 @@ function commit() {
   fontsizecommit();
 }
 
-function saveCookies() {
-  document.cookie = "worship=" + document.getElementById("worship").value;
-  document.cookie = "jtitle=" + document.getElementById("jtitle").value;
-  document.cookie = "ctitle=" + document.getElementById("ctitle").value;
-  document.cookie = "speecher=" + document.getElementById("speecher").value;
-  document.cookie = "translator=" + document.getElementById("translator").value;
-  document.cookie = "hymn=" + document.getElementById("hymn").value;
-  document.cookie = "hymn2nd=" + document.getElementById("hymn2nd").value;
-}
-
-const input_ranges = document.querySelectorAll(".change_size");
-for (let n = 0; n < input_ranges.length; n++) {
-  input_ranges[n].addEventListener("input", () => fontsizecommit());
-}
-
 function fontsizecommit() {
   if (!display_win || display_win.closed) return;
   const doc = display_win.document;
@@ -994,258 +1133,70 @@ function fontsizecommit() {
   setSize("t_hymn", disp_person_font);
 }
 
-let r = document.cookie.split(";");
-r.forEach((value) => {
-  let content = value.split("=");
-  let key = content[0].trim();
-  let val = content[1];
-  if (key == "worship") document.getElementById("worship").value = val;
-  if (key == "jtitle") document.getElementById("jtitle").value = val;
-  if (key == "ctitle") document.getElementById("ctitle").value = val;
-  if (key == "speecher") document.getElementById("speecher").value = val;
-  if (key == "translator") document.getElementById("translator").value = val;
-  if (key == "hymn") document.getElementById("hymn").value = val;
-  if (key == "hymn2nd") document.getElementById("hymn2nd").value = val;
-});
-document.cookie = "";
-setTimeout(commit, 2000);
+// ==========================================
+// 7. EVENT LISTENERS & SETUP
+// ==========================================
 
-const switch_lang = document.querySelectorAll(".switch");
-switch_lang[0].click();
-let lang_type_id = "ja_ot";
-switch_lang[0].addEventListener("click", () => {
-  document.getElementById("ot").innerHTML = "旧約";
-  document.getElementById("nt").innerHTML = "新約";
-});
-switch_lang[1].addEventListener("click", () => {
-  document.getElementById("ot").innerHTML = "旧约";
-  document.getElementById("nt").innerHTML = "新约";
-});
+function setupEventListeners() {
+  // DOM Elements Assignment
+  bibleSearchModal = document.getElementById('bibleSearchModal');
+  openSearchModalBtn = document.getElementById('openSearchModalBtn');
+  closeSearchModalBtn = document.getElementById('closeSearchModalBtn');
+  searchInput = document.getElementById('searchInput');
+  executeSearchBtn = document.getElementById('executeSearchBtn');
+  searchResultsDiv = document.getElementById('searchResults');
 
-function active_abbre(type) {
-  if (switch_lang[0].checked) {
-    const id_name = "ja_" + type;
-    document.getElementById(id_name).style.left = "0";
-    lang_type_id = id_name;
+  // Font size ranges
+  const input_ranges = document.querySelectorAll('.change_size');
+  for (let n = 0; n < input_ranges.length; n++) {
+    input_ranges[n].addEventListener('input', () => fontsizecommit());
   }
-  if (switch_lang[1].checked) {
-    const id_name = "ch_" + type;
-    document.getElementById(id_name).style.left = "0";
-    lang_type_id = id_name;
-  }
-}
-document.querySelectorAll(".modal_abbre_btn").forEach((ele) => {
-  ele.addEventListener("click", (e) => {
-    if (e.target.className == "modal_abbre_btn") ele.style.left = "-100vw";
+
+  // Load Cookies
+  let r = document.cookie.split(';');
+  r.forEach((value) => {
+    let content = value.split('=');
+    if(content.length < 2) return;
+    let key = content[0].trim();
+    let val = content[1];
+    if (key == 'worship' && document.getElementById('worship')) document.getElementById('worship').value = val;
+    if (key == 'jtitle' && document.getElementById('jtitle')) document.getElementById('jtitle').value = val;
+    if (key == 'ctitle' && document.getElementById('ctitle')) document.getElementById('ctitle').value = val;
+    if (key == 'speecher' && document.getElementById('speecher')) document.getElementById('speecher').value = val;
+    if (key == 'translator' && document.getElementById('translator')) document.getElementById('translator').value = val;
+    if (key == 'hymn' && document.getElementById('hymn')) document.getElementById('hymn').value = val;
+    if (key == 'hymn2nd' && document.getElementById('hymn2nd')) document.getElementById('hymn2nd').value = val;
   });
-});
+  document.cookie = '';
 
-function abbre_btn(num, value) {
-  memobible(num);
-  document.getElementById("abbre_memo").innerHTML = value;
-  document.getElementById(lang_type_id).style.left = "-100vw";
-}
-
-function display_history(element, index) {
-  if (index == 0) return;
-  const arr = element[index].value.split(",");
-  abbre = arr[0];
-  syou = arr[1];
-  setu = arr[2];
-  const text = element[index].innerHTML;
-  abbre_btn(abbre, text);
-  document.getElementById("syou").value = syou;
-  document.getElementById("setu").value = setu;
-  showBible();
-  element[0].selected = true;
-  countVersesInChapter();
-}
-function append_history() {
-  if (abbre === "" || syou === "" || setu === "") {
-    showToast('聖書箇所を選択してください', 'error');
-    return;
-  }
-  const history = document.getElementById("history");
-  const option = document.createElement("option");
-  option.value = abbre + "," + syou + "," + setu;
-  option.innerHTML = document.getElementById("abbre_memo").innerHTML;
-  option.label =
-    document.getElementById("abbre_memo").innerHTML + " " + syou + ":" + setu;
-  for (let n = 1; n < history.length; n++) {
-    if (history[n].label == option.label) {
-      history[n].remove();
-      break;
-    }
-  }
-  history[0].after(option);
-  showToast('📌 聖句を記憶しました', 'success');
-}
-function clear_history() {
-  const history = document.getElementById("history");
-  if (history.length <= 1) {
-    showToast('消去する履歴がありません', 'error');
-    return;
-  }
-  if (!confirm('履歴をすべて消去しますか？')) return;
-  history.innerHTML = `<option value="">📖 履歴</option>`;
-  showToast('🗑️ 履歴を消去しました', 'info');
-}
-
-const bibleSearchModal = document.getElementById("bibleSearchModal");
-const openSearchModalBtn = document.getElementById("openSearchModalBtn");
-const closeSearchModalBtn = document.getElementById("closeSearchModalBtn");
-const searchInput = document.getElementById("searchInput");
-const executeSearchBtn = document.getElementById("executeSearchBtn");
-const searchResultsDiv = document.getElementById("searchResults");
-
-function openBibleSearchModal() {
-  if (bibleSearchModal) bibleSearchModal.style.display = "block";
-  if (searchInput) {
-    searchInput.value = "";
-  }
-  if (searchResultsDiv)
-    searchResultsDiv.innerHTML =
-      "<p>検索キーワードを入力して「検索」ボタンを押してください。</p>";
-  if (
-    typeof bible === "undefined" ||
-    !Array.isArray(bible) ||
-    bible.length === 0
-  ) {
-    if (searchResultsDiv)
-      searchResultsDiv.innerHTML =
-        '<p style="color: red; font-weight: bold;">エラー: 聖書データが正しく読み込まれていません。</p>';
-    if (searchInput) searchInput.disabled = true;
-    if (executeSearchBtn) executeSearchBtn.disabled = true;
-  } else {
-    if (searchInput) searchInput.disabled = false;
-    if (executeSearchBtn) executeSearchBtn.disabled = false;
-  }
-}
-function closeBibleSearchModal() {
-  if (bibleSearchModal) bibleSearchModal.style.display = "none";
-}
-
-function performSearch() {
-  const query = searchInput.value.trim();
-  if (!query) {
-    searchResultsDiv.innerHTML = "<p>検索キーワードを入力してください。</p>";
-    return;
-  }
-  const lowerCaseQuery = query.toLowerCase();
-  const results = bible.filter((rowArray) => {
-    const chineseReference = (rowArray[2] || "").toLowerCase();
-    const japaneseReference = (rowArray[4] || "").toLowerCase();
-    return (
-      chineseReference.includes(lowerCaseQuery) ||
-      japaneseReference.includes(lowerCaseQuery)
-    );
+  // Language Switch
+  const switch_lang = document.querySelectorAll(".switch");
+  // 初期化時に一つ目を選択
+  if(switch_lang.length > 0) switch_lang[0].click();
+if(switch_lang.length > 0) {
+  switch_lang[0].addEventListener("click", () => {
+    document.getElementById("ot").innerHTML = "旧約";
+    document.getElementById("nt").innerHTML = "新約";
   });
-  displayResults(results, query);
 }
-
-function displayResults(results, query) {
-  searchResultsDiv.innerHTML = "";
-  if (results.length === 0) {
-    searchResultsDiv.innerHTML =
-      "<p>「" +
-      escapeHTML(query) +
-      "」に一致する情報は見つかりませんでした。</p>";
-    return;
-  }
-  const highlight = (text, queryToHighlight) => {
-    if (!text || !queryToHighlight) return escapeHTML(text || "");
-    const regex = new RegExp("(" + escapeRegExp(queryToHighlight) + ")", "gi");
-    return escapeHTML(text).replace(regex, '<span class="highlight">$1</span>');
-  };
-  results.forEach((rowArray) => {
-    const resultItem = document.createElement("div");
-    resultItem.className = "result-item";
-    const chFullText = rowArray[1] || "";
-    const chReference = rowArray[2] || "";
-    const jpFullText = rowArray[3] || "";
-    const jpReference = rowArray[4] || "";
-    let displayReferenceText =
-      chReference && jpReference
-        ? chReference === jpReference
-          ? chReference
-          : `${chReference} / ${jpReference}`
-        : chReference || jpReference || "参照情報なし";
-    let contentHTML = `<p class="verse-ref">${highlight(
-      displayReferenceText,
-      query
-    )}</p>`;
-    if (jpFullText)
-      contentHTML += `<p><span class="lang-label">日本語:</span> ${highlight(
-        jpFullText,
-        query
-      )}</p>`;
-    if (chFullText)
-      contentHTML += `<p><span class="lang-label">中文:</span> ${highlight(
-        chFullText,
-        query
-      )}</p>`;
-    // 「反映」ボタンを追加（rowArray[3]が日本語参照 例: 創1:1）
-    const safeRef = (rowArray[3] || '').replace(/'/g, "\\'");
-    contentHTML += `<button class="apply-verse-btn" onclick="applySearchResult('${safeRef}')">➜ 反映</button>`;
-    resultItem.innerHTML = contentHTML;
-    searchResultsDiv.appendChild(resultItem);
+if(switch_lang.length > 1) {
+  switch_lang[1].addEventListener("click", () => {
+    document.getElementById("ot").innerHTML = "旧约";
+    document.getElementById("nt").innerHTML = "新约";
   });
 }
 
-// 検索結果を聖書セクションの入力に反映して表示
-function applySearchResult(jpRef) {
-  if (!jpRef) return;
-  // bibleデータから直接検索して該当行を特定
-  for (let n = 1; n < bible.length; n++) {
-    if (bible[n][3] === jpRef) {
-      // どの書・章・節かをAbbre配列から逆引き
-      for (let i = Abbre.length - 1; i >= 0; i--) {
-        if (jpRef.startsWith(Abbre[i])) {
-          const rest = jpRef.substring(Abbre[i].length);
-          const parts = rest.split(':');
-          if (parts.length === 2) {
-            abbre = i;
-            syou = parts[0];
-            setu = parts[1];
-            document.getElementById('abbre_memo').innerHTML = Abbre[i];
-            document.getElementById('syou').value = syou;
-            document.getElementById('setu').value = setu;
-            showBible();
-            checkwindow('bible');
-            countVersesInChapter();
-            closeBibleSearchModal();
-            showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
-            return;
-          }
-        }
-      }
-      break;
-    }
-  }
-  showToast('参照情報を解析できませんでした', 'error');
-}
-
-function escapeHTML(str) {
-  if (typeof str !== "string") return "";
-  return str.replace(/[&<>"']/g, function (match) {
-    return {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    }[match];
+  // Modal Buttons
+  document.querySelectorAll(".modal_abbre_btn").forEach((ele) => {
+    ele.addEventListener("click", (e) => {
+      if (e.target.className == "modal_abbre_btn") ele.style.left = "-100vw";
+    });
   });
-}
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
-if (openSearchModalBtn)
-  openSearchModalBtn.addEventListener("click", openBibleSearchModal);
-if (closeSearchModalBtn)
-  closeSearchModalBtn.addEventListener("click", closeBibleSearchModal);
-if (executeSearchBtn) executeSearchBtn.addEventListener("click", performSearch);
+  // Search Modal Listeners
+  if (openSearchModalBtn) openSearchModalBtn.addEventListener("click", openBibleSearchModal);
+  if (closeSearchModalBtn) closeSearchModalBtn.addEventListener("click", closeBibleSearchModal);
+  if (executeSearchBtn) executeSearchBtn.addEventListener("click", performSearch);
 if (searchInput) {
   searchInput.addEventListener("keypress", function (event) {
     if (event.key === "Enter") {
@@ -1254,96 +1205,29 @@ if (searchInput) {
     }
   });
 }
+
 window.addEventListener("click", function (event) {
   if (event.target === bibleSearchModal) closeBibleSearchModal();
 });
 window.addEventListener("keydown", function (event) {
-  if (
-    event.key === "Escape" &&
-    bibleSearchModal &&
-    bibleSearchModal.style.display === "block"
-  )
+  if (event.key === "Escape" && bibleSearchModal && bibleSearchModal.style.display === "block")
     closeBibleSearchModal();
 });
-window.onbeforeunload = function (e) {
-  e.returnValue = "本当にページを閉じますか？";
-};
+
+  // Window Exiting Listeners
+  window.onbeforeunload = function (e) {
+    e.returnValue = "本当にページを閉じますか？";
+  };
 window.addEventListener("unload", (e) => {
   if (display_win) display_win.close();
 });
 
-function updateActiveButton(activeBtn) {
-  const buttons = document.querySelectorAll(".lyric-btn");
-  buttons.forEach((btn) => btn.classList.remove("active"));
-  if (activeBtn) activeBtn.classList.add("active");
-}
-// 入力候補（select）を最新の状態に更新する関数
-function updateDatalistFromDB() {
-  const sekkyoulist = document.getElementById("sekkyoulist");
-  const tuyakulist = document.getElementById("tuyakulist");
-  const sekkyouSelect = document.getElementById("sekkyouSelect");
-  const tuyakuSelect = document.getElementById("tuyakuSelect");
-
-  // 一旦クリア
-  if (sekkyoulist) sekkyoulist.innerHTML = "";
-  if (tuyakulist) tuyakulist.innerHTML = "";
-  if (sekkyouSelect) sekkyouSelect.innerHTML = '<option value="">▼</option>';
-  if (tuyakuSelect) tuyakuSelect.innerHTML = '<option value="">▼</option>';
-
-  const transaction = db.transaction("servicers", "readonly");
-  const store = transaction.objectStore("servicers");
-
-  store.getAll().onsuccess = (e) => {
-    const data = e.target.result;
-    data.sort((a, b) => (a.order || 9999) - (b.order || 9999));
-    data.forEach(s => {
-      // datalist用のoption作成（後方互換）
-      const dlOption = document.createElement("option");
-      dlOption.value = s.name;
-
-      // select用のoption作成
-      const selOption = document.createElement("option");
-      selOption.value = s.name;
-      selOption.innerText = s.name;
-
-      if (s.role === 'sekkyou') {
-        if (sekkyoulist) sekkyoulist.appendChild(dlOption);
-        if (sekkyouSelect) sekkyouSelect.appendChild(selOption);
-      } else if (s.role === 'tuyaku') {
-        if (tuyakulist) tuyakulist.appendChild(dlOption);
-        if (tuyakuSelect) tuyakuSelect.appendChild(selOption);
-      }
-    });
-  };
-}
-// HTML側に onchange="syncSelectToInput('speecher', this)" のように記述
-function syncSelectToInput(inputId, selectElement) {
-  if (selectElement.value) {
-      document.getElementById(inputId).value = selectElement.value;
-      commit(); // 変更を即座に反映
-      selectElement.selectedIndex = 0; // 選択後は「選択」に戻す
-  }
-}
-// 4. バックアップ
-function exportServicers() {
-  db.transaction("servicers").objectStore("servicers").getAll().onsuccess = (e) => {
-    const blob = new Blob([JSON.stringify(e.target.result)], {type: "application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "servicer_list_backup.json";
-    a.click();
-  };
+  // Delay commit
+  setTimeout(commit, 2000);
 }
 
-function importServicers(event) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = JSON.parse(e.target.result);
-    const tx = db.transaction(["servicers"], "readwrite");
-    data.forEach(s => tx.objectStore("servicers").put({ name: s.name, role: s.role }));
-    tx.oncomplete = () => { alert("インポート完了"); loadServicersList(); };
-  };
-  reader.readAsText(event.target.files[0]);
-}
-
-loadInitialData();
+window.addEventListener('load', () => {
+  initDB();
+  setupEventListeners();
+  loadInitialData();
+});
