@@ -306,6 +306,7 @@ function syncSelectToInput(inputId, selectElem) {
   if (selectElem.value) {
     input.value = selectElem.value;
     commit(); // 値が変わったのでタイトル画面にも反映
+    selectElem.selectedIndex = 0; // 反映後に自動的にデフォルトに戻す
   }
 }
 
