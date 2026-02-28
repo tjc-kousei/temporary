@@ -312,17 +312,10 @@ function syncSelectToInput(inputId, selectElem) {
 
 // Inputの値に合わせてSelectの初期選択状態を合わせる
 function syncInputToSelect(inputId, selectId) {
-  const inputVal = document.getElementById(inputId).value;
   const select = document.getElementById(selectId);
   if (!select) return;
-  // 一致するoptionがあれば選択状態にする
-  for (let i = 0; i < select.options.length; i++) {
-    if (select.options[i].value === inputVal && inputVal !== "") {
-      select.selectedIndex = i;
-      return;
-    }
-  }
-  select.selectedIndex = 0; // 見つからなければデフォルト
+  // 反映後やCookie復元後も常にデフォルト(▼)に戻す
+  select.selectedIndex = 0;
 }
 
 function addServicerToDB() {
@@ -373,20 +366,31 @@ function loadServicersList(filter) {
       if (filter === "all" || filter === s.role) {
         count++;
         const row = document.createElement("div");
-        row.className = "servicer-list-row";
+        row.className = "servicer-item"; // was servicer-list-row, but style is servicer-item
         row.id = `servicer-row-${s.id}`;
 
         const roleLabel = s.role === "sekkyou" ? "🎤 説教者" : "🌐 通訳者";
         const roleClass = s.role === "sekkyou" ? "primary-text" : "secondary-text";
 
+        row.ondragstart = handleDragStart;
+        row.ondragover = handleDragOver;
+        row.ondrop = handleDrop;
+        row.ondragenter = handleDragEnter;
+        row.ondragleave = handleDragLeave;
+        row.ondragend = handleDragEnd;
+
         row.innerHTML = `
+          <div class="servicer-drag-handle"
+               onmousedown="this.parentElement.setAttribute('draggable', 'true')"
+               onmouseup="this.parentElement.removeAttribute('draggable')"
+               onmouseleave="this.parentElement.removeAttribute('draggable')">
+            ≡
+          </div>
           <div class="servicer-col-name servicer-name-display">${escapeHTML(s.name)}</div>
           <div class="servicer-col-role ${roleClass}"><small>${roleLabel}</small></div>
           <div class="servicer-col-action">
-            <button onclick="moveServicer(${s.id}, 'up')" class="icon-btn" title="上へ">⬆️</button>
-            <button onclick="moveServicer(${s.id}, 'down')" class="icon-btn" title="下へ">⬇️</button>
-            <button onclick="editServicer(${s.id})" class="icon-btn" title="編集">✏️</button>
-            <button onclick="deleteServicer(${s.id}, '${s.name}')" class="icon-btn danger-text" title="削除">🗑️</button>
+            <button onclick="editServicer(${s.id})" class="edit-btn" title="編集">✏️</button>
+            <button onclick="deleteServicer(${s.id}, '${s.name}')" class="del-btn" title="削除">🗑️</button>
           </div>
         `;
         tbody.appendChild(row);
@@ -394,6 +398,108 @@ function loadServicersList(filter) {
     });
 
     document.getElementById("servicerCount").innerText = `${count} 名`;
+  };
+}
+
+// === Drag and Drop Sorting for Servicers ===
+let dragSrcEl = null;
+
+function handleDragStart(e) {
+  dragSrcEl = this;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', this.id);
+  this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) {
+    e.preventDefault(); // Necessary. Allows us to drop.
+  }
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDragEnter(e) {
+  this.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) {
+    e.stopPropagation(); // Stops some browsers from redirecting.
+  }
+
+  if (dragSrcEl !== this) {
+    let sourceIdStr = dragSrcEl.id.replace('servicer-row-', '');
+    let targetIdStr = this.id.replace('servicer-row-', '');
+
+    let sourceId = parseInt(sourceIdStr, 10);
+    let targetId = parseInt(targetIdStr, 10);
+
+    if(!isNaN(sourceId) && !isNaN(targetId)) {
+        reorderServicers(sourceId, targetId);
+    }
+  }
+  return false;
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  let rows = document.querySelectorAll('.servicer-list-row');
+  [].forEach.call(rows, function (row) {
+    row.classList.remove('drag-over');
+  });
+}
+
+function reorderServicers(sourceId, targetId) {
+  const transaction = db.transaction(["servicers"], "readwrite");
+  const store = transaction.objectStore("servicers");
+
+  store.getAll().onsuccess = (e) => {
+    let allData = e.target.result;
+    allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // 現在のフィルターで表示されている項目のみを対象とする
+    let visibleData = allData.filter(s => currentServicerFilter === "all" || currentServicerFilter === s.role);
+
+    const sourceIndex = visibleData.findIndex(item => item.id === sourceId);
+    const targetIndex = visibleData.findIndex(item => item.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    // 配列内で要素を移動
+    const [movedItem] = visibleData.splice(sourceIndex, 1);
+    visibleData.splice(targetIndex, 0, movedItem);
+
+    // 新しい順序を割り当て（間隔を10空ける）
+    let currentOrder = 10;
+    let orderUpdates = new Map();
+    visibleData.forEach((item) => {
+         orderUpdates.set(item.id, currentOrder);
+         currentOrder += 10;
+    });
+
+    if (currentServicerFilter === "all") {
+         visibleData.forEach((item, idx) => {
+             item.order = (idx + 1) * 10;
+             store.put(item);
+         });
+    } else {
+         allData.forEach(item => {
+             if(orderUpdates.has(item.id)) {
+                 item.order = orderUpdates.get(item.id);
+                 store.put(item);
+             }
+         });
+    }
+  };
+
+  transaction.oncomplete = () => {
+    loadServicersList(currentServicerFilter);
+    updateDatalistFromDB();
   };
 }
 
@@ -408,8 +514,8 @@ function editServicer(id) {
     </div>
     <div class="servicer-col-role"></div>
     <div class="servicer-col-action">
-      <button onclick="saveServicer(${id})" class="primary-btn p-1" style="width: auto;">保存</button>
-      <button onclick="loadServicersList(currentServicerFilter)" class="outline-btn p-1" style="width: auto; margin-bottom: 0;">取消</button>
+      <button onclick="saveServicer(${id})" class="save-btn" style="width: auto;">保存</button>
+      <button onclick="loadServicersList(currentServicerFilter)" class="cancel-btn" style="width: auto; margin-bottom: 0;">取消</button>
     </div>
   `;
 }
@@ -437,49 +543,6 @@ function saveServicer(id) {
     loadServicersList(currentServicerFilter);
     updateDatalistFromDB();
   };
-}
-
-function moveServicer(id, direction) {
-    const transaction = db.transaction(["servicers"], "readwrite");
-    const store = transaction.objectStore("servicers");
-
-    store.getAll().onsuccess = (e) => {
-        let allData = e.target.result;
-        allData.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-        const currentIndex = allData.findIndex(item => item.id === id);
-        if (currentIndex === -1) return;
-
-        if (direction === 'up' && currentIndex > 0) {
-            // 上と入れ替え
-            const currentItem = allData[currentIndex];
-            const prevItem = allData[currentIndex - 1];
-
-            const tempOrder = currentItem.order;
-            currentItem.order = prevItem.order;
-            prevItem.order = tempOrder;
-
-            store.put(currentItem);
-            store.put(prevItem);
-
-        } else if (direction === 'down' && currentIndex < allData.length - 1) {
-            // 下と入れ替え
-            const currentItem = allData[currentIndex];
-            const nextItem = allData[currentIndex + 1];
-
-            const tempOrder = currentItem.order;
-            currentItem.order = nextItem.order;
-            nextItem.order = tempOrder;
-
-            store.put(currentItem);
-            store.put(nextItem);
-        }
-    };
-
-    transaction.oncomplete = () => {
-        loadServicersList(currentServicerFilter);
-        updateDatalistFromDB();
-    };
 }
 
 function deleteServicer(id, name) {
@@ -1088,10 +1151,13 @@ function commit() {
 
   const bibleHeader = doc.getElementById("b_header");
   if (bibleHeader) {
-    let output = '<div id="b_thema"><div id="b_worship">' + worship + '</div><div id="b_thema-jp">' + thema_ja + '</div><div id="b_thema-ch">' + thema_ch + "</div></div>" + '<div id="b_people"><div id="b_speech">' + speech + "<br>" + translator + "</div>" + '<div id="b_hymn">';
+    let output = '<div id="b_thema"><div id="b_worship">' + worship + '</div><div id="b_thema-jp">' + thema_ja + '</div><div id="b_thema-ch">' + thema_ch + "</div></div>";
+
+    output += '<div id="b_people"><div id="b_speech">' + speech + "<br>" + translator + "</div>" + '<div id="b_hymn">';
     output += hymn_1nd != "" ? "讃美歌：" + hymn_1nd : "";
     output += hymn_2nd != "" ? "/" + hymn_2nd : "";
     output += "</div></div>";
+
     bibleHeader.innerHTML = output;
   }
 

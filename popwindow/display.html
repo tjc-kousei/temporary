@@ -330,6 +330,8 @@
             top: 0px;
             left: 0px;
             width: 250px;
+            max-width: 20vw;
+            /* 画面に対して大きくなりすぎないように */
             height: auto;
             z-index: 2000;
             display: none;
@@ -341,12 +343,23 @@
 
         body.bible-mode #common-logo {
             display: block;
+            width: auto;
+            /* 常にヘッダーの高さに収まるように制限し、文字と被らないように調整 */
+            max-height: 18vh;
+            max-width: 20vw;
             /* 聖書モードの深緑ヘッダーに対してロゴを見やすくするため、白系の背景パネル敷きとドロップシャドウを適用 */
             background-color: rgba(255, 255, 255, 0.85);
             padding: 8px 15px 12px 12px;
             border-bottom-right-radius: 16px;
             box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-            /* もしロゴ自体を白抜きにしたい場合などは filter: invert(1); も有効ですが、今回は背景パネル方式を採用 */
+        }
+
+        /* 聖書モードのヘッダーがロゴと被らないように左側に余白を設ける */
+        body.bible-mode #b_header {
+            padding-left: 24vw;
+            /* ロゴの最大幅(20vw) + 余白分を避ける */
+            padding-right: 2vw;
+            justify-content: flex-start;
         }
     </style>
 </head>

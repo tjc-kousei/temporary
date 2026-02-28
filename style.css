@@ -928,12 +928,46 @@ input[type=range]::-webkit-slider-thumb {
   transition: background 0.15s ease, transform 0.1s ease;
 }
 
+.servicer-item.dragging {
+  opacity: 0.5;
+  background-color: #f5fafb;
+  border: 2px dashed #00838f;
+}
+
+.servicer-item.drag-over {
+  border-top: 2px solid #00838f;
+  transform: translateY(2px);
+}
+
 .servicer-item:last-child {
   border-bottom: none;
 }
 
 .servicer-item:hover {
   background: #f5fafb;
+}
+
+/* ドラッグハンドル (3本線) */
+.servicer-drag-handle {
+  flex: 0 0 24px;
+  color: #bbb;
+  cursor: grab;
+  font-size: 1.2rem;
+  line-height: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  user-select: none;
+}
+
+.servicer-drag-handle:active {
+  cursor: grabbing;
+}
+
+.servicer-drag-handle:hover {
+  color: #00838f;
 }
 
 .servicer-item .servicer-name {
@@ -1129,11 +1163,7 @@ input[type=range]::-webkit-slider-thumb {
   background: white;
 }
 
-/* テーブルヘッダー/項目の列幅再調整（orderボタン追加対応） */
-.servicer-table-header {
-  padding-left: 52px;
-}
-
+/* テーブルヘッダー/項目の列幅再調整（orderボタン追加対応除去） */
 .servicer-col-action {
   flex: 0 0 80px;
   text-align: center;
