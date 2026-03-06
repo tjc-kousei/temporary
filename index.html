@@ -217,6 +217,69 @@
               <input type="range" class="change_size" tabindex="-1" min="2.0" max="8.0" step="0.01" value="4.0"
                 oninput="disp_worship_font = this.value;">
             </div>
+
+            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+            <h4 style="margin-bottom: 10px; color: #333;">🎨 文字色カスタマイズ</h4>
+
+            <p style="font-size: 0.85rem; font-weight: 600; color: #00838f; margin-bottom: 8px;">基本情報表示</p>
+            <div class="color-picker-group">
+              <label>礼拝種類</label>
+              <input type="color" id="color_title_worship" oninput="onColorChange('title_worship', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>日本語タイトル</label>
+              <input type="color" id="color_title_jtitle" oninput="onColorChange('title_jtitle', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>中国語タイトル</label>
+              <input type="color" id="color_title_ctitle" oninput="onColorChange('title_ctitle', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>説教者</label>
+              <input type="color" id="color_title_speech" oninput="onColorChange('title_speech', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>通訳者</label>
+              <input type="color" id="color_title_translator" oninput="onColorChange('title_translator', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>讃美歌</label>
+              <input type="color" id="color_title_hymn" oninput="onColorChange('title_hymn', this.value);">
+            </div>
+
+            <p style="font-size: 0.85rem; font-weight: 600; color: #00838f; margin: 12px 0 8px;">聖書表示</p>
+            <div class="color-picker-group">
+              <label>ヘッダー背景</label>
+              <input type="color" id="color_bible_header_bg" oninput="onColorChange('bible_header_bg', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>ヘッダー文字</label>
+              <input type="color" id="color_bible_header_text"
+                oninput="onColorChange('bible_header_text', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>礼拝種類</label>
+              <input type="color" id="color_bible_worship" oninput="onColorChange('bible_worship', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>日本語タイトル</label>
+              <input type="color" id="color_bible_jtitle" oninput="onColorChange('bible_jtitle', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>中国語タイトル</label>
+              <input type="color" id="color_bible_ctitle" oninput="onColorChange('bible_ctitle', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>箇所</label>
+              <input type="color" id="color_bible_ref" oninput="onColorChange('bible_ref', this.value);">
+            </div>
+            <div class="color-picker-group">
+              <label>本文</label>
+              <input type="color" id="color_bible_body" oninput="onColorChange('bible_body', this.value);">
+            </div>
+
+            <button onclick="resetColorSettings();" class="secondary-btn" style="width: 100%; margin-top: 15px;">🔄
+              色をデフォルトに戻す</button>
           </div>
         </div>
       </div>
@@ -486,7 +549,7 @@
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>
     <button onclick="location.reload();" class="update-btn">更新する</button>
-    <button onclick="this.parentElement.style.display='none';" class="update-dismiss">✕</button>
+    <button onclick="document.getElementById('update-banner').style.display='none';" class="update-dismiss">✕</button>
   </div>
 
   <!-- Service Worker 登録 -->

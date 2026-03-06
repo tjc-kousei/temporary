@@ -46,6 +46,111 @@ let disp_worship_font = 4.0, disp_jtitle_font = 5.0, disp_ctitle_font = 5.0, dis
 let currentServicerFilter = "all";
 let tempGASData = null; // GASから取得した一時的なデータを保持する変数
 
+// ==========================================
+// COLOR CUSTOMIZATION
+// ==========================================
+const COLOR_DEFAULTS = {
+  // 基本情報表示モード
+  title_worship: '#3A8FB7',
+  title_jtitle: '#171C6B',
+  title_ctitle: '#5C6BC0',
+  title_speech: '#000000',
+  title_translator: '#000000',
+  title_hymn: '#000000',
+  // 聖書表示モード
+  bible_header_bg: '#20604F',
+  bible_header_text: '#FFFFFF',
+  bible_worship: '#FAD689',
+  bible_jtitle: '#FFFFFF',
+  bible_ctitle: '#A5D6A7',
+  bible_ref: '#E53935',
+  bible_body: '#000000',
+};
+
+let colorSettings = {};
+
+function loadColorSettings() {
+  const saved = localStorage.getItem('colorSettings');
+  if (saved) {
+    try {
+      colorSettings = { ...COLOR_DEFAULTS, ...JSON.parse(saved) };
+    } catch (e) {
+      colorSettings = { ...COLOR_DEFAULTS };
+    }
+  } else {
+    colorSettings = { ...COLOR_DEFAULTS };
+  }
+}
+
+function saveColorSettings() {
+  localStorage.setItem('colorSettings', JSON.stringify(colorSettings));
+}
+
+function resetColorSettings() {
+  colorSettings = { ...COLOR_DEFAULTS };
+  saveColorSettings();
+  // UIのカラーピッカーを更新
+  for (const key in COLOR_DEFAULTS) {
+    const picker = document.getElementById('color_' + key);
+    if (picker) picker.value = COLOR_DEFAULTS[key];
+  }
+  // 表示に反映
+  applyColors();
+  showToast('色設定をデフォルトに戻しました', 'info');
+}
+
+function onColorChange(key, value) {
+  colorSettings[key] = value;
+  saveColorSettings();
+  applyColors();
+}
+
+function applyColors() {
+  if (!display_win || display_win.closed) return;
+  const doc = display_win.document;
+
+  // 基本情報表示モード
+  const tWorship = doc.getElementById('t_worship');
+  const tThemaJa = doc.getElementById('t_thema_ja');
+  const tThemaCh = doc.getElementById('t_thema_ch');
+  const tSpeech = doc.getElementById('t_speech');
+  const tTranslator = doc.getElementById('t_translator');
+  const tHymn = doc.getElementById('t_hymn');
+
+  if (tWorship) tWorship.style.color = colorSettings.title_worship;
+  if (tThemaJa) tThemaJa.style.color = colorSettings.title_jtitle;
+  if (tThemaCh) tThemaCh.style.color = colorSettings.title_ctitle;
+  if (tSpeech) tSpeech.style.color = colorSettings.title_speech;
+  if (tTranslator) tTranslator.style.color = colorSettings.title_translator;
+  if (tHymn) tHymn.style.color = colorSettings.title_hymn;
+
+  // 聖書表示モード
+  const bHeader = doc.getElementById('b_header');
+  const bOut = doc.getElementById('b_out');
+  if (bHeader) {
+    bHeader.style.backgroundColor = colorSettings.bible_header_bg;
+    bHeader.style.color = colorSettings.bible_header_text;
+  }
+  if (bOut) bOut.style.color = colorSettings.bible_body;
+
+  // 聖書ヘッダー内の個別要素
+  const bWorship = doc.getElementById('b_worship');
+  const bThemaJp = doc.getElementById('b_thema-jp');
+  const bThemaCh = doc.getElementById('b_thema-ch');
+  if (bWorship) bWorship.style.color = colorSettings.bible_worship;
+  if (bThemaJp) bThemaJp.style.color = colorSettings.bible_jtitle;
+  if (bThemaCh) bThemaCh.style.color = colorSettings.bible_ctitle;
+
+  // 聖書本文・箇所
+  const refRows = doc.querySelectorAll('.bible_ref_row');
+  refRows.forEach(r => r.style.color = colorSettings.bible_ref);
+  const targetRefs = doc.querySelectorAll('.target_ref_jp, .target_ref_ch');
+  targetRefs.forEach(r => r.style.setProperty('color', colorSettings.bible_ref, 'important'));
+
+  const bodyRows = doc.querySelectorAll('.bible_body_row');
+  bodyRows.forEach(b => b.style.color = colorSettings.bible_body);
+}
+
 // フル名称データ (略称に対応するフル名称)
 const FullNameJP = [
   "創世記", "出エジプト記", "レビ記", "民数記", "申命記", "ヨシュア記", "士師記", "ルツ記", "サムエル記上", "サムエル記下",
@@ -1045,12 +1150,12 @@ function showBible() {
     if (bible[n][3] == where) {
       outDiv.innerHTML = `<div id="master">
         <div id="jp">
-          <div><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
-          <div class="target_jp">${bible[n][4]}</div>
+          <div class="bible_ref_row"><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
+          <div class="target_jp bible_body_row">${bible[n][4]}</div>
         </div>
         <div id="ch">
-          <div><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
-          <div class="target_ch">${bible[n][2]}</div>
+          <div class="bible_ref_row"><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
+          <div class="target_ch bible_body_row">${bible[n][2]}</div>
         </div>
       </div>`;
       break;
@@ -1143,8 +1248,11 @@ function commit() {
   const translator = document.getElementById("translator").value != "" ? "通訳者：" + document.getElementById("translator").value : "";
   const hymn_1nd = document.getElementById("hymn").value;
   const hymn_2nd = document.getElementById("hymn2nd").value;
-  let hymnText = "讃美歌：" + hymn_1nd;
-  hymnText += hymn_2nd != "" ? "/" + hymn_2nd : "";
+  let hymnText = "";
+  if (hymn_1nd !== "") {
+    hymnText = "讃美歌：" + hymn_1nd;
+    if (hymn_2nd !== "") hymnText += "/" + hymn_2nd;
+  }
 
   if (!display_win || display_win.closed) return;
   const doc = display_win.document;
@@ -1183,6 +1291,7 @@ function commit() {
 
   saveCookies();
   fontsizecommit();
+  applyColors();
 }
 
 function fontsizecommit() {
@@ -1217,6 +1326,12 @@ function setupEventListeners() {
   const input_ranges = document.querySelectorAll('.change_size');
   for (let n = 0; n < input_ranges.length; n++) {
     input_ranges[n].addEventListener('input', () => fontsizecommit());
+  }
+
+  // Initialize color pickers with saved values
+  for (const key in colorSettings) {
+    const picker = document.getElementById('color_' + key);
+    if (picker) picker.value = colorSettings[key];
   }
 
   // Load Cookies
@@ -1294,7 +1409,21 @@ window.addEventListener("unload", (e) => {
 }
 
 window.addEventListener('load', () => {
+  loadColorSettings();
   initDB();
   setupEventListeners();
-  loadInitialData();
+  loadInitialData().then(() => {
+    // データ読み込み完了後に自動でウィンドウを開く
+    try {
+      openwindow();
+      if (display_win) {
+        display_win.onload = () => {
+          switchScreen('title');
+          commit();
+        };
+      }
+    } catch (e) {
+      console.warn('ポップアップがブロックされた可能性があります:', e);
+    }
+  });
 });
