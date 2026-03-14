@@ -363,6 +363,44 @@ function resetColorSettings() {
   showToast('色設定をデフォルトに戻しました', 'info');
 }
 
+// ==========================================
+// TICKER CUSTOMIZATION
+// ==========================================
+let showTicker = true;
+
+function loadTickerSettings() {
+  const saved = localStorage.getItem('showTicker');
+  if (saved !== null) {
+    showTicker = saved === 'true';
+  } else {
+    showTicker = true;
+  }
+  const tickerCb = document.getElementById('setting_show_ticker');
+  if (tickerCb) {
+    tickerCb.checked = showTicker;
+  }
+}
+
+function saveTickerSettings() {
+  localStorage.setItem('showTicker', showTicker);
+}
+
+function toggleTicker(checked) {
+  showTicker = checked;
+  saveTickerSettings();
+  applyTicker();
+}
+
+function applyTicker() {
+  if (!display_win || display_win.closed) return;
+  const dBody = display_win.document.body;
+  if (showTicker) {
+    dBody.classList.remove('hide-ticker');
+  } else {
+    dBody.classList.add('hide-ticker');
+  }
+}
+
 function onColorChange(key, value) {
   colorSettings[key] = value;
   saveColorSettings();
@@ -1556,6 +1594,7 @@ function commit() {
   saveCookies();
   fontsizecommit();
   applyColors();
+  applyTicker();
 }
 
 function fontsizecommit() {
@@ -1675,6 +1714,7 @@ window.addEventListener("unload", (e) => {
 window.addEventListener('load', () => {
   loadGeminiSettings();
   loadColorSettings();
+  loadTickerSettings();
   initDB();
   setupEventListeners();
   loadInitialData().then(() => {
