@@ -179,6 +179,33 @@ button {
   gap: 10px;
 }
 
+/* === 翻訳ボタン === */
+.translate-btn {
+  background: white;
+  color: #00838f;
+  border: 1px solid #00838f;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.translate-btn:hover {
+  background: #e0f7fa;
+}
+
+.translate-btn:active {
+  background: #b2ebf2;
+}
+.translate-btn:disabled {
+  background: #eceff1;
+  color: #90a4ae;
+  border-color: #cfd8dc;
+  cursor: not-allowed;
+}
+
 /* === 聖書操作エリア === */
 .bible-selector {
   background: #e0f7fa;
@@ -269,6 +296,19 @@ button {
   transform: translateY(1px) scale(0.95);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   background: #b2ebf2;
+}
+
+.nav-btn.danger {
+  color: #e53935;
+  border-color: #e53935;
+}
+
+.nav-btn.danger:hover {
+  background: #ffebee;
+}
+
+.nav-btn.danger:active {
+  background: #ffcdd2;
 }
 
 .nav-btn svg {

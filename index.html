@@ -32,15 +32,30 @@
     <div class="card info-card" style="border: 3px solid rgb(255, 140, 0);">
       <div class="card-header">
         <h3>基本情報</h3>
-        <button class="icon-btn" onclick="openServicerManager();" style="background:none; border:none; cursor:pointer;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hi-cog">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-            </path>
-          </svg>
-        </button>
+        <div>
+          <button class="icon-btn" onclick="openGeminiSettings();"
+            style="background:none; border:none; cursor:pointer; margin-right: 10px;" title="翻訳設定 (AI)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+              <path d="M20 3v4"></path>
+              <path d="M22 5h-4"></path>
+              <path d="M4 17v2"></path>
+              <path d="M5 18H3"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" onclick="openServicerManager();"
+            style="background:none; border:none; cursor:pointer;" title="奉仕者管理">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hi-cog">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="card-content form-grid">
         <div class="form-group full-width">
@@ -50,11 +65,33 @@
         </div>
         <div class="form-group full-width">
           <label for="jtitle">日本語タイトル</label>
-          <input type="search" id="jtitle" list="jtitlelist" tabindex="1" oninput="commit();" autocomplete="off">
+          <div style="display: flex; gap: 5px;">
+            <input type="search" id="jtitle" list="jtitlelist" tabindex="1" oninput="commit();" autocomplete="off"
+              style="flex: 1;">
+            <button class="translate-btn" onclick="translateTitle('j2c')" title="中国語へ翻訳">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              中訳
+            </button>
+          </div>
         </div>
         <div class="form-group full-width">
           <label for="ctitle">中国語タイトル</label>
-          <input type="search" id="ctitle" list="ctitlelist" tabindex="2" oninput="commit();" autocomplete="off">
+          <div style="display: flex; gap: 5px;">
+            <input type="search" id="ctitle" list="ctitlelist" tabindex="2" oninput="commit();" autocomplete="off"
+              style="flex: 1;">
+            <button class="translate-btn" onclick="translateTitle('c2j')" title="日本語へ翻訳">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              日訳
+            </button>
+          </div>
         </div>
         <button id="gas-import-btn" style="display:none; background-color: #4CAF50; color: white;"
           onclick="importGASDataToDB()">
@@ -141,10 +178,14 @@
               <input type="text" id="setu" tabindex="8" maxlength="3"
                 oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); memosetu(this.value); showBible();"
                 placeholder="節">
-              <button
+              <button class="nav-btn danger"
                 onclick="document.getElementById('syou').value=''; document.getElementById('setu').value=''; memosyou(''); memosetu(''); showBible();"
-                style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#F44336; margin-left:8px;"
-                title="クリア">✖</button>
+                style="width: 45px; height: 45px; margin-left:8px;" title="クリア" aria-label="クリア">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3.5"
+                  stroke="currentColor" style="width: 26px; height: 26px;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 20L20 4M4 4l16 16" />
+                </svg>
+              </button>
             </div>
           </div>
           <div class="verse-control">
@@ -523,6 +564,48 @@
         <button onclick="document.getElementById('importFile').click();" class="secondary-btn mgmt-btn"
           style="flex:1;">📤 インポート</button>
         <input type="file" id="importFile" style="display:none;" onchange="importServicers(event);">
+      </div>
+    </div>
+  </div>
+
+  <div id="geminiSettingsModal" class="search-modal">
+    <div class="search-modal-content servicer-modal">
+      <span class="search-modal-close" onclick="closeGeminiSettings();">&times;</span>
+      <h2 class="servicer-modal-title">🤖 翻訳設定 (Gemini API)</h2>
+
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label for="geminiApiKey">APIキー</label>
+        <input type="password" id="geminiApiKey" placeholder="AI StudioのAPIキーを入力">
+        <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">※キーはブラウザ内にのみ保存されます</p>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 25px;">
+        <label for="geminiModel">モデル</label>
+        <select id="geminiModel" onchange="toggleCustomModelInput()">
+          <option value="gemini-3-flash-preview" selected>1. Gemini 3 Flash</option>
+          <option value="gemma-3-27b-it">2. Gemma 3 27B</option>
+          <option value="gemini-2.5-flash">3. Gemini 2.5 Flash</option>
+          <option value="custom">4. 自分でモデルを入力</option>
+        </select>
+        <input type="text" id="geminiCustomModel" placeholder="モデル名を入力 (例: gemini-pro)"
+          style="display: none; margin-top: 10px;">
+      </div>
+
+      <div class="mgmt-actions">
+        <button onclick="saveGeminiSettings();" class="primary-btn mgmt-btn" style="flex:1;">💾 保存して閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="translationResultModal" class="search-modal">
+    <div class="search-modal-content">
+      <span class="search-modal-close"
+        onclick="document.getElementById('translationResultModal').style.display='none';">&times;</span>
+      <h2>翻訳候補から選択</h2>
+      <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">AIが提案した3つの翻訳候補から、採用するものをクリックしてください。</p>
+      <div id="translationCandidates"
+        style="display:flex; flex-direction:column; gap:10px; max-height:60vh; overflow-y:auto;">
+        <!-- 候補がここに追加されます -->
       </div>
     </div>
   </div>

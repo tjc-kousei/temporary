@@ -47,6 +47,270 @@ let currentServicerFilter = "all";
 let tempGASData = null; // GASから取得した一時的なデータを保持する変数
 
 // ==========================================
+// GEMINI API TRANSLATION SETTINGS
+// ==========================================
+let geminiSettings = {
+  apiKey: '',
+  model: 'gemini-3-flash-preview',
+  customModel: ''
+};
+
+function loadGeminiSettings() {
+  const saved = localStorage.getItem('geminiSettings');
+  if (saved) {
+    try {
+      geminiSettings = { ...geminiSettings, ...JSON.parse(saved) };
+    } catch (e) {
+      console.warn("Failed to parse geminiSettings", e);
+    }
+  }
+  updateTranslateButtonsVisibility();
+}
+
+function saveGeminiSettings() {
+  const keyInput = document.getElementById('geminiApiKey').value.trim();
+  const modelSelect = document.getElementById('geminiModel').value;
+  const customInput = document.getElementById('geminiCustomModel').value.trim();
+
+  // APIキーの簡易書式チェック (入力がある場合のみ)
+  if (keyInput) {
+    // Gemini APIキーは通常 "AIza" から始まり、39文字程度の長さを持つ
+    if (!keyInput.startsWith('AIza') || keyInput.length < 30) {
+      alert('APIキーの形式が正しくないようです。\n"AIza" から始まる有効なGemini APIキーを入力してください。');
+      return; // 保存中断
+    }
+  }
+
+  geminiSettings.apiKey = keyInput;
+  geminiSettings.model = modelSelect;
+  geminiSettings.customModel = customInput;
+
+  localStorage.setItem('geminiSettings', JSON.stringify(geminiSettings));
+  closeGeminiSettings();
+  updateTranslateButtonsVisibility();
+  showToast('翻訳設定を保存しました', 'success');
+}
+
+function updateTranslateButtonsVisibility() {
+  const btns = document.querySelectorAll('.translate-btn');
+  const hasKey = !!geminiSettings.apiKey;
+  btns.forEach(btn => {
+    btn.style.display = hasKey ? 'inline-block' : 'none';
+  });
+}
+
+function openGeminiSettings() {
+  const modal = document.getElementById("geminiSettingsModal");
+  if (modal) {
+    document.getElementById('geminiApiKey').value = geminiSettings.apiKey;
+    document.getElementById('geminiModel').value = geminiSettings.model;
+    document.getElementById('geminiCustomModel').value = geminiSettings.customModel || '';
+    toggleCustomModelInput();
+    modal.style.display = "block";
+  }
+}
+
+function closeGeminiSettings() {
+  const modal = document.getElementById("geminiSettingsModal");
+  if (modal) modal.style.display = "none";
+}
+
+function toggleCustomModelInput() {
+  const modelSelect = document.getElementById('geminiModel').value;
+  const customInput = document.getElementById('geminiCustomModel');
+  if (modelSelect === 'custom') {
+    customInput.style.display = 'block';
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+// 翻訳実行関数
+async function translateTitle(direction) {
+  if (!geminiSettings.apiKey) {
+    showToast('APIキーが設定されていません。基本情報の歯車アイコンの隣の設定ボタンから設定してください。', 'error');
+    openGeminiSettings();
+    return;
+  }
+
+  let sourceText = '';
+  let targetInputId = '';
+  let systemPrompt = '';
+  const jtitleInput = document.getElementById('jtitle');
+  const ctitleInput = document.getElementById('ctitle');
+
+  if (direction === 'j2c') {
+    sourceText = jtitleInput.value.trim();
+    if (!sourceText) {
+      showToast('日本語タイトルを入力してください', 'error');
+      return;
+    }
+    targetInputId = 'ctitle';
+    systemPrompt = `あなたはキリスト教の専門的な翻訳者です。以下の日本語のタイトルを中国語に翻訳してください。
+出力はJSON形式で行い、異なるニュアンスや表現を用いた3つの翻訳候補を配列として返してください。
+フォーマット例: 
+[
+  "候補1",
+  "候補2",
+  "候補3"
+]
+余計な解説やテキストは含めず、純粋なJSON配列のみを出力してください。`;
+  } else if (direction === 'c2j') {
+    sourceText = ctitleInput.value.trim();
+    if (!sourceText) {
+      showToast('中国語タイトルを入力してください', 'error');
+      return;
+    }
+    targetInputId = 'jtitle';
+    systemPrompt = `あなたはキリスト教の専門的な翻訳者です。以下の中国語のタイトルを日本語に翻訳してください。
+出力はJSON形式で行い、異なるニュアンスや表現を用いた3つの翻訳候補を配列として返してください。
+フォーマット例: 
+[
+  "候補1",
+  "候補2",
+  "候補3"
+]
+余計な解説やテキストは含めず、純粋なJSON配列のみを出力してください。`;
+  }
+
+  const modelName = geminiSettings.model === 'custom' ? geminiSettings.customModel : geminiSettings.model;
+  if (!modelName) {
+    showToast('モデル名が正しく設定されていません', 'error');
+    return;
+  }
+
+  // 実行中UIの制御
+  const btns = document.querySelectorAll('.translate-btn');
+  btns.forEach(btn => btn.disabled = true);
+  const originalCtitle = ctitleInput.value;
+  const originalJtitle = jtitleInput.value;
+
+  try {
+    const isGemma = modelName.toLowerCase().includes('gemma');
+    let requestBody;
+
+    if (isGemma) {
+      // system_instruction 非対応モデルの場合は contents に含める
+      requestBody = {
+        contents: [{
+          parts: [{ text: systemPrompt + "\n\n" + sourceText }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+        }
+      };
+    } else {
+      // 標準モデル（Geminiシリーズ）
+      requestBody = {
+        system_instruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: [{
+          parts: [{ text: sourceText }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+        }
+      };
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiSettings.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      let errorMsg = `HTTP Error ${response.status}`;
+      try {
+        const errData = await response.json();
+        if (errData.error && errData.error.message) {
+          errorMsg = errData.error.message;
+        } else if (errData.error && errData.error.details) {
+           errorMsg = JSON.stringify(errData.error.details);
+        }
+      } catch (e) {
+        // failed to parse json
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    let translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    // JSONのクリーンアップ（マークダウンの ```json などが含まれる場合があるため）
+    if (translatedText.startsWith('```json')) {
+      translatedText = translatedText.replace(/```json/g, '').replace(/```/g, '').trim();
+    } else if (translatedText.startsWith('```')) {
+      translatedText = translatedText.replace(/```/g, '').trim();
+    }
+
+    try {
+      const candidates = JSON.parse(translatedText);
+      if (Array.isArray(candidates) && candidates.length > 0) {
+         showTranslationCandidates(candidates, targetInputId);
+      } else {
+         throw new Error("配列ではありません");
+      }
+    } catch (parseError) {
+      // JSONパース失敗時はフォールバックとして最初の行やテキスト全体を使う
+      console.warn("JSON parsing failed, falling back to raw text.", parseError);
+      showTranslationCandidates([translatedText], targetInputId);
+    }
+  } catch (error) {
+    console.error('Translation Error:', error);
+    // エラー内容はトーストで表示する
+    showToast(`翻訳エラー: ${error.message}`, 'error');
+    
+    // エラー時は元に戻す
+    if (direction === 'j2c') ctitleInput.value = originalCtitle;
+    if (direction === 'c2j') jtitleInput.value = originalJtitle;
+  } finally {
+    // UIを元に戻す
+    btns.forEach(btn => btn.disabled = false);
+  }
+}
+
+// 翻訳候補を表示する
+function showTranslationCandidates(candidates, targetInputId) {
+  const modal = document.getElementById('translationResultModal');
+  const container = document.getElementById('translationCandidates');
+  container.innerHTML = ''; // クリア
+
+  candidates.forEach(candidateText => {
+    const btn = document.createElement('button');
+    btn.className = 'display-btn';
+    btn.style.textAlign = 'left';
+    btn.style.padding = '15px';
+    btn.style.fontSize = '1.1rem';
+    btn.style.backgroundColor = '#f5f5f5';
+    btn.style.border = '1px solid #ddd';
+    btn.style.marginBottom = '5px';
+    
+    btn.innerText = candidateText;
+    btn.onclick = () => selectTranslation(candidateText, targetInputId);
+    
+    // ホバーエフェクト
+    btn.onmouseover = () => btn.style.backgroundColor = '#e0f7fa';
+    btn.onmouseout = () => btn.style.backgroundColor = '#f5f5f5';
+    
+    container.appendChild(btn);
+  });
+
+  modal.style.display = 'block';
+}
+
+// 候補を選択した時の処理
+function selectTranslation(text, targetInputId) {
+  document.getElementById(targetInputId).value = text;
+  document.getElementById('translationResultModal').style.display = 'none';
+  commit(); // プレビュー反映
+  showToast('翻訳を適用しました', 'success');
+}
+
+// ==========================================
 // COLOR CUSTOMIZATION
 // ==========================================
 const COLOR_DEFAULTS = {
@@ -1409,6 +1673,7 @@ window.addEventListener("unload", (e) => {
 }
 
 window.addEventListener('load', () => {
+  loadGeminiSettings();
   loadColorSettings();
   initDB();
   setupEventListeners();
