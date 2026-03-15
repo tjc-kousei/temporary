@@ -1201,14 +1201,17 @@ function updateModeUI(mode) {
   const btnTitle = document.getElementById("btn-mode-title");
   const btnHymn = document.getElementById("btn-mode-hymn");
   const btnBible = document.getElementById("btn-mode-bible");
+  const btnCapture = document.getElementById("btn-mode-capture");
 
   if (btnTitle) btnTitle.classList.remove("primary");
   if (btnHymn) btnHymn.classList.remove("primary");
   if (btnBible) btnBible.classList.remove("primary");
+  if (btnCapture) btnCapture.classList.remove("primary");
 
   if (mode === "title" && btnTitle) btnTitle.classList.add("primary");
   else if (mode === "hymn" && btnHymn) btnHymn.classList.add("primary");
   else if (mode === "bible" && btnBible) btnBible.classList.add("primary");
+  else if (mode === "capture" && btnCapture) btnCapture.classList.add("primary");
 }
 
 function updateActiveButton(activeBtn) {
@@ -1410,10 +1413,10 @@ function switchScreen(mode) {
   currentMode = mode;
   updateModeUI(mode);
   const dBody = display_win.document.body;
-  dBody.classList.remove("bible-mode", "title-mode", "hymn-mode");
+  dBody.classList.remove("bible-mode", "title-mode", "hymn-mode", "capture-mode");
   dBody.classList.add(mode + "-mode");
 
-  const views = ["bible-view", "title-view", "hymn-view"];
+  const views = ["bible-view", "title-view", "hymn-view", "capture-view"];
   views.forEach((v) => {
     const el = display_win.document.getElementById(v);
     if (el) el.style.display = "none";
@@ -1427,6 +1430,7 @@ function checkwindow(mode) {
   if (mode === "bible_win" || mode === "bible") targetMode = "bible";
   if (mode === "title_win" || mode === "title") targetMode = "title";
   if (mode === "hymn_win" || mode === "hymn") targetMode = "hymn";
+  if (mode === "capture") targetMode = "capture";
 
   if (display_win && !display_win.closed) {
     switchScreen(targetMode);
@@ -1441,6 +1445,111 @@ function checkwindow(mode) {
       if (targetMode === "title") commit();
     };
     display_win.focus();
+  }
+}
+
+// ==========================================
+// 7. SCREEN CAPTURE
+// ==========================================
+async function startCapture() {
+  if (!display_win || display_win.closed) {
+    openwindow();
+    // 窓が開くまで少し待機してからキャプチャ開始
+    setTimeout(async () => {
+      await initializeCapture();
+    }, 500);
+  } else {
+    // 既にストリームが存在してアクティブなら、取得済みのものを再利用して表示モードだけ切り替える
+    if (captureStream && captureStream.active) {
+      switchScreen("capture");
+      updateCaptureButtons();
+      return;
+    }
+    await initializeCapture();
+  }
+}
+
+async function reselectCapture() {
+  if (!display_win || display_win.closed) {
+     openwindow();
+  }
+  // 既存のストリームがあれば一旦停止する
+  stopCaptureTracks();
+  await initializeCapture();
+}
+
+function stopCapture() {
+  stopCaptureTracks();
+  updateCaptureButtons();
+  if (currentMode === "capture") {
+    checkwindow("title"); // 切断時は基本情報画面に戻す
+  }
+}
+
+function stopCaptureTracks() {
+  if (captureStream) {
+    captureStream.getTracks().forEach(track => track.stop());
+    captureStream = null;
+  }
+}
+
+function updateCaptureButtons() {
+  const btnReselect = document.getElementById("btn-capture-reselect");
+  const btnStop = document.getElementById("btn-capture-stop");
+  
+  if (captureStream && captureStream.active) {
+    if (btnReselect) btnReselect.disabled = false;
+    if (btnStop) btnStop.disabled = false;
+  } else {
+    if (btnReselect) btnReselect.disabled = true;
+    if (btnStop) btnStop.disabled = true;
+  }
+}
+
+let captureStream = null;
+
+async function initializeCapture() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      console.error("Screen Capture API is not supported in this environment.");
+      alert("この環境では画面キャプチャがサポートされていません。\nhttps:// でアクセスするか、localhost (127.0.0.1) 環境で実行してください。");
+      showToast("画面キャプチャ機能が利用できません", "error");
+      return;
+    }
+
+    captureStream = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        cursor: "always"
+      },
+      audio: false
+    });
+    
+    switchScreen("capture");
+    updateCaptureButtons();
+    
+    const doc = display_win.document;
+    const videoElem = doc.getElementById('capture-video');
+    if (videoElem) {
+      videoElem.srcObject = captureStream;
+      videoElem.play();
+    }
+    
+    // ストリームが停止されたら(「共有を停止」ボタン押下など)
+    captureStream.getVideoTracks()[0].onended = () => {
+      stopCaptureTracks();
+      updateCaptureButtons();
+      if (currentMode === "capture") {
+        checkwindow("title");
+      }
+    };
+  } catch(err) {
+    console.error("キャプチャエラー:", err);
+    // ユーザーがキャンセルした場合などはエラーを出さずにリセットする
+    stopCaptureTracks();
+    updateCaptureButtons();
+    if (err.name !== "NotAllowedError") {
+      showToast("画面キャプチャの取得に失敗しました", "error");
+    }
   }
 }
 

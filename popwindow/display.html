@@ -30,7 +30,8 @@
         /* === モード別表示制御 === */
         #bible-view,
         #title-view,
-        #hymn-view {
+        #hymn-view,
+        #capture-view {
             display: none;
             width: 100%;
             height: 100%;
@@ -64,6 +65,21 @@
             display: block;
         }
 
+        body.capture-mode {
+            background-color: black;
+        }
+
+        body.capture-mode #capture-view {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #capture-video {
+            max-width: 100%;
+            max-height: 100vh;
+            object-fit: contain;
+        }
 
         /* =========================================
            1. 聖書モード (Bible Mode)
@@ -400,6 +416,10 @@
     <div id="hymn-view">
         <div id="h_bg_number"></div>
         <div id="h_output"></div>
+    </div>
+
+    <div id="capture-view">
+        <video id="capture-video" autoplay playsinline></video>
     </div>
 
     <script>
