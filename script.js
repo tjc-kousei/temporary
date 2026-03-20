@@ -47,6 +47,86 @@ let currentServicerFilter = "all";
 let tempGASData = null; // GASから取得した一時的なデータを保持する変数
 
 // ==========================================
+// LOGO DISPLAY SETTINGS
+// ==========================================
+let logoDisplaySettings = {
+  titleLogoWidth: 250,
+  bibleLogoHeight: 18
+};
+
+function loadLogoSettings() {
+  const saved = localStorage.getItem("logoDisplaySettings");
+  if (saved) {
+    try {
+      logoDisplaySettings = { ...logoDisplaySettings, ...JSON.parse(saved) };
+    } catch (e) { console.warn("logo settings parse error", e); }
+  }
+}
+
+function saveLogoSettings() {
+  localStorage.setItem("logoDisplaySettings", JSON.stringify(logoDisplaySettings));
+}
+
+function updateLogoSetting(key, value) {
+  logoDisplaySettings[key] = parseFloat(value);
+  saveLogoSettings();
+  applyLogoSettings();
+}
+
+function applyLogoSettings() {
+  if (display_win && !display_win.closed) {
+    const root = display_win.document.documentElement;
+    root.style.setProperty('--title-logo-width', logoDisplaySettings.titleLogoWidth + 'px');
+    root.style.setProperty('--bible-logo-height', logoDisplaySettings.bibleLogoHeight + 'vh');
+  }
+}
+
+// ==========================================
+// BIBLE DISPLAY SETTINGS
+// ==========================================
+let bibleDisplaySettings = {
+  bodyMax: 80,
+  refScale: 1.0
+};
+
+function loadBibleSettings() {
+  const saved = localStorage.getItem("bibleDisplaySettings");
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      bibleDisplaySettings = { ...bibleDisplaySettings, ...parsed };
+    } catch (e) { console.warn("bible settings parse error", e); }
+  }
+}
+
+function saveBibleSettings() {
+  localStorage.setItem("bibleDisplaySettings", JSON.stringify(bibleDisplaySettings));
+}
+
+function updateBibleSetting(key, value) {
+  bibleDisplaySettings[key] = parseFloat(value);
+  saveBibleSettings();
+  if (display_win && !display_win.closed && currentMode === "bible") {
+    // DOMを再生成して確実にMutationObserverを発火させ、
+    // また表示文字自体も最新状態にアップデートする
+    showBible();
+  }
+}
+
+function resetBibleSettings() {
+  bibleDisplaySettings.bodyMax = 80;
+  bibleDisplaySettings.refScale = 1.0;
+  
+  const elMax = document.getElementById("setting_bible_body_max");
+  const elScale = document.getElementById("setting_bible_ref_scale");
+  if(elMax) elMax.value = bibleDisplaySettings.bodyMax;
+  if(elScale) elScale.value = bibleDisplaySettings.refScale;
+  
+  updateBibleSetting('bodyMax', 80);
+  updateBibleSetting('refScale', 1.0);
+}
+
+// ==========================================
 // GEMINI API TRANSLATION SETTINGS
 // ==========================================
 let geminiSettings = {
@@ -1453,6 +1533,7 @@ function checkwindow(mode) {
   } else {
     openwindow();
     display_win.onload = () => {
+      applyLogoSettings();
       switchScreen(targetMode);
       if (targetMode === "bible") showBible();
       if (targetMode === "title") commit();
@@ -1572,7 +1653,7 @@ function showBible() {
   const outDiv = display_win.document.getElementById("b_out");
   for (let n = 1; n < bible.length; n++) {
     if (bible[n][3] == where) {
-      outDiv.innerHTML = `<div id="master">
+      outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}">
         <div id="jp">
           <div class="bible_ref_row"><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
           <div class="target_jp bible_body_row">${bible[n][4]}</div>
@@ -1746,6 +1827,20 @@ function setupEventListeners() {
   searchInput = document.getElementById('searchInput');
   executeSearchBtn = document.getElementById('executeSearchBtn');
   searchResultsDiv = document.getElementById('searchResults');
+
+  // Logo Settings Init
+  loadLogoSettings();
+  const elLogoTitle = document.getElementById("setting_logo_title_width");
+  const elLogoBible = document.getElementById("setting_logo_bible_height");
+  if(elLogoTitle) elLogoTitle.value = logoDisplaySettings.titleLogoWidth;
+  if(elLogoBible) elLogoBible.value = logoDisplaySettings.bibleLogoHeight;
+
+  // Bible Settings Init
+  loadBibleSettings();
+  const elBibleMax = document.getElementById("setting_bible_body_max");
+  const elBibleScale = document.getElementById("setting_bible_ref_scale");
+  if(elBibleMax) elBibleMax.value = bibleDisplaySettings.bodyMax;
+  if(elBibleScale) elBibleScale.value = bibleDisplaySettings.refScale;
 
   // Font size ranges
   const input_ranges = document.querySelectorAll('.change_size');

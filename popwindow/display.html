@@ -12,6 +12,11 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap');
 
         /* === 共通設定 === */
+        :root {
+            --title-logo-width: 250px;
+            --bible-logo-height: 18vh;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -345,7 +350,7 @@
             position: absolute;
             top: 0px;
             left: 0px;
-            width: 250px;
+            width: var(--title-logo-width, 250px);
             max-width: 20vw;
             /* 画面に対して大きくなりすぎないように */
             height: auto;
@@ -361,7 +366,7 @@
             display: block;
             width: auto;
             /* 常にヘッダーの高さに収まるように制限し、文字と被らないように調整 */
-            max-height: 18vh;
+            max-height: var(--bible-logo-height, 18vh);
             max-width: 20vw;
             /* 聖書モードの深緑ヘッダーに対してロゴを見やすくするため、白系の背景パネル敷きとドロップシャドウを適用 */
             background-color: rgba(255, 255, 255, 0.85);
@@ -447,7 +452,23 @@
             const content = document.getElementById('master');
             if (!container || !container.offsetParent || !content) return;
 
-            let min = 10, max = 80, optimal = min;
+            // 親ウィンドウあるいは自身にセットされたデータ属性から設定取得
+            let customMax = 80;
+            let refScale = 1.0;
+            if (content.hasAttribute('data-bible-body-max')) {
+                customMax = parseFloat(content.getAttribute('data-bible-body-max'));
+            }
+            if (content.hasAttribute('data-bible-ref-scale')) {
+                refScale = parseFloat(content.getAttribute('data-bible-ref-scale'));
+            }
+
+            // 聖書箇所のフォントサイズ分割適用
+            const refRows = content.querySelectorAll('.bible_ref_row');
+            refRows.forEach(row => {
+               row.style.fontSize = refScale + 'em';
+            });
+
+            let min = 10, max = customMax, optimal = min;
             content.style.fontSize = max + 'px';
             while (min <= max) {
                 const mid = Math.floor((min + max) / 2);
