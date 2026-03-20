@@ -106,6 +106,13 @@ function openGeminiSettings() {
     document.getElementById('geminiModel').value = geminiSettings.model;
     document.getElementById('geminiCustomModel').value = geminiSettings.customModel || '';
     toggleCustomModelInput();
+    
+    // 動画の遅延読み込み
+    const video = document.getElementById('tutorial-video');
+    if (video && !video.src) {
+      video.src = video.getAttribute('data-src');
+    }
+
     modal.style.display = "block";
   }
 }
@@ -113,6 +120,12 @@ function openGeminiSettings() {
 function closeGeminiSettings() {
   const modal = document.getElementById("geminiSettingsModal");
   if (modal) modal.style.display = "none";
+  
+  // モーダルを閉じたときに動画を止める
+  const video = document.getElementById('tutorial-video');
+  if (video && !video.paused) {
+    video.pause();
+  }
 }
 
 function toggleCustomModelInput() {
