@@ -145,6 +145,52 @@ function loadGeminiSettings() {
     }
   }
   updateTranslateButtonsVisibility();
+  fetchAvailableModels(); // モデル一覧の動的取得を開始
+}
+
+let isModelsFetched = false;
+
+async function fetchAvailableModels() {
+  if (isModelsFetched) return;
+  try {
+    const response = await fetch('https://runaaa0712.weblike.jp/MyApp/available-api/api.php');
+    if (!response.ok) throw new Error('Network response error');
+    const data = await response.json();
+    if (data.status === 'success' && data.models) {
+      const select = document.getElementById('geminiModel');
+      if (!select) return;
+      
+      const currentValue = geminiSettings.model;
+      select.innerHTML = ''; // クリア
+      
+      data.models.forEach((m, index) => {
+        const option = document.createElement('option');
+        // 'models/' プレフィックスを削除
+        const modelId = m.id.replace('models/', '');
+        option.value = modelId;
+        option.textContent = `${index + 1}. ${m.displayName}`;
+        select.appendChild(option);
+      });
+      
+      const customOption = document.createElement('option');
+      customOption.value = 'custom';
+      customOption.textContent = `${data.models.length + 1}. 自分でモデルを入力`;
+      select.appendChild(customOption);
+      
+      // 選択状態の復元
+      if (Array.from(select.options).some(opt => opt.value === currentValue) || currentValue === 'custom') {
+        select.value = currentValue;
+      } else if (select.options.length > 0) {
+        select.selectedIndex = 0;
+        geminiSettings.model = select.value;
+      }
+      
+      isModelsFetched = true;
+      toggleCustomModelInput();
+    }
+  } catch (error) {
+    console.warn('モデル一覧の取得に失敗しました:', error);
+  }
 }
 
 function saveGeminiSettings() {
@@ -187,6 +233,14 @@ function openGeminiSettings() {
     document.getElementById('geminiCustomModel').value = geminiSettings.customModel || '';
     toggleCustomModelInput();
     
+    // 開くたびに再取得を試みる（未取得の場合）
+    if (!isModelsFetched) {
+      fetchAvailableModels().then(() => {
+        document.getElementById('geminiModel').value = geminiSettings.model;
+        toggleCustomModelInput();
+      });
+    }
+
     // 動画の遅延読み込み
     const video = document.getElementById('tutorial-video');
     if (video && !video.src) {
