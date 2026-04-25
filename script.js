@@ -1178,6 +1178,8 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+let allLyricsData = null;
+
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
   if (!lyricsArea) return;
@@ -1206,9 +1208,19 @@ async function recievehymn(value) {
   if (!currentTitleInfo) return;
 
   try {
-    const response = await fetch(`./lyrics/${value}.txt`);
-    if (response.ok) {
-      const text = await response.text();
+    if (!allLyricsData) {
+      const response = await fetch("https://tjckousei.com/hymn//api.php?action=get_all_lyrics");
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success) {
+          allLyricsData = json.data;
+        }
+      }
+    }
+
+    const text = allLyricsData ? allLyricsData[`${value}.txt`] : null;
+
+    if (text) {
       currentLyricsSections = parseLyrics(text);
 
       if (currentLyricsSections.length > 0) {
@@ -1223,6 +1235,8 @@ async function recievehymn(value) {
         const titleBtn = document.getElementById("btn-title");
         if (titleBtn) updateActiveButton(titleBtn);
       }
+    } else {
+      console.warn("歌詞データが見つかりませんでした:", value);
     }
   } catch (e) {
     console.warn("歌詞の取得に失敗しました:", value);
