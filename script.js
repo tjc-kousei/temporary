@@ -1243,6 +1243,32 @@ async function recievehymn(value) {
   }
 }
 
+async function reloadLyricsData() {
+  try {
+    showToast("最新の歌詞を取得しています...", "info");
+    const response = await fetch("https://tjckousei.com/hymn//api.php?action=get_all_lyrics");
+    if (response.ok) {
+      const json = await response.json();
+      if (json.success) {
+        allLyricsData = json.data;
+        showToast("歌詞データを最新に更新しました", "success");
+        // もし現在選択中の讃美歌があれば再表示
+        const prehymnInput = document.getElementById("prehymn");
+        if (prehymnInput && prehymnInput.value) {
+          recievehymn(prehymnInput.value.trim());
+        }
+      } else {
+        showToast("歌詞データの更新に失敗しました", "error");
+      }
+    } else {
+      showToast("通信エラーが発生しました", "error");
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("エラーが発生しました", "error");
+  }
+}
+
 function convertRuby(text) {
   return text.replace(
     /([一-龠々]+)\(([ぁ-んァ-ヶー]+)\)/g,
