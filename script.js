@@ -37,6 +37,12 @@ let hymn = [];
 let servicerList = {};
 let currentLyricsSections = [];
 let currentTitleInfo = null;
+const HYMN_RECOMMENDATION_ENDPOINT = "https://tjckousei.com/api/v1/hymn-recommendations/index.php";
+const fallbackHymnRecommendationGroups = [
+  { label: "聖餐式", songs: ["194", "195", "196"] }
+];
+let hymnRecommendationGroups = [];
+let activeHymnRecommendationLabel = "";
 
 let currentMode = "title";
 
@@ -671,6 +677,151 @@ function converthymnCSVtoArray(str) {
   }
 }
 
+function normalizeHymnRecommendationGroups(groups) {
+  if (!Array.isArray(groups)) return [];
+
+  return groups
+    .filter((group) => group && group.label)
+    .map((group) => ({
+      label: String(group.label).trim(),
+      songs: Array.isArray(group.songs)
+        ? group.songs.map((song) => String(song).trim()).filter(Boolean)
+        : []
+    }))
+    .filter((group) => group.label);
+}
+
+function convertHymnRecommendationRowsToGroups(rows) {
+  if (!Array.isArray(rows)) return [];
+
+  const groupMap = new Map();
+
+  rows.forEach((row) => {
+    if (!row || !row.label || !row.song) return;
+
+    const label = String(row.label).trim();
+    const song = String(row.song).trim();
+    if (!label || !song) return;
+
+    if (!groupMap.has(label)) {
+      groupMap.set(label, []);
+    }
+
+    groupMap.get(label).push(song);
+  });
+
+  return Array.from(groupMap.entries()).map(([label, songs]) => ({ label, songs }));
+}
+
+function renderHymnRecommendationSongs(label) {
+  const songsWrap = document.getElementById("hymn-recommendation-songs");
+  if (!songsWrap) return;
+
+  if (!label) {
+    songsWrap.innerHTML = "";
+    return;
+  }
+
+  const selectedGroup = hymnRecommendationGroups.find((group) => group.label === label);
+  const songs = selectedGroup && Array.isArray(selectedGroup.songs) ? selectedGroup.songs : [];
+
+  if (!songs.length) {
+    songsWrap.innerHTML = '<span class="hymn-recommendation-empty">候補曲はまだ登録されていません。</span>';
+    return;
+  }
+
+  songsWrap.innerHTML = songs
+    .map((song) => `<button type="button" class="hymn-recommendation-song" data-song="${escapeHTML(song)}">${escapeHTML(song)}</button>`)
+    .join("");
+
+  songsWrap.querySelectorAll(".hymn-recommendation-song").forEach((button) => {
+    button.addEventListener("click", () => applyRecommendedHymn(button.dataset.song || ""));
+  });
+}
+
+function renderHymnRecommendationGroups(groups) {
+  const tagsWrap = document.getElementById("hymn-recommendation-tags");
+  const songsWrap = document.getElementById("hymn-recommendation-songs");
+  const panel = document.getElementById("hymn-recommendation-panel");
+  if (!tagsWrap || !songsWrap || !panel) return;
+
+  hymnRecommendationGroups = normalizeHymnRecommendationGroups(groups);
+
+  if (!hymnRecommendationGroups.length) {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "";
+  tagsWrap.innerHTML = hymnRecommendationGroups
+    .map((group) => {
+      const isActive = activeHymnRecommendationLabel === group.label;
+      return `<button type="button" class="hymn-recommendation-tag${isActive ? " active" : ""}" data-label="${escapeHTML(group.label)}">${escapeHTML(group.label)}</button>`;
+    })
+    .join("");
+
+  if (!hymnRecommendationGroups.some((group) => group.label === activeHymnRecommendationLabel)) {
+    activeHymnRecommendationLabel = "";
+  }
+
+  renderHymnRecommendationSongs(activeHymnRecommendationLabel);
+
+  tagsWrap.querySelectorAll(".hymn-recommendation-tag").forEach((button) => {
+    button.addEventListener("click", () => {
+      const label = button.dataset.label || "";
+      activeHymnRecommendationLabel = activeHymnRecommendationLabel === label ? "" : label;
+      tagsWrap.querySelectorAll(".hymn-recommendation-tag").forEach((tag) => tag.classList.remove("active"));
+
+      if (activeHymnRecommendationLabel) {
+        button.classList.add("active");
+      }
+
+      renderHymnRecommendationSongs(activeHymnRecommendationLabel);
+    });
+  });
+}
+
+async function loadHymnRecommendations() {
+  renderHymnRecommendationGroups(fallbackHymnRecommendationGroups);
+
+  try {
+    const response = await fetch(HYMN_RECOMMENDATION_ENDPOINT, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    if (!payload || (!Array.isArray(payload.groups) && !Array.isArray(payload.rows))) {
+      throw new Error("Invalid response format");
+    }
+
+    const groups = Array.isArray(payload.groups)
+      ? payload.groups
+      : convertHymnRecommendationRowsToGroups(payload.rows);
+
+    renderHymnRecommendationGroups(groups);
+  } catch (error) {
+    console.warn("讃美歌候補の取得に失敗したため、ローカル設定を使用します。", error);
+  }
+}
+
+function applyRecommendedHymn(song) {
+  const normalizedSong = String(song || "").trim().replace(/[^(0-9)(甲乙)]/g, "");
+  if (!normalizedSong) return;
+
+  const prehymnInput = document.getElementById("prehymn");
+  if (!prehymnInput) return;
+
+  prehymnInput.value = normalizedSong;
+  recievehymn(normalizedSong);
+  showToast(`讃美歌 ${normalizedSong} を表示しました`, "success");
+}
+
 async function loadInitialData() {
   const overlay = document.getElementById("loading-overlay");
   updateProgress(5, "接続を開始します...");
@@ -722,6 +873,7 @@ async function loadInitialData() {
     updateProgress(75, "讃美歌データを読み込んでいます...");
     const hymnData = await loadCSVAsync("./hymn.csv");
     converthymnCSVtoArray(hymnData);
+    await loadHymnRecommendations();
     updateProgress(100, "準備完了！");
     setTimeout(() => {
       if (overlay) overlay.classList.add("hidden");

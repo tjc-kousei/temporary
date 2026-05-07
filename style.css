@@ -121,6 +121,80 @@ textarea:focus {
   gap: 10px;
 }
 
+.hymn-recommendation-panel {
+  background: linear-gradient(180deg, #f7fcfd 0%, #edf7f8 100%);
+  border: 1px solid #d7ebee;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.hymn-recommendation-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.hymn-recommendation-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #17646c;
+}
+
+.hymn-recommendation-note {
+  font-size: 0.8rem;
+  color: #67858a;
+}
+
+.hymn-recommendation-tags,
+.hymn-recommendation-songs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hymn-recommendation-songs {
+  margin-top: 10px;
+  min-height: 16px;
+}
+
+.hymn-recommendation-tag,
+.hymn-recommendation-song {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.hymn-recommendation-tag {
+  background: #dff1f4;
+  color: #17646c;
+}
+
+.hymn-recommendation-tag.active {
+  background: #00838f;
+  color: white;
+}
+
+.hymn-recommendation-song {
+  background: white;
+  color: #2d3f42;
+  border: 1px solid #cae4e7;
+}
+
+.hymn-recommendation-song:hover,
+.hymn-recommendation-tag:hover {
+  filter: brightness(0.98);
+}
+
+.hymn-recommendation-empty {
+  color: #6b7d81;
+  font-size: 0.88rem;
+}
+
 /* === ボタン === */
 button {
   cursor: pointer;
