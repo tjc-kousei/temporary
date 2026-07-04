@@ -38,6 +38,9 @@ let servicerList = {};
 let currentLyricsSections = [];
 let currentTitleInfo = null;
 const HYMN_RECOMMENDATION_ENDPOINT = "https://tjckousei.com/api/v1/hymn-recommendations/index.php";
+const LYRICS_API_URL = "https://tjckousei.com/hymn/api.php?action=get_all_lyrics";
+const LYRICS_CACHE_KEY = "hymnLyricsData";
+const LYRICS_CACHE_UPDATED_KEY = "hymnLyricsUpdatedAt";
 const fallbackHymnRecommendationGroups = [
   { label: "聖餐式", songs: ["194", "195", "196"] }
 ];
@@ -811,7 +814,7 @@ async function loadHymnRecommendations() {
 }
 
 function applyRecommendedHymn(song) {
-  const normalizedSong = String(song || "").trim().replace(/[^(0-9)(甲乙)]/g, "");
+  const normalizedSong = getNormalizedHymnNumber(song);
   if (!normalizedSong) return;
 
   const prehymnInput = document.getElementById("prehymn");
@@ -1332,6 +1335,119 @@ function escapeRegExp(string) {
 
 let allLyricsData = null;
 
+function getNormalizedHymnNumber(value) {
+  return String(value || "").trim().replace(/[^(0-9)(甲乙)]/g, "");
+}
+
+function getHymnTitleInfo(value) {
+  const hymnNumber = getNormalizedHymnNumber(value);
+  if (!hymnNumber) return null;
+
+  return hymn.find((row) => Array.isArray(row) && row[0] && row[0].trim() === hymnNumber) || null;
+}
+
+function setLyricsMessage(message, type = "empty") {
+  const lyricsArea = document.getElementById("lyrics_area");
+  if (!lyricsArea) return;
+  lyricsArea.innerHTML = `<div class="lyrics-state lyrics-state-${type}">${escapeHTML(message)}</div>`;
+}
+
+function readLyricsCache() {
+  try {
+    const cached = localStorage.getItem(LYRICS_CACHE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    console.warn("保存済み歌詞データの読み込みに失敗しました:", error);
+    return null;
+  }
+}
+
+function writeLyricsCache(data) {
+  try {
+    localStorage.setItem(LYRICS_CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(LYRICS_CACHE_UPDATED_KEY, new Date().toISOString());
+  } catch (error) {
+    console.warn("歌詞データの保存に失敗しました:", error);
+  }
+}
+
+async function fetchLyricsData() {
+  const response = await fetch(LYRICS_API_URL, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const json = await response.json();
+  if (!json || !json.success || !json.data) {
+    throw new Error("Invalid lyrics response");
+  }
+
+  writeLyricsCache(json.data);
+  return json.data;
+}
+
+async function loadLyricsData({ force = false } = {}) {
+  if (allLyricsData && !force) return allLyricsData;
+
+  if (!force) {
+    const cached = readLyricsCache();
+    if (cached) {
+      allLyricsData = cached;
+      return allLyricsData;
+    }
+  }
+
+  allLyricsData = await fetchLyricsData();
+  return allLyricsData;
+}
+
+function clearDisplayedHymn() {
+  if (!display_win || display_win.closed) return;
+
+  const doc = display_win.document;
+  const hOutput = doc.getElementById("h_output");
+  const hBgNum = doc.getElementById("h_bg_number");
+  if (hOutput) hOutput.innerHTML = "";
+  if (hBgNum) hBgNum.innerText = "";
+}
+
+function renderLyricsControls(sections) {
+  const lyricsArea = document.getElementById("lyrics_area");
+  if (!lyricsArea) return;
+
+  lyricsArea.innerHTML = "";
+
+  const titleButton = document.createElement("button");
+  titleButton.type = "button";
+  titleButton.className = "lyric-btn";
+  titleButton.id = "btn-title";
+  titleButton.textContent = "タイトル";
+  titleButton.addEventListener("click", () => {
+    switchScreen("hymn");
+    showTitleInPopup();
+    updateActiveButton(titleButton);
+  });
+  lyricsArea.appendChild(titleButton);
+
+  sections.forEach((section, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "lyric-btn";
+    button.textContent = section.label;
+    button.addEventListener("click", () => {
+      switchScreen("hymn");
+      showLyricsVerse(index);
+      updateActiveButton(button);
+    });
+    lyricsArea.appendChild(button);
+  });
+}
+
 async function recievehymn(value) {
   const lyricsArea = document.getElementById("lyrics_area");
   if (!lyricsArea) return;
@@ -1339,85 +1455,62 @@ async function recievehymn(value) {
   lyricsArea.innerHTML = "";
   currentTitleInfo = null;
   currentLyricsSections = [];
+  clearDisplayedHymn();
 
-  if (display_win && !display_win.closed) {
-    const doc = display_win.document;
-    const hOutput = doc.getElementById("h_output");
-    const hBgNum = doc.getElementById("h_bg_number");
-    if (hOutput) hOutput.innerHTML = "";
-    if (hBgNum) hBgNum.innerText = "";
+  const hymnNumber = getNormalizedHymnNumber(value);
+  if (!hymnNumber) {
+    setLyricsMessage("讃美歌番号を入力してください。");
+    return;
   }
 
-  if (!value) return;
-
-  for (let n = 1; n < hymn.length; n++) {
-    if (hymn[n][0].trim() === value.trim()) {
-      currentTitleInfo = hymn[n];
-      break;
-    }
+  currentTitleInfo = getHymnTitleInfo(hymnNumber);
+  if (!currentTitleInfo) {
+    setLyricsMessage(`讃美歌 ${hymnNumber} は一覧に見つかりません。`, "warning");
+    return;
   }
 
-  if (!currentTitleInfo) return;
+  setLyricsMessage("歌詞を読み込んでいます...", "loading");
 
   try {
-    if (!allLyricsData) {
-      const response = await fetch("https://tjckousei.com/hymn//api.php?action=get_all_lyrics");
-      if (response.ok) {
-        const json = await response.json();
-        if (json.success) {
-          allLyricsData = json.data;
-        }
-      }
-    }
-
-    const text = allLyricsData ? allLyricsData[`${value}.txt`] : null;
+    const lyricsData = await loadLyricsData();
+    const text = lyricsData ? lyricsData[`${hymnNumber}.txt`] : null;
 
     if (text) {
       currentLyricsSections = parseLyrics(text);
 
       if (currentLyricsSections.length > 0) {
-        let buttonsHTML = `<button onclick="switchScreen('hymn'); showTitleInPopup(); updateActiveButton(this);" class="lyric-btn" id="btn-title">タイトル</button>`;
-        currentLyricsSections.forEach((sec, index) => {
-          buttonsHTML += `<button onclick="switchScreen('hymn'); showLyricsVerse(${index}); updateActiveButton(this);" class="lyric-btn">${sec.label}</button>`;
-        });
-        lyricsArea.innerHTML = buttonsHTML;
-
+        renderLyricsControls(currentLyricsSections);
         switchScreen("hymn");
         showTitleInPopup();
         const titleBtn = document.getElementById("btn-title");
         if (titleBtn) updateActiveButton(titleBtn);
+      } else {
+        setLyricsMessage(`讃美歌 ${hymnNumber} の歌詞形式を解析できませんでした。`, "warning");
       }
     } else {
-      console.warn("歌詞データが見つかりませんでした:", value);
+      setLyricsMessage(`讃美歌 ${hymnNumber} の歌詞データはまだ登録されていません。`, "warning");
+      showTitleInPopup();
+      console.warn("歌詞データが見つかりませんでした:", hymnNumber);
     }
   } catch (e) {
-    console.warn("歌詞の取得に失敗しました:", value);
+    setLyricsMessage("歌詞データの取得に失敗しました。通信状況を確認してください。", "error");
+    console.warn("歌詞の取得に失敗しました:", hymnNumber, e);
   }
 }
 
 async function reloadLyricsData() {
   try {
     showToast("最新の歌詞を取得しています...", "info");
-    const response = await fetch("https://tjckousei.com/hymn//api.php?action=get_all_lyrics");
-    if (response.ok) {
-      const json = await response.json();
-      if (json.success) {
-        allLyricsData = json.data;
-        showToast("歌詞データを最新に更新しました", "success");
-        // もし現在選択中の讃美歌があれば再表示
-        const prehymnInput = document.getElementById("prehymn");
-        if (prehymnInput && prehymnInput.value) {
-          recievehymn(prehymnInput.value.trim());
-        }
-      } else {
-        showToast("歌詞データの更新に失敗しました", "error");
-      }
-    } else {
-      showToast("通信エラーが発生しました", "error");
+    await loadLyricsData({ force: true });
+    showToast("歌詞データを最新に更新しました", "success");
+
+    const prehymnInput = document.getElementById("prehymn");
+    if (prehymnInput && prehymnInput.value) {
+      recievehymn(prehymnInput.value.trim());
     }
   } catch (e) {
     console.error(e);
-    showToast("エラーが発生しました", "error");
+    showToast("歌詞データの更新に失敗しました", "error");
   }
 }
 
@@ -1437,7 +1530,7 @@ function parseLyrics(text) {
   const processContent = (rawText) => {
     rawText = rawText.trim();
     if (!rawText) return "";
-    let processed = convertRuby(rawText);
+    let processed = convertRuby(escapeHTML(rawText));
     return processed
       .split(/\r\n|\n/)
       .map((line) => {
@@ -1506,6 +1599,15 @@ function memosetu(num) {
   setu = num;
 }
 
+function bindDisplayFullscreenEvents() {
+  const doc = getDisplayDocument();
+  if (!doc || doc.__fullscreenEventsBound) return;
+
+  doc.addEventListener("fullscreenchange", updateFullscreenButton);
+  doc.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+  doc.__fullscreenEventsBound = true;
+}
+
 function openwindow() {
   if (display_win && !display_win.closed) {
     display_win.focus();
@@ -1515,7 +1617,12 @@ function openwindow() {
       "display",
       "width=1500,height=800,scrollbars=yes,resizable=yes"
     );
+    if (display_win) {
+      display_win.addEventListener("load", bindDisplayFullscreenEvents);
+    }
   }
+  bindDisplayFullscreenEvents();
+  updateFullscreenButton();
 }
 
 function openServicerManager() {
@@ -1580,6 +1687,62 @@ function showToast(message, type = 'success') {
   setTimeout(() => { toast.style.opacity = '0'; }, 3000);
   setTimeout(() => { document.body.removeChild(toast); }, 3300);
 }
+
+function getDisplayDocument() {
+  if (!display_win || display_win.closed) return null;
+  return display_win.document;
+}
+
+function getDisplayFullscreenElement() {
+  const doc = getDisplayDocument();
+  if (!doc) return null;
+  return doc.fullscreenElement || doc.webkitFullscreenElement || null;
+}
+
+function updateFullscreenButton() {
+  const button = document.getElementById("fullscreen-toggle");
+  if (!button) return;
+
+  const isFullscreen = !!getDisplayFullscreenElement();
+  button.textContent = isFullscreen ? "全画面解除" : "全画面表示";
+  button.classList.toggle("is-active", isFullscreen);
+  button.setAttribute("aria-pressed", String(isFullscreen));
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!display_win || display_win.closed) {
+      openwindow();
+      showToast("別画面を開きました。もう一度押すと全画面表示します", "info");
+      return;
+    }
+
+    const doc = getDisplayDocument();
+    if (!doc) {
+      showToast("別画面を開けませんでした。ポップアップ設定を確認してください", "error");
+      return;
+    }
+
+    const root = doc.documentElement;
+    const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+    const exitFullscreen = doc.exitFullscreen || doc.webkitExitFullscreen;
+
+    if (getDisplayFullscreenElement()) {
+      if (exitFullscreen) await exitFullscreen.call(doc);
+    } else if (requestFullscreen) {
+      display_win.focus();
+      await requestFullscreen.call(root);
+    } else {
+      showToast("このブラウザでは別画面の全画面表示を利用できません", "error");
+    }
+  } catch (error) {
+    console.warn("別画面の全画面表示切り替えに失敗しました:", error);
+    showToast("別画面を全画面にできませんでした。別画面を開いてからもう一度押してください", "error");
+  } finally {
+    updateFullscreenButton();
+  }
+}
+
 function openBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "block";
   if (searchInput) searchInput.value = "";
@@ -1926,18 +2089,33 @@ function showTitleInPopup() {
 
   if (bgNumDiv) bgNumDiv.innerText = ""; // 背景番号クリア
 
-  let wrap = "<div><p id='h_title_text'>" + currentTitleInfo[0] + "番</p>";
-  wrap += "<p id='h_ch_text'><<" + currentTitleInfo[1] + ">></p>";
-  wrap += "<p id='h_jp_text'><<" + currentTitleInfo[2] + ">></p>";
+  const hymnNumber = escapeHTML(currentTitleInfo[0] || "");
+  const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
+  const japaneseTitle = escapeHTML(currentTitleInfo[2] || "");
+  const verseTotal = currentLyricsSections.length;
+
+  let wrap = "<div><p id='h_title_text'>" + hymnNumber + "番</p>";
+  wrap += "<p id='h_ch_text'><<" + chineseTitle + ">></p>";
+  wrap += "<p id='h_jp_text'><<" + japaneseTitle + ">></p>";
+  if (verseTotal > 0) {
+    wrap += "<p id='h_verse_summary'>全 " + verseTotal + " 番</p>";
+  }
   wrap += "</div>";
   if (outputDiv) outputDiv.innerHTML = wrap;
 }
 function showLyricsVerse(index) {
   if (!display_win || display_win.closed || !currentTitleInfo) return;
   if (currentMode !== "hymn") switchScreen("hymn");
+  if (!currentLyricsSections[index]) return;
 
   const contentHtml = currentLyricsSections[index].content;
   const verseLabel = currentLyricsSections[index].label;
+  const hymnNumber = escapeHTML(currentTitleInfo[0] || "");
+  const japaneseTitle = escapeHTML(currentTitleInfo[2] || "");
+  const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
+  const verseTotal = currentLyricsSections.length;
+  const versePosition = index + 1;
+  const verseMeta = escapeHTML(`${verseLabel}  (${versePosition} / ${verseTotal})`);
 
   const doc = display_win.document;
   const outputDiv = doc.getElementById("h_output");
@@ -1948,8 +2126,9 @@ function showLyricsVerse(index) {
   if (!outputDiv) return;
 
   const headerHtml = `
-    <div style="flex: 0 0 auto; width: 100%; text-align: center; padding: 10px; background: rgba(255,255,255,0.9); border-bottom: 2px solid #ccc;">
-      <span style="font-size: 4rem; font-weight: bold;">${currentTitleInfo[0]} ${currentTitleInfo[2]}/${currentTitleInfo[1]}</span>
+    <div style="flex: 0 0 auto; width: 100%; text-align: center; padding: 10px 20px; background: rgba(255,255,255,0.92); border-bottom: 2px solid #ccc; display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+      <span style="font-size: 4rem; font-weight: bold;">${hymnNumber} ${japaneseTitle}/${chineseTitle}</span>
+      <span style="font-size: 3rem; font-weight: 800; color: #006064; border: 3px solid #00838f; border-radius: 999px; padding: 0.1em 0.65em;">${verseMeta}</span>
     </div>
   `;
   const bodyHtml = `
@@ -2133,6 +2312,13 @@ if(switch_lang.length > 1) {
     document.getElementById("nt").innerHTML = "新约";
   });
 }
+
+  const fullscreenButton = document.getElementById("fullscreen-toggle");
+  if (fullscreenButton) {
+    fullscreenButton.addEventListener("click", toggleFullscreen);
+    updateFullscreenButton();
+  }
+  window.addEventListener("focus", updateFullscreenButton);
 
   // Modal Buttons
   document.querySelectorAll(".modal_abbre_btn").forEach((ele) => {

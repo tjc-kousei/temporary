@@ -1,6 +1,6 @@
 // Service Worker - 集会管理アプリ
 // バージョンを変更するとキャッシュが更新される
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `meeting-app-${CACHE_VERSION}`;
 
 // 起動時に必ずキャッシュするコアファイル
@@ -57,23 +57,6 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== location.origin) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // 歌詞ファイル（lyrics/*.txt）はキャッシュ優先（動的キャッシュ）
-  if (url.pathname.includes('/lyrics/')) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        });
-      })
     );
     return;
   }
