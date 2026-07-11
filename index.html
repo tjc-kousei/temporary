@@ -258,130 +258,12 @@
           </div>
         </div>
 
-        <div class="accordion">
-          <div class="accordion-header">タイトル画面(別窓)の設定 <span class="arrow">▼</span></div>
-          <div class="accordion-content">
-            <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">※聖書表示画面は文字サイズが自動調整されます。</p>
-            <div class="slider-group">
-              <label>共通ロゴ幅</label>
-              <input type="range" id="setting_logo_title_width" tabindex="-1" min="50" max="600" step="10" value="250"
-                oninput="updateLogoSetting('titleLogoWidth', this.value);">
-            </div>
-            <div class="slider-group">
-              <label>日本語タイトル</label>
-              <input type="range" class="change_size" tabindex="-1" min="3.0" max="11.0" step="0.01" value="5.0"
-                oninput="disp_jtitle_font = this.value;">
-            </div>
-            <div class="slider-group">
-              <label>中国語タイトル</label>
-              <input type="range" class="change_size" tabindex="-1" min="3.0" max="11.0" step="0.01" value="5.0"
-                oninput="disp_ctitle_font = this.value;">
-            </div>
-            <div class="slider-group">
-              <label>奉仕者</label>
-              <input type="range" class="change_size" tabindex="-1" min="3.0" max="8.0" step="0.01" value="5.0"
-                oninput="disp_person_font = this.value;">
-            </div>
-            <div class="slider-group">
-              <label>礼拝種類</label>
-              <input type="range" class="change_size" tabindex="-1" min="2.0" max="8.0" step="0.01" value="4.0"
-                oninput="disp_worship_font = this.value;">
-            </div>
-
-            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-            <h4 style="margin-bottom: 10px; color: #333;">📖 聖書画面(別窓)の設定</h4>
-            <div class="slider-group">
-              <label>共通ロゴ高さ</label>
-              <input type="range" id="setting_logo_bible_height" tabindex="-1" min="5" max="50" step="1" value="18"
-                oninput="updateLogoSetting('bibleLogoHeight', this.value);">
-            </div>
-            <div class="slider-group">
-              <label>本文 最大サイズ</label>
-              <input type="range" id="setting_bible_body_max" tabindex="-1" min="30" max="250" step="1" value="80"
-                oninput="updateBibleSetting('bodyMax', this.value);">
-            </div>
-            <div class="slider-group">
-              <label>聖書箇所 サイズ比</label>
-              <input type="range" id="setting_bible_ref_scale" tabindex="-1" min="0.3" max="2.0" step="0.05" value="1.0"
-                oninput="updateBibleSetting('refScale', this.value);">
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-              <button onclick="resetBibleSettings();" class="outline-btn"
-                style="padding: 5px 10px; font-size: 0.8rem;">設定を初期化</button>
-            </div>
-
-            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-            <h4 style="margin-bottom: 10px; color: #333;">⚙️ 表示設定</h4>
-            <label
-              style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-bottom: 15px; cursor: pointer;">
-              <input type="checkbox" id="setting_show_ticker" checked onchange="toggleTicker(this.checked);"
-                style="width: 18px; height: 18px; cursor: pointer;">
-              基本情報画面で下部に聖書を表示する
-            </label>
-
-            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-            <h4 style="margin-bottom: 10px; color: #333;">🎨 文字色カスタマイズ</h4>
-
-            <p style="font-size: 0.85rem; font-weight: 600; color: #00838f; margin-bottom: 8px;">基本情報表示</p>
-            <div class="color-picker-group">
-              <label>礼拝種類</label>
-              <input type="color" id="color_title_worship" oninput="onColorChange('title_worship', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>日本語タイトル</label>
-              <input type="color" id="color_title_jtitle" oninput="onColorChange('title_jtitle', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>中国語タイトル</label>
-              <input type="color" id="color_title_ctitle" oninput="onColorChange('title_ctitle', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>説教者</label>
-              <input type="color" id="color_title_speech" oninput="onColorChange('title_speech', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>通訳者</label>
-              <input type="color" id="color_title_translator" oninput="onColorChange('title_translator', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>讃美歌</label>
-              <input type="color" id="color_title_hymn" oninput="onColorChange('title_hymn', this.value);">
-            </div>
-
-            <p style="font-size: 0.85rem; font-weight: 600; color: #00838f; margin: 12px 0 8px;">聖書表示</p>
-            <div class="color-picker-group">
-              <label>ヘッダー背景</label>
-              <input type="color" id="color_bible_header_bg" oninput="onColorChange('bible_header_bg', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>ヘッダー文字</label>
-              <input type="color" id="color_bible_header_text"
-                oninput="onColorChange('bible_header_text', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>礼拝種類</label>
-              <input type="color" id="color_bible_worship" oninput="onColorChange('bible_worship', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>日本語タイトル</label>
-              <input type="color" id="color_bible_jtitle" oninput="onColorChange('bible_jtitle', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>中国語タイトル</label>
-              <input type="color" id="color_bible_ctitle" oninput="onColorChange('bible_ctitle', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>箇所</label>
-              <input type="color" id="color_bible_ref" oninput="onColorChange('bible_ref', this.value);">
-            </div>
-            <div class="color-picker-group">
-              <label>本文</label>
-              <input type="color" id="color_bible_body" oninput="onColorChange('bible_body', this.value);">
-            </div>
-
-            <button onclick="resetColorSettings();" class="secondary-btn" style="width: 100%; margin-top: 15px;">🔄
-              色をデフォルトに戻す</button>
+        <div class="settings-launch-panel">
+          <div>
+            <strong>別窓表示設定</strong>
+            <span>タイトル・聖書表示の文字サイズ、ロゴ、色を調整</span>
           </div>
+          <button type="button" class="secondary-btn settings-open-btn" onclick="openDisplaySettings();">設定を開く</button>
         </div>
       </div>
     </section>
@@ -577,10 +459,12 @@
 
   <div id="servicerManagerModal" class="search-modal">
     <div class="search-modal-content servicer-modal">
-      <span class="search-modal-close" onclick="closeServicerManager();">&times;</span>
-      <h2 class="servicer-modal-title">👥 奉仕者リスト管理</h2>
+      <button type="button" class="search-modal-close" onclick="closeServicerManager();" aria-label="閉じる">&times;</button>
+      <h2 class="servicer-modal-title">奉仕者リスト</h2>
+      <p class="servicer-modal-lead">名前の登録と、候補に表示される順序を管理します。</p>
 
       <div class="servicer-add-form">
+        <h3 class="servicer-section-title">新しい奉仕者を追加</h3>
         <div class="servicer-form-row">
           <div class="servicer-form-field" style="flex: 2;">
             <label for="newServicerName">氏名</label>
@@ -594,7 +478,7 @@
             </select>
           </div>
           <div class="servicer-form-field servicer-form-action">
-            <button onclick="addServicerToDB();" class="primary-btn servicer-add-btn">＋ 追加</button>
+            <button onclick="addServicerToDB();" class="primary-btn servicer-add-btn">追加</button>
           </div>
         </div>
       </div>
@@ -607,8 +491,13 @@
         <span id="servicerCount" class="servicer-count"></span>
       </div>
 
+      <div class="servicer-sort-guide">
+        <span class="servicer-sort-icon" aria-hidden="true">☰</span>
+        <span>ハンドルをドラッグ、または矢印ボタンで並べ替え</span>
+      </div>
+
       <div class="servicer-table-header">
-        <span class="servicer-drag-spacer" style="flex: 0 0 24px; margin-right: 8px;"></span>
+        <span class="servicer-drag-spacer">順序</span>
         <span class="servicer-col-name">名前</span>
         <span class="servicer-col-role">役職</span>
         <span class="servicer-col-action">操作</span>
@@ -659,6 +548,145 @@
     </div>
   </div>
 
+  <div id="displaySettingsModal" class="search-modal">
+    <div class="search-modal-content display-settings-modal">
+      <span class="search-modal-close" onclick="closeDisplaySettings();">&times;</span>
+      <h2 class="servicer-modal-title">別窓表示設定</h2>
+      <p class="settings-modal-note">聖書表示画面は本文サイズを自動調整します。</p>
+
+      <div class="settings-modal-body">
+        <section class="settings-section">
+          <h3>タイトル画面</h3>
+          <div class="settings-grid">
+            <div class="slider-group">
+              <label>共通ロゴ幅</label>
+              <input type="range" id="setting_logo_title_width" tabindex="-1" min="50" max="600" step="10" value="250"
+                oninput="updateLogoSetting('titleLogoWidth', this.value);">
+            </div>
+            <div class="slider-group">
+              <label>日本語タイトル</label>
+              <input type="range" class="change_size" tabindex="-1" min="3.0" max="11.0" step="0.01" value="5.0"
+                oninput="disp_jtitle_font = this.value;">
+            </div>
+            <div class="slider-group">
+              <label>中国語タイトル</label>
+              <input type="range" class="change_size" tabindex="-1" min="3.0" max="11.0" step="0.01" value="5.0"
+                oninput="disp_ctitle_font = this.value;">
+            </div>
+            <div class="slider-group">
+              <label>奉仕者</label>
+              <input type="range" class="change_size" tabindex="-1" min="3.0" max="8.0" step="0.01" value="5.0"
+                oninput="disp_person_font = this.value;">
+            </div>
+            <div class="slider-group">
+              <label>礼拝種類</label>
+              <input type="range" class="change_size" tabindex="-1" min="2.0" max="8.0" step="0.01" value="4.0"
+                oninput="disp_worship_font = this.value;">
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <h3>聖書画面</h3>
+          <div class="settings-grid">
+            <div class="slider-group">
+              <label>共通ロゴ高さ</label>
+              <input type="range" id="setting_logo_bible_height" tabindex="-1" min="5" max="50" step="1" value="18"
+                oninput="updateLogoSetting('bibleLogoHeight', this.value);">
+            </div>
+            <div class="slider-group">
+              <label>本文 最大サイズ</label>
+              <input type="range" id="setting_bible_body_max" tabindex="-1" min="30" max="250" step="1" value="80"
+                oninput="updateBibleSetting('bodyMax', this.value);">
+            </div>
+            <div class="slider-group">
+              <label>聖書箇所 サイズ比</label>
+              <input type="range" id="setting_bible_ref_scale" tabindex="-1" min="0.3" max="2.0" step="0.05" value="1.0"
+                oninput="updateBibleSetting('refScale', this.value);">
+            </div>
+          </div>
+          <button onclick="resetBibleSettings();" class="outline-btn settings-reset-btn">設定を初期化</button>
+        </section>
+
+        <section class="settings-section">
+          <h3>表示設定</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="setting_show_ticker" checked onchange="toggleTicker(this.checked);">
+            <span>基本情報画面で下部に聖書を表示する</span>
+          </label>
+        </section>
+
+        <section class="settings-section">
+          <h3>文字色カスタマイズ</h3>
+          <div class="color-columns">
+            <div>
+              <p class="settings-subtitle">基本情報表示</p>
+              <div class="color-picker-group">
+                <label>礼拝種類</label>
+                <input type="color" id="color_title_worship" oninput="onColorChange('title_worship', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>日本語タイトル</label>
+                <input type="color" id="color_title_jtitle" oninput="onColorChange('title_jtitle', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>中国語タイトル</label>
+                <input type="color" id="color_title_ctitle" oninput="onColorChange('title_ctitle', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>説教者</label>
+                <input type="color" id="color_title_speech" oninput="onColorChange('title_speech', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>通訳者</label>
+                <input type="color" id="color_title_translator" oninput="onColorChange('title_translator', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>讃美歌</label>
+                <input type="color" id="color_title_hymn" oninput="onColorChange('title_hymn', this.value);">
+              </div>
+            </div>
+
+            <div>
+              <p class="settings-subtitle">聖書表示</p>
+              <div class="color-picker-group">
+                <label>ヘッダー背景</label>
+                <input type="color" id="color_bible_header_bg" oninput="onColorChange('bible_header_bg', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>ヘッダー文字</label>
+                <input type="color" id="color_bible_header_text"
+                  oninput="onColorChange('bible_header_text', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>礼拝種類</label>
+                <input type="color" id="color_bible_worship" oninput="onColorChange('bible_worship', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>日本語タイトル</label>
+                <input type="color" id="color_bible_jtitle" oninput="onColorChange('bible_jtitle', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>中国語タイトル</label>
+                <input type="color" id="color_bible_ctitle" oninput="onColorChange('bible_ctitle', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>箇所</label>
+                <input type="color" id="color_bible_ref" oninput="onColorChange('bible_ref', this.value);">
+              </div>
+              <div class="color-picker-group">
+                <label>本文</label>
+                <input type="color" id="color_bible_body" oninput="onColorChange('bible_body', this.value);">
+              </div>
+            </div>
+          </div>
+
+          <button onclick="resetColorSettings();" class="secondary-btn settings-reset-all-btn">色をデフォルトに戻す</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
   <div id="translationResultModal" class="search-modal">
     <div class="search-modal-content">
       <span class="search-modal-close"
@@ -674,22 +702,6 @@
 
   <script src="./worship.js"></script>
   <script src="./script.js"></script>
-  <script>
-    // アコーディオンの動作
-    const accordionHeaders = document.querySelectorAll('.accordion-header');
-    accordionHeaders.forEach(header => {
-      header.addEventListener('click', function () {
-        this.classList.toggle('active');
-        const content = this.nextElementSibling;
-        if (content.style.maxHeight) {
-          content.style.maxHeight = null;
-        } else {
-          content.style.maxHeight = content.scrollHeight + "px";
-        }
-      });
-    });
-  </script>
-
   <!-- 更新通知バナー -->
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>

@@ -680,6 +680,181 @@ function converthymnCSVtoArray(str) {
   }
 }
 
+// OSに依存しない選択・入力候補メニュー
+let activeChoiceMenu = null;
+
+function closeChoiceMenu() {
+  if (!activeChoiceMenu) return;
+  activeChoiceMenu.menu.remove();
+  activeChoiceMenu.trigger?.setAttribute("aria-expanded", "false");
+  activeChoiceMenu = null;
+}
+
+function placeChoiceMenu(menu, anchor) {
+  const rect = anchor.getBoundingClientRect();
+  const roomBelow = window.innerHeight - rect.bottom;
+  const openAbove = roomBelow < 220 && rect.top > roomBelow;
+  const desiredWidth = anchor.closest(".combobox-wrapper") ? 220 : rect.width;
+  const width = Math.min(desiredWidth, window.innerWidth - 16);
+  const left = Math.min(Math.max(8, rect.left), window.innerWidth - width - 8);
+  menu.style.left = `${left}px`;
+  menu.style.width = `${width}px`;
+  menu.style.maxHeight = `${Math.max(120, Math.min(280, openAbove ? rect.top - 12 : roomBelow - 12))}px`;
+  menu.style.top = openAbove ? "auto" : `${rect.bottom + 5}px`;
+  menu.style.bottom = openAbove ? `${window.innerHeight - rect.top + 5}px` : "auto";
+}
+
+function openChoiceMenu(anchor, items, onSelect, selectedIndex = -1) {
+  closeChoiceMenu();
+  if (!items.length) return null;
+
+  const menu = document.createElement("div");
+  menu.className = "custom-choice-menu";
+  menu.setAttribute("role", "listbox");
+  items.forEach((item, index) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "custom-choice-option";
+    option.setAttribute("role", "option");
+    option.dataset.index = index;
+    option.textContent = item.label;
+    if (item.secondary) {
+      const secondary = document.createElement("small");
+      secondary.textContent = item.secondary;
+      option.appendChild(secondary);
+    }
+    if (index === selectedIndex) {
+      option.classList.add("selected");
+      option.setAttribute("aria-selected", "true");
+    }
+    option.addEventListener("click", () => {
+      onSelect(item, index);
+      closeChoiceMenu();
+    });
+    menu.appendChild(option);
+  });
+
+  document.body.appendChild(menu);
+  placeChoiceMenu(menu, anchor);
+  activeChoiceMenu = { menu, trigger: anchor, items, onSelect, activeIndex: selectedIndex };
+  anchor.setAttribute("aria-expanded", "true");
+  return menu;
+}
+
+function moveChoiceFocus(direction) {
+  if (!activeChoiceMenu) return;
+  const buttons = activeChoiceMenu.menu.querySelectorAll(".custom-choice-option");
+  if (!buttons.length) return;
+  let next = activeChoiceMenu.activeIndex + direction;
+  if (next < 0) next = buttons.length - 1;
+  if (next >= buttons.length) next = 0;
+  buttons.forEach(button => button.classList.remove("active"));
+  buttons[next].classList.add("active");
+  buttons[next].scrollIntoView({ block: "nearest" });
+  activeChoiceMenu.activeIndex = next;
+}
+
+function enhanceSelect(select) {
+  if (select.dataset.customized === "true") return;
+  select.dataset.customized = "true";
+  select.classList.add("native-choice-control");
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = `custom-select-trigger${select.classList.contains("history-select") ? " history-select" : ""}`;
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.disabled = select.disabled;
+  select.after(trigger);
+
+  const sync = () => {
+    const selected = select.options[select.selectedIndex];
+    trigger.textContent = selected?.textContent || "選択してください";
+    trigger.disabled = select.disabled;
+  };
+  const show = () => {
+    const items = Array.from(select.options).map(option => ({ label: option.textContent, value: option.value, disabled: option.disabled }));
+    const menu = openChoiceMenu(trigger, items, (item, index) => {
+      if (item.disabled) return;
+      select.selectedIndex = index;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      sync();
+    }, select.selectedIndex);
+    menu?.querySelectorAll(".custom-choice-option").forEach((button, index) => {
+      if (items[index].disabled) button.disabled = true;
+    });
+  };
+
+  trigger.addEventListener("click", () => activeChoiceMenu?.trigger === trigger ? closeChoiceMenu() : show());
+  trigger.addEventListener("keydown", event => {
+    if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      if (!activeChoiceMenu || activeChoiceMenu.trigger !== trigger) show();
+      moveChoiceFocus(event.key === "ArrowDown" ? 1 : -1);
+    } else if (event.key === "Enter" && activeChoiceMenu?.trigger === trigger && activeChoiceMenu.activeIndex >= 0) {
+      event.preventDefault();
+      activeChoiceMenu.menu.querySelector(`.custom-choice-option[data-index="${activeChoiceMenu.activeIndex}"]`)?.click();
+    } else if (event.key === "Escape") closeChoiceMenu();
+  });
+  select.addEventListener("change", sync);
+  new MutationObserver(sync).observe(select, { childList: true, subtree: true, attributes: true });
+  sync();
+}
+
+function enhanceDatalistInput(input) {
+  if (input.dataset.customizedList === "true") return;
+  input.dataset.customizedList = "true";
+  input.dataset.customListId = input.getAttribute("list");
+  input.removeAttribute("list");
+  input.setAttribute("aria-haspopup", "listbox");
+  input.setAttribute("aria-expanded", "false");
+
+  const show = () => {
+    const list = document.getElementById(input.dataset.customListId);
+    if (!list) return;
+    const query = input.value.trim().toLowerCase();
+    const items = Array.from(list.options)
+      .map(option => {
+        const optionLabel = option.label || option.textContent || "";
+        return {
+          label: option.value,
+          value: option.value,
+          secondary: optionLabel && optionLabel !== option.value ? optionLabel : ""
+        };
+      })
+      .filter(item => !query || item.label.toLowerCase().includes(query) || item.secondary.toLowerCase().includes(query))
+      .slice(0, 100);
+    openChoiceMenu(input, items, item => {
+      input.value = item.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.focus();
+    });
+  };
+  input.addEventListener("focus", show);
+  input.addEventListener("input", show);
+  input.addEventListener("keydown", event => {
+    if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      if (!activeChoiceMenu || activeChoiceMenu.trigger !== input) show();
+      moveChoiceFocus(event.key === "ArrowDown" ? 1 : -1);
+    } else if (event.key === "Enter" && activeChoiceMenu?.trigger === input && activeChoiceMenu.activeIndex >= 0) {
+      event.preventDefault();
+      activeChoiceMenu.menu.querySelector(`.custom-choice-option[data-index="${activeChoiceMenu.activeIndex}"]`)?.click();
+    } else if (event.key === "Escape") closeChoiceMenu();
+  });
+}
+
+function initCustomChoiceControls() {
+  document.querySelectorAll("select").forEach(enhanceSelect);
+  document.querySelectorAll("input[list]").forEach(enhanceDatalistInput);
+  document.addEventListener("pointerdown", event => {
+    if (activeChoiceMenu && !activeChoiceMenu.menu.contains(event.target) && event.target !== activeChoiceMenu.trigger) closeChoiceMenu();
+  });
+  window.addEventListener("resize", closeChoiceMenu);
+  window.addEventListener("scroll", closeChoiceMenu, true);
+}
+
 function normalizeHymnRecommendationGroups(groups) {
   if (!Array.isArray(groups)) return [];
 
@@ -1071,7 +1246,8 @@ function loadServicersList(filter) {
     allData.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     let count = 0;
-    allData.forEach(s => {
+    const visibleData = allData.filter(s => filter === "all" || filter === s.role);
+    visibleData.forEach((s, visibleIndex) => {
       if (filter === "all" || filter === s.role) {
         count++;
         const row = document.createElement("div");
@@ -1089,17 +1265,21 @@ function loadServicersList(filter) {
         row.ondragend = handleDragEnd;
 
         row.innerHTML = `
-          <div class="servicer-drag-handle"
+          <div class="servicer-drag-handle" title="ドラッグして並べ替え" aria-label="${escapeHTML(s.name)}をドラッグして並べ替え"
                onmousedown="this.parentElement.setAttribute('draggable', 'true')"
                onmouseup="this.parentElement.removeAttribute('draggable')"
                onmouseleave="this.parentElement.removeAttribute('draggable')">
-            ≡
+            <span aria-hidden="true">☰</span>
           </div>
           <div class="servicer-col-name servicer-name-display">${escapeHTML(s.name)}</div>
           <div class="servicer-col-role ${roleClass}"><small>${roleLabel}</small></div>
           <div class="servicer-col-action">
-            <button onclick="editServicer(${s.id})" class="edit-btn" title="編集">✏️</button>
-            <button onclick="deleteServicer(${s.id}, '${s.name}')" class="del-btn" title="削除">🗑️</button>
+            <div class="servicer-order-controls" aria-label="${escapeHTML(s.name)}の表示順">
+              <button type="button" onclick="moveServicer(${s.id}, -1)" class="move-btn" title="上へ移動" aria-label="上へ移動" ${visibleIndex === 0 ? "disabled" : ""}>↑</button>
+              <button type="button" onclick="moveServicer(${s.id}, 1)" class="move-btn" title="下へ移動" aria-label="下へ移動" ${visibleIndex === visibleData.length - 1 ? "disabled" : ""}>↓</button>
+            </div>
+            <button type="button" onclick="editServicer(${s.id})" class="edit-btn" title="編集">編集</button>
+            <button type="button" onclick="deleteServicer(${s.id}, ${escapeHTML(JSON.stringify(s.name))})" class="del-btn" title="削除" aria-label="${escapeHTML(s.name)}を削除">削除</button>
           </div>
         `;
         tbody.appendChild(row);
@@ -1157,10 +1337,21 @@ function handleDrop(e) {
 
 function handleDragEnd(e) {
   this.classList.remove('dragging');
-  let rows = document.querySelectorAll('.servicer-list-row');
+  this.removeAttribute('draggable');
+  let rows = document.querySelectorAll('.servicer-item');
   [].forEach.call(rows, function (row) {
     row.classList.remove('drag-over');
   });
+}
+
+function moveServicer(id, direction) {
+  const rows = Array.from(document.querySelectorAll("#servicerListTable .servicer-item"));
+  const currentIndex = rows.findIndex(row => row.id === `servicer-row-${id}`);
+  const targetRow = rows[currentIndex + direction];
+  if (currentIndex < 0 || !targetRow) return;
+
+  const targetId = Number(targetRow.id.replace("servicer-row-", ""));
+  reorderServicers(id, targetId);
 }
 
 function reorderServicers(sourceId, targetId) {
@@ -1637,6 +1828,17 @@ function closeServicerManager() {
   const modal = document.getElementById("servicerManagerModal");
   if (modal) modal.style.display = "none";
 }
+
+function openDisplaySettings() {
+  const modal = document.getElementById("displaySettingsModal");
+  if (modal) modal.style.display = "block";
+}
+
+function closeDisplaySettings() {
+  const modal = document.getElementById("displaySettingsModal");
+  if (modal) modal.style.display = "none";
+}
+
 function filterServicerList(filter, btn) {
   currentServicerFilter = filter;
   document.querySelectorAll(".servicer-tab").forEach(t => t.classList.remove("active"));
@@ -2245,6 +2447,7 @@ function fontsizecommit() {
 // ==========================================
 
 function setupEventListeners() {
+  initCustomChoiceControls();
   // DOM Elements Assignment
   bibleSearchModal = document.getElementById('bibleSearchModal');
   openSearchModalBtn = document.getElementById('openSearchModalBtn');
@@ -2341,11 +2544,15 @@ if (searchInput) {
 }
 
 window.addEventListener("click", function (event) {
-  if (event.target === bibleSearchModal) closeBibleSearchModal();
+  const modal = event.target.closest(".search-modal");
+  if (modal && event.target === modal) modal.style.display = "none";
 });
 window.addEventListener("keydown", function (event) {
-  if (event.key === "Escape" && bibleSearchModal && bibleSearchModal.style.display === "block")
-    closeBibleSearchModal();
+  if (event.key === "Escape") {
+    document.querySelectorAll(".search-modal").forEach(modal => {
+      if (modal.style.display === "block") modal.style.display = "none";
+    });
+  }
 });
 
   // Window Exiting Listeners
