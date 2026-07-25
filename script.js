@@ -690,6 +690,16 @@ function closeChoiceMenu() {
   activeChoiceMenu = null;
 }
 
+function handleChoiceMenuScroll(event) {
+  if (!activeChoiceMenu) return;
+  const { menu } = activeChoiceMenu;
+  const target = event.target;
+
+  // 候補メニュー自身のスクロールでは閉じず、背景側が動いたときだけ閉じる。
+  if (target === menu || (target instanceof Node && menu.contains(target))) return;
+  closeChoiceMenu();
+}
+
 function placeChoiceMenu(menu, anchor) {
   const rect = anchor.getBoundingClientRect();
   const roomBelow = window.innerHeight - rect.bottom;
@@ -852,7 +862,7 @@ function initCustomChoiceControls() {
     if (activeChoiceMenu && !activeChoiceMenu.menu.contains(event.target) && event.target !== activeChoiceMenu.trigger) closeChoiceMenu();
   });
   window.addEventListener("resize", closeChoiceMenu);
-  window.addEventListener("scroll", closeChoiceMenu, true);
+  window.addEventListener("scroll", handleChoiceMenuScroll, true);
 }
 
 function normalizeHymnRecommendationGroups(groups) {
