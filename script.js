@@ -143,6 +143,8 @@ let geminiSettings = {
   model: 'gemini-3-flash-preview',
   customModel: ''
 };
+const GEMINI_ERROR_LOG_KEY = 'geminiErrorLog';
+const GEMINI_ERROR_LOG_LIMIT = 5;
 
 function loadGeminiSettings() {
   const saved = localStorage.getItem('geminiSettings');
@@ -207,15 +209,7 @@ function saveGeminiSettings() {
   const modelSelect = document.getElementById('geminiModel').value;
   const customInput = document.getElementById('geminiCustomModel').value.trim();
 
-  // APIキーの簡易書式チェック (入力がある場合のみ)
-  if (keyInput) {
-    // Gemini APIキーは通常 "AIza" から始まり、39文字程度の長さを持つ
-    if (!keyInput.startsWith('AIza') || keyInput.length < 30) {
-      alert('APIキーの形式が正しくないようです。\n"AIza" から始まる有効なGemini APIキーを入力してください。');
-      return; // 保存中断
-    }
-  }
-
+  // APIキーは発行元によって形式が変わり得るため、保存時には制限せず実行時のAPI応答で検証する。
   geminiSettings.apiKey = keyInput;
   geminiSettings.model = modelSelect;
   geminiSettings.customModel = customInput;
@@ -223,7 +217,7 @@ function saveGeminiSettings() {
   localStorage.setItem('geminiSettings', JSON.stringify(geminiSettings));
   closeGeminiSettings();
   updateTranslateButtonsVisibility();
-  showToast('翻訳設定を保存しました', 'success');
+  showToast('AI機能設定を保存しました', 'success');
 }
 
 function updateTranslateButtonsVisibility() {
@@ -232,6 +226,158 @@ function updateTranslateButtonsVisibility() {
   btns.forEach(btn => {
     btn.style.display = hasKey ? 'inline-block' : 'none';
   });
+  const aiBibleSearchBtn = document.getElementById('aiBibleSearchBtn');
+  if (aiBibleSearchBtn) aiBibleSearchBtn.hidden = !hasKey;
+}
+
+function getGeminiModelName() {
+  const modelName = geminiSettings.model === 'custom' ? geminiSettings.customModel.trim() : geminiSettings.model;
+  return String(modelName || '').replace(/^models\//, '');
+}
+
+function getGeminiErrorLog() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GEMINI_ERROR_LOG_KEY) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    console.warn('AIエラーログを読み込めませんでした:', error);
+    return [];
+  }
+}
+
+function redactGeminiSensitiveText(value) {
+  let text = String(value || '不明なエラー');
+  const apiKey = String(geminiSettings.apiKey || '');
+  if (apiKey) text = text.split(apiKey).join('[APIキー]');
+  return text;
+}
+
+function recordGeminiError(feature, error) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    feature,
+    model: getGeminiModelName() || '未設定',
+    status: Number.isFinite(error?.status) ? error.status : null,
+    code: error?.code ? String(error.code) : '',
+    message: redactGeminiSensitiveText(error?.message)
+  };
+
+  // APIキーやリクエスト本文は、画面・保存ログ・コンソールのいずれにも記録しない。
+  console.error(`[Gemini API] ${feature}でエラーが発生しました`, entry);
+  try {
+    const entries = [entry, ...getGeminiErrorLog()].slice(0, GEMINI_ERROR_LOG_LIMIT);
+    localStorage.setItem(GEMINI_ERROR_LOG_KEY, JSON.stringify(entries));
+  } catch (storageError) {
+    console.warn('AIエラーログを保存できませんでした:', storageError);
+  }
+  renderGeminiErrorLog();
+}
+
+function renderGeminiErrorLog() {
+  const panel = document.getElementById('geminiErrorLogPanel');
+  const container = document.getElementById('geminiErrorLog');
+  if (!panel || !container) return;
+
+  const entries = getGeminiErrorLog();
+  panel.hidden = entries.length === 0;
+  container.replaceChildren();
+
+  entries.forEach((entry) => {
+    const item = document.createElement('div');
+    item.className = 'gemini-error-log-item';
+
+    const meta = document.createElement('div');
+    meta.className = 'gemini-error-log-meta';
+    const date = new Date(entry.timestamp);
+    const timeText = Number.isNaN(date.getTime()) ? entry.timestamp : date.toLocaleString('ja-JP');
+    meta.textContent = `${timeText} · ${entry.feature} · ${entry.model}`;
+
+    const message = document.createElement('div');
+    message.className = 'gemini-error-log-message';
+    const statusText = entry.status ? `HTTP ${entry.status} / ` : '';
+    const codeText = entry.code ? `${entry.code} / ` : '';
+    message.textContent = `${statusText}${codeText}${entry.message}`;
+
+    item.append(meta, message);
+    container.appendChild(item);
+  });
+}
+
+function clearGeminiErrorLog() {
+  localStorage.removeItem(GEMINI_ERROR_LOG_KEY);
+  renderGeminiErrorLog();
+  showToast('AIエラーログを消去しました', 'info');
+}
+
+function createGeminiApiError(response, errorData) {
+  const apiError = errorData?.error || {};
+  const error = new Error(redactGeminiSensitiveText(apiError.message || `Gemini APIからHTTP ${response.status}が返されました`));
+  error.status = response.status;
+  error.code = apiError.status || apiError.code || '';
+  return error;
+}
+
+async function requestGeminiText(systemPrompt, userText, temperature = 0.1) {
+  const modelName = getGeminiModelName();
+  if (!modelName) throw new Error('モデル名が設定されていません');
+
+  const isGemma = modelName.toLowerCase().includes('gemma');
+  const requestBody = isGemma
+    ? {
+        contents: [{ parts: [{ text: `${systemPrompt}\n\n${userText}` }] }],
+        generationConfig: { temperature }
+      }
+    : {
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ parts: [{ text: userText }] }],
+        generationConfig: { temperature }
+      };
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(geminiSettings.apiKey)}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    let errorData = null;
+    try {
+      errorData = await response.json();
+    } catch (parseError) {
+      // JSONでないエラーレスポンスでもHTTPステータスを記録する。
+    }
+    throw createGeminiApiError(response, errorData);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim();
+  if (!text) {
+    const blockReason = data.promptFeedback?.blockReason;
+    const error = new Error(blockReason ? `AIの回答がブロックされました (${blockReason})` : 'AIから回答本文を取得できませんでした');
+    error.code = blockReason || 'EMPTY_RESPONSE';
+    throw error;
+  }
+  return text;
+}
+
+function parseGeminiJson(text) {
+  const cleaned = String(text || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (initialError) {
+    const arrayStart = cleaned.indexOf('[');
+    const arrayEnd = cleaned.lastIndexOf(']');
+    if (arrayStart !== -1 && arrayEnd > arrayStart) {
+      return JSON.parse(cleaned.slice(arrayStart, arrayEnd + 1));
+    }
+    const objectStart = cleaned.indexOf('{');
+    const objectEnd = cleaned.lastIndexOf('}');
+    if (objectStart !== -1 && objectEnd > objectStart) {
+      return JSON.parse(cleaned.slice(objectStart, objectEnd + 1));
+    }
+    throw initialError;
+  }
 }
 
 function openGeminiSettings() {
@@ -257,6 +403,7 @@ function openGeminiSettings() {
     }
 
     modal.style.display = "block";
+    renderGeminiErrorLog();
   }
 }
 
@@ -284,7 +431,7 @@ function toggleCustomModelInput() {
 // 翻訳実行関数
 async function translateTitle(direction) {
   if (!geminiSettings.apiKey) {
-    showToast('APIキーが設定されていません。基本情報の歯車アイコンの隣の設定ボタンから設定してください。', 'error');
+    showToast('APIキーが設定されていません。基本情報のAI機能設定ボタンから設定してください。', 'error');
     openGeminiSettings();
     return;
   }
@@ -329,7 +476,7 @@ async function translateTitle(direction) {
 余計な解説やテキストは含めず、純粋なJSON配列のみを出力してください。`;
   }
 
-  const modelName = geminiSettings.model === 'custom' ? geminiSettings.customModel : geminiSettings.model;
+  const modelName = getGeminiModelName();
   if (!modelName) {
     showToast('モデル名が正しく設定されていません', 'error');
     return;
@@ -342,69 +489,10 @@ async function translateTitle(direction) {
   const originalJtitle = jtitleInput.value;
 
   try {
-    const isGemma = modelName.toLowerCase().includes('gemma');
-    let requestBody;
-
-    if (isGemma) {
-      // system_instruction 非対応モデルの場合は contents に含める
-      requestBody = {
-        contents: [{
-          parts: [{ text: systemPrompt + "\n\n" + sourceText }]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-        }
-      };
-    } else {
-      // 標準モデル（Geminiシリーズ）
-      requestBody = {
-        system_instruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        contents: [{
-          parts: [{ text: sourceText }]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-        }
-      };
-    }
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiSettings.apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      let errorMsg = `HTTP Error ${response.status}`;
-      try {
-        const errData = await response.json();
-        if (errData.error && errData.error.message) {
-          errorMsg = errData.error.message;
-        } else if (errData.error && errData.error.details) {
-           errorMsg = JSON.stringify(errData.error.details);
-        }
-      } catch (e) {
-        // failed to parse json
-      }
-      throw new Error(errorMsg);
-    }
-
-    const data = await response.json();
-    let translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    
-    // JSONのクリーンアップ（マークダウンの ```json などが含まれる場合があるため）
-    if (translatedText.startsWith('```json')) {
-      translatedText = translatedText.replace(/```json/g, '').replace(/```/g, '').trim();
-    } else if (translatedText.startsWith('```')) {
-      translatedText = translatedText.replace(/```/g, '').trim();
-    }
+    const translatedText = await requestGeminiText(systemPrompt, sourceText);
 
     try {
-      const candidates = JSON.parse(translatedText);
+      const candidates = parseGeminiJson(translatedText);
       if (Array.isArray(candidates) && candidates.length > 0) {
          showTranslationCandidates(candidates, targetInputId);
       } else {
@@ -416,8 +504,7 @@ async function translateTitle(direction) {
       showTranslationCandidates([translatedText], targetInputId);
     }
   } catch (error) {
-    console.error('Translation Error:', error);
-    // エラー内容はトーストで表示する
+    recordGeminiError('タイトル翻訳', error);
     showToast(`翻訳エラー: ${error.message}`, 'error');
     
     // エラー時は元に戻す
@@ -637,7 +724,8 @@ const FullNameCH = [
 // ==========================================
 let db;
 let lang_type_id = 'ja_ot';
-let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, searchResultsDiv;
+let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, aiBibleSearchBtn, searchResultsDiv;
+let bibleAiSearchRequestId = 0;
 
 // ==========================================
 // 2. INITIALIZATION & DATA LOADING (CSV, GAS)
@@ -1237,9 +1325,13 @@ function addServicerToDB() {
   };
 }
 
-function loadServicersList(filter) {
+function loadServicersList(filter, options = {}) {
   const tbody = document.getElementById("servicerListTable");
-  tbody.innerHTML = "";
+  if (!tbody) return;
+  // 編集・追加後の再読込でも作業位置を失わないよう、現在のスクロール位置を引き継ぐ。
+  const savedScrollTop = Number.isFinite(options.scrollTop)
+    ? options.scrollTop
+    : options.resetScroll ? 0 : tbody.scrollTop;
   const transaction = db.transaction("servicers", "readwrite");
   const store = transaction.objectStore("servicers");
 
@@ -1247,169 +1339,336 @@ function loadServicersList(filter) {
     const allData = e.target.result;
 
     if (ensureOrderFields(allData, store)) {
-        // 更新があった場合は、再度読み込み直す
-        loadServicersList(filter);
+        loadServicersList(filter, { scrollTop: savedScrollTop });
         return;
     }
 
     // orderでソート
     allData.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    let count = 0;
     const visibleData = allData.filter(s => filter === "all" || filter === s.role);
+    const fragment = document.createDocumentFragment();
+
     visibleData.forEach((s, visibleIndex) => {
-      if (filter === "all" || filter === s.role) {
-        count++;
-        const row = document.createElement("div");
-        row.className = "servicer-item"; // was servicer-list-row, but style is servicer-item
-        row.id = `servicer-row-${s.id}`;
+      const row = document.createElement("div");
+      row.className = "servicer-item";
+      row.id = `servicer-row-${s.id}`;
+      row.dataset.servicerId = String(s.id);
+      row.dataset.servicerName = s.name.toLocaleLowerCase();
 
-        const roleLabel = s.role === "sekkyou" ? "🎤 説教者" : "🌐 通訳者";
-        const roleClass = s.role === "sekkyou" ? "primary-text" : "secondary-text";
+      const roleLabel = s.role === "sekkyou" ? "🎤 説教者" : "🌐 通訳者";
+      const roleClass = s.role === "sekkyou" ? "primary-text" : "secondary-text";
 
-        row.ondragstart = handleDragStart;
-        row.ondragover = handleDragOver;
-        row.ondrop = handleDrop;
-        row.ondragenter = handleDragEnter;
-        row.ondragleave = handleDragLeave;
-        row.ondragend = handleDragEnd;
-
-        row.innerHTML = `
-          <div class="servicer-drag-handle" title="ドラッグして並べ替え" aria-label="${escapeHTML(s.name)}をドラッグして並べ替え"
-               onmousedown="this.parentElement.setAttribute('draggable', 'true')"
-               onmouseup="this.parentElement.removeAttribute('draggable')"
-               onmouseleave="this.parentElement.removeAttribute('draggable')">
-            <span aria-hidden="true">☰</span>
+      row.innerHTML = `
+        <button type="button" class="servicer-drag-handle" title="ドラッグして並べ替え（矢印キーでも移動できます）"
+          aria-label="${escapeHTML(s.name)}を並べ替え" onpointerdown="startServicerPointerDrag(event, ${s.id});"
+          onkeydown="handleServicerHandleKeydown(event, ${s.id});">
+          <span class="servicer-grip" aria-hidden="true">⠿</span>
+          <span class="servicer-position-badge" aria-hidden="true">${visibleIndex + 1}</span>
+        </button>
+        <div class="servicer-col-name servicer-name-display">${escapeHTML(s.name)}</div>
+        <div class="servicer-col-role ${roleClass}"><small>${roleLabel}</small></div>
+        <div class="servicer-col-action">
+          <div class="servicer-order-controls" aria-label="${escapeHTML(s.name)}の表示順">
+            <button type="button" onclick="moveServicerToEdge(${s.id}, 'first')" data-servicer-move="first" class="move-btn" title="先頭へ" aria-label="先頭へ移動">⇤</button>
+            <button type="button" onclick="moveServicer(${s.id}, -1)" data-servicer-move="up" class="move-btn" title="1つ上へ" aria-label="1つ上へ移動">↑</button>
+            <button type="button" onclick="moveServicer(${s.id}, 1)" data-servicer-move="down" class="move-btn" title="1つ下へ" aria-label="1つ下へ移動">↓</button>
+            <button type="button" onclick="moveServicerToEdge(${s.id}, 'last')" data-servicer-move="last" class="move-btn" title="末尾へ" aria-label="末尾へ移動">⇥</button>
           </div>
-          <div class="servicer-col-name servicer-name-display">${escapeHTML(s.name)}</div>
-          <div class="servicer-col-role ${roleClass}"><small>${roleLabel}</small></div>
-          <div class="servicer-col-action">
-            <div class="servicer-order-controls" aria-label="${escapeHTML(s.name)}の表示順">
-              <button type="button" onclick="moveServicer(${s.id}, -1)" class="move-btn" title="上へ移動" aria-label="上へ移動" ${visibleIndex === 0 ? "disabled" : ""}>↑</button>
-              <button type="button" onclick="moveServicer(${s.id}, 1)" class="move-btn" title="下へ移動" aria-label="下へ移動" ${visibleIndex === visibleData.length - 1 ? "disabled" : ""}>↓</button>
-            </div>
-            <button type="button" onclick="editServicer(${s.id})" class="edit-btn" title="編集">編集</button>
-            <button type="button" onclick="deleteServicer(${s.id}, ${escapeHTML(JSON.stringify(s.name))})" class="del-btn" title="削除" aria-label="${escapeHTML(s.name)}を削除">削除</button>
-          </div>
-        `;
-        tbody.appendChild(row);
-      }
+          <label class="servicer-position-jump" title="移動先の番号を入力">
+            <span class="visually-hidden">${escapeHTML(s.name)}の移動先</span>
+            <input type="number" min="1" max="${visibleData.length}" value="${visibleIndex + 1}"
+              inputmode="numeric" onchange="moveServicerToPosition(${s.id}, this.value);"
+              onkeydown="if(event.key === 'Enter'){ event.preventDefault(); moveServicerToPosition(${s.id}, this.value); this.blur(); }">
+            <span>番へ</span>
+          </label>
+          <button type="button" onclick="editServicer(${s.id})" class="edit-btn" title="編集">編集</button>
+          <button type="button" onclick="deleteServicer(${s.id}, ${escapeHTML(JSON.stringify(s.name))})" class="del-btn" title="削除" aria-label="${escapeHTML(s.name)}を削除">削除</button>
+        </div>
+      `;
+      fragment.appendChild(row);
     });
 
-    document.getElementById("servicerCount").innerText = `${count} 名`;
+    if (visibleData.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'servicer-empty';
+      empty.textContent = '登録されている奉仕者はいません。';
+      fragment.appendChild(empty);
+    }
+
+    tbody.replaceChildren(fragment);
+    tbody.scrollTop = savedScrollTop;
+    refreshServicerRowMetadata();
+    applyServicerFindMatches(false);
   };
 }
 
-// === Drag and Drop Sorting for Servicers ===
-let dragSrcEl = null;
+// === Pointer-based Sorting for Servicers ===
+let servicerPointerDrag = null;
 
-function handleDragStart(e) {
-  dragSrcEl = this;
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/plain', this.id);
-  this.classList.add('dragging');
+function getServicerRows() {
+  return Array.from(document.querySelectorAll("#servicerListTable .servicer-item"));
 }
 
-function handleDragOver(e) {
-  if (e.preventDefault) {
-    e.preventDefault(); // Necessary. Allows us to drop.
-  }
-  e.dataTransfer.dropEffect = 'move';
-  return false;
-}
-
-function handleDragEnter(e) {
-  this.classList.add('drag-over');
-}
-
-function handleDragLeave(e) {
-  this.classList.remove('drag-over');
-}
-
-function handleDrop(e) {
-  if (e.stopPropagation) {
-    e.stopPropagation(); // Stops some browsers from redirecting.
-  }
-
-  if (dragSrcEl !== this) {
-    let sourceIdStr = dragSrcEl.id.replace('servicer-row-', '');
-    let targetIdStr = this.id.replace('servicer-row-', '');
-
-    let sourceId = parseInt(sourceIdStr, 10);
-    let targetId = parseInt(targetIdStr, 10);
-
-    if(!isNaN(sourceId) && !isNaN(targetId)) {
-        reorderServicers(sourceId, targetId);
-    }
-  }
-  return false;
-}
-
-function handleDragEnd(e) {
-  this.classList.remove('dragging');
-  this.removeAttribute('draggable');
-  let rows = document.querySelectorAll('.servicer-item');
-  [].forEach.call(rows, function (row) {
-    row.classList.remove('drag-over');
-  });
+function getServicerRowOrder() {
+  return getServicerRows().map(row => Number(row.dataset.servicerId));
 }
 
 function moveServicer(id, direction) {
-  const rows = Array.from(document.querySelectorAll("#servicerListTable .servicer-item"));
+  const rows = getServicerRows();
   const currentIndex = rows.findIndex(row => row.id === `servicer-row-${id}`);
-  const targetRow = rows[currentIndex + direction];
-  if (currentIndex < 0 || !targetRow) return;
-
-  const targetId = Number(targetRow.id.replace("servicer-row-", ""));
-  reorderServicers(id, targetId);
+  if (currentIndex < 0) return;
+  moveServicerElementToIndex(rows[currentIndex], currentIndex + direction);
 }
 
-function reorderServicers(sourceId, targetId) {
+function moveServicerToEdge(id, edge) {
+  const rows = getServicerRows();
+  const row = document.getElementById(`servicer-row-${id}`);
+  if (!row) return;
+  moveServicerElementToIndex(row, edge === 'first' ? 0 : rows.length - 1);
+}
+
+function moveServicerToPosition(id, position) {
+  const row = document.getElementById(`servicer-row-${id}`);
+  if (!row) return;
+  const rows = getServicerRows();
+  const targetIndex = Math.min(rows.length, Math.max(1, Number.parseInt(position, 10) || 1)) - 1;
+  moveServicerElementToIndex(row, targetIndex);
+}
+
+function handleServicerHandleKeydown(event, id) {
+  if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  if (event.key === 'ArrowUp') moveServicer(id, -1);
+  if (event.key === 'ArrowDown') moveServicer(id, 1);
+  if (event.key === 'Home') moveServicerToEdge(id, 'first');
+  if (event.key === 'End') moveServicerToEdge(id, 'last');
+  document.getElementById(`servicer-row-${id}`)?.querySelector('.servicer-drag-handle')?.focus();
+}
+
+function animateServicerRows(mutator, excludedRow) {
+  // DOMを入れ替える前後の座標差をアニメーションする（FLIP）ことで、移動方向を視覚化する。
+  const before = new Map(getServicerRows().map(row => [row, row.getBoundingClientRect()]));
+  mutator();
+  getServicerRows().forEach((row) => {
+    if (row === excludedRow || !before.has(row) || typeof row.animate !== 'function') return;
+    const previous = before.get(row);
+    const current = row.getBoundingClientRect();
+    const deltaY = previous.top - current.top;
+    if (Math.abs(deltaY) < 1) return;
+    row.animate([
+      { transform: `translateY(${deltaY}px)` },
+      { transform: 'translateY(0)' }
+    ], { duration: 190, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  });
+}
+
+function moveServicerElementToIndex(row, requestedIndex, save = true) {
+  const container = document.getElementById('servicerListTable');
+  const rows = getServicerRows();
+  const sourceIndex = rows.indexOf(row);
+  const targetIndex = Math.max(0, Math.min(rows.length - 1, requestedIndex));
+  if (!container || sourceIndex === -1) return;
+  if (sourceIndex === targetIndex) {
+    refreshServicerRowMetadata();
+    return;
+  }
+
+  const targetRow = rows[targetIndex];
+  animateServicerRows(() => {
+    if (targetIndex > sourceIndex) container.insertBefore(row, targetRow.nextSibling);
+    else container.insertBefore(row, targetRow);
+  }, row);
+  refreshServicerRowMetadata();
+  markServicerAsMoved(row);
+  if (save) persistServicerOrder(getServicerRowOrder());
+}
+
+function repositionDraggedServicer(sourceRow, targetRow, pointerY) {
+  const container = document.getElementById('servicerListTable');
+  if (!container || !sourceRow || !targetRow || sourceRow === targetRow) return;
+  const rect = targetRow.getBoundingClientRect();
+  const insertAfter = pointerY > rect.top + rect.height / 2;
+  const beforeOrder = getServicerRowOrder().join(',');
+  animateServicerRows(() => {
+    container.insertBefore(sourceRow, insertAfter ? targetRow.nextSibling : targetRow);
+  }, sourceRow);
+  if (getServicerRowOrder().join(',') !== beforeOrder) refreshServicerRowMetadata();
+}
+
+function autoScrollServicerList(pointerY) {
+  const container = document.getElementById('servicerListTable');
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  const edgeSize = Math.min(70, rect.height * 0.22);
+  if (pointerY < rect.top + edgeSize) {
+    const strength = (rect.top + edgeSize - pointerY) / edgeSize;
+    container.scrollTop -= Math.ceil(18 * strength);
+  } else if (pointerY > rect.bottom - edgeSize) {
+    const strength = (pointerY - (rect.bottom - edgeSize)) / edgeSize;
+    container.scrollTop += Math.ceil(18 * strength);
+  }
+}
+
+function startServicerPointerDrag(event, id) {
+  if (event.button !== 0 || servicerPointerDrag) return;
+  const row = document.getElementById(`servicer-row-${id}`);
+  const container = document.getElementById('servicerListTable');
+  if (!row || !container) return;
+  event.preventDefault();
+  event.currentTarget.focus({ preventScroll: true });
+
+  const rect = row.getBoundingClientRect();
+  const ghost = row.cloneNode(true);
+  ghost.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+  ghost.className = 'servicer-touch-ghost';
+  Object.assign(ghost.style, {
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`
+  });
+  document.body.appendChild(ghost);
+
+  row.classList.add('dragging');
+  container.classList.add('sorting');
+  servicerPointerDrag = {
+    pointerId: event.pointerId,
+    handle: event.currentTarget,
+    row,
+    container,
+    ghost,
+    offsetY: event.clientY - rect.top,
+    initialOrder: getServicerRowOrder()
+  };
+  document.addEventListener('pointermove', handleServicerPointerMove, { passive: false });
+  document.addEventListener('pointerup', finishServicerPointerDrag);
+  document.addEventListener('pointercancel', finishServicerPointerDrag);
+}
+
+function handleServicerPointerMove(event) {
+  const state = servicerPointerDrag;
+  if (!state || event.pointerId !== state.pointerId) return;
+  event.preventDefault();
+  state.ghost.style.top = `${event.clientY - state.offsetY}px`;
+  autoScrollServicerList(event.clientY);
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.servicer-item');
+  if (target && target !== state.row && state.container.contains(target)) {
+    repositionDraggedServicer(state.row, target, event.clientY);
+  }
+}
+
+function finishServicerPointerDrag(event) {
+  const state = servicerPointerDrag;
+  if (!state || event.pointerId !== state.pointerId) return;
+  document.removeEventListener('pointermove', handleServicerPointerMove);
+  document.removeEventListener('pointerup', finishServicerPointerDrag);
+  document.removeEventListener('pointercancel', finishServicerPointerDrag);
+  state.ghost.remove();
+  state.row.classList.remove('dragging');
+  state.container.classList.remove('sorting');
+  refreshServicerRowMetadata();
+  const currentOrder = getServicerRowOrder();
+  if (currentOrder.join(',') !== state.initialOrder.join(',')) {
+    persistServicerOrder(currentOrder);
+    markServicerAsMoved(state.row);
+  }
+  servicerPointerDrag = null;
+}
+
+function refreshServicerRowMetadata() {
+  const rows = getServicerRows();
+  rows.forEach((row, index) => {
+    const badge = row.querySelector('.servicer-position-badge');
+    const input = row.querySelector('.servicer-position-jump input');
+    if (badge) badge.textContent = String(index + 1);
+    if (input) {
+      input.value = String(index + 1);
+      input.max = String(rows.length);
+    }
+    const first = index === 0;
+    const last = index === rows.length - 1;
+    row.querySelector('[data-servicer-move="first"]')?.toggleAttribute('disabled', first);
+    row.querySelector('[data-servicer-move="up"]')?.toggleAttribute('disabled', first);
+    row.querySelector('[data-servicer-move="down"]')?.toggleAttribute('disabled', last);
+    row.querySelector('[data-servicer-move="last"]')?.toggleAttribute('disabled', last);
+  });
+  const count = document.getElementById('servicerCount');
+  if (count) count.innerText = `${rows.length} 名`;
+}
+
+function markServicerAsMoved(row) {
+  if (!row) return;
+  row.classList.remove('just-moved');
+  requestAnimationFrame(() => row.classList.add('just-moved'));
+  setTimeout(() => row.classList.remove('just-moved'), 650);
+}
+
+function applyServicerFindMatches(shouldScroll) {
+  const input = document.getElementById('servicerQuickFind');
+  const status = document.getElementById('servicerFindStatus');
+  const query = input?.value.trim().toLocaleLowerCase() || '';
+  const rows = getServicerRows();
+  const matches = [];
+  rows.forEach((row) => {
+    const isMatch = !!query && row.dataset.servicerName.includes(query);
+    row.classList.toggle('search-match', isMatch);
+    if (isMatch) matches.push(row);
+  });
+  if (status) status.textContent = query ? `${matches.length}件` : '';
+  if (shouldScroll && matches[0]) {
+    const container = document.getElementById('servicerListTable');
+    const containerRect = container.getBoundingClientRect();
+    const matchRect = matches[0].getBoundingClientRect();
+    const targetTop = container.scrollTop + (matchRect.top - containerRect.top)
+      - (container.clientHeight - matchRect.height) / 2;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  }
+}
+
+function findServicerInList() {
+  applyServicerFindMatches(true);
+}
+
+function persistServicerOrder(orderedIds) {
+  const filterAtSave = currentServicerFilter;
   const transaction = db.transaction(["servicers"], "readwrite");
   const store = transaction.objectStore("servicers");
 
   store.getAll().onsuccess = (e) => {
     let allData = e.target.result;
-    allData.sort((a, b) => (a.order || 0) - (b.order || 0));
+    allData.sort((a, b) => ((a.order || 0) - (b.order || 0)) || (a.id - b.id));
 
-    // 現在のフィルターで表示されている項目のみを対象とする
-    let visibleData = allData.filter(s => currentServicerFilter === "all" || currentServicerFilter === s.role);
-
-    const sourceIndex = visibleData.findIndex(item => item.id === sourceId);
-    const targetIndex = visibleData.findIndex(item => item.id === targetId);
-
-    if (sourceIndex === -1 || targetIndex === -1) return;
-
-    // 配列内で要素を移動
-    const [movedItem] = visibleData.splice(sourceIndex, 1);
-    visibleData.splice(targetIndex, 0, movedItem);
-
-    // 新しい順序を割り当て（間隔を10空ける）
-    let currentOrder = 10;
-    let orderUpdates = new Map();
-    visibleData.forEach((item) => {
-         orderUpdates.set(item.id, currentOrder);
-         currentOrder += 10;
+    // 絞り込み中は対象役職が元々占めていた枠だけを入れ替え、他役職の位置は動かさない。
+    const visibleSlots = [];
+    allData.forEach((item, index) => {
+      if (filterAtSave === 'all' || item.role === filterAtSave) visibleSlots.push(index);
     });
-
-    if (currentServicerFilter === "all") {
-         visibleData.forEach((item, idx) => {
-             item.order = (idx + 1) * 10;
-             store.put(item);
-         });
-    } else {
-         allData.forEach(item => {
-             if(orderUpdates.has(item.id)) {
-                 item.order = orderUpdates.get(item.id);
-                 store.put(item);
-             }
-         });
+    const itemById = new Map(allData.map(item => [item.id, item]));
+    const orderedItems = orderedIds.map(id => itemById.get(id)).filter(Boolean);
+    if (orderedItems.length !== visibleSlots.length) {
+      console.error('奉仕者の並び順を保存できません: 表示件数が一致しません', {
+        displayed: orderedItems.length,
+        stored: visibleSlots.length,
+        filter: filterAtSave
+      });
+      transaction.abort();
+      return;
     }
+
+    visibleSlots.forEach((slot, index) => {
+      allData[slot] = orderedItems[index];
+    });
+    allData.forEach((item, index) => {
+      item.order = (index + 1) * 10;
+      store.put(item);
+    });
   };
 
-  transaction.oncomplete = () => {
+  transaction.oncomplete = updateDatalistFromDB;
+  transaction.onabort = () => {
+    showToast('並び順を保存できませんでした。リストを再読み込みしました', 'error');
     loadServicersList(currentServicerFilter);
-    updateDatalistFromDB();
   };
 }
 
@@ -1829,8 +2088,14 @@ function openwindow() {
 function openServicerManager() {
   const modal = document.getElementById("servicerManagerModal");
   if (modal) {
+    currentServicerFilter = 'all';
+    document.querySelectorAll('.servicer-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.filter === 'all');
+    });
+    const findInput = document.getElementById('servicerQuickFind');
+    if (findInput) findInput.value = '';
     modal.style.display = "block";
-    loadServicersList("all");
+    loadServicersList("all", { resetScroll: true });
   }
 }
 
@@ -1853,7 +2118,7 @@ function filterServicerList(filter, btn) {
   currentServicerFilter = filter;
   document.querySelectorAll(".servicer-tab").forEach(t => t.classList.remove("active"));
   btn.classList.add("active");
-  loadServicersList(filter);
+  loadServicersList(filter, { resetScroll: true });
 }
 function updateModeUI(mode) {
   const btnTitle = document.getElementById("btn-mode-title");
@@ -1958,69 +2223,220 @@ async function toggleFullscreen() {
 function openBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "block";
   if (searchInput) searchInput.value = "";
+  updateTranslateButtonsVisibility();
+  setBibleSearchBusy(false);
   if (searchResultsDiv)
-    searchResultsDiv.innerHTML = "<p>検索キーワードを入力して「検索」ボタンを押してください。</p>";
+    searchResultsDiv.innerHTML = "<p>語句または探したい内容を入力して「検索」ボタンを押してください。</p>";
 
   if (typeof bible === "undefined" || !Array.isArray(bible) || bible.length === 0) {
     if (searchResultsDiv)
       searchResultsDiv.innerHTML = '<p style="color: red; font-weight: bold;">エラー: 聖書データが正しく読み込まれていません。</p>';
     if (searchInput) searchInput.disabled = true;
     if (executeSearchBtn) executeSearchBtn.disabled = true;
+    if (aiBibleSearchBtn) aiBibleSearchBtn.disabled = true;
   } else {
     if (searchInput) searchInput.disabled = false;
     if (executeSearchBtn) executeSearchBtn.disabled = false;
+    if (aiBibleSearchBtn) aiBibleSearchBtn.disabled = false;
+    setTimeout(() => searchInput?.focus(), 0);
   }
 }
 
 function closeBibleSearchModal() {
+  bibleAiSearchRequestId += 1;
+  setBibleSearchBusy(false);
   if (bibleSearchModal) bibleSearchModal.style.display = "none";
 }
 
-function performSearch() {
+async function performSearch() {
+  setBibleSearchBusy(false);
   const query = searchInput.value.trim();
   if (!query) {
     searchResultsDiv.innerHTML = "<p>検索キーワードを入力してください。</p>";
     return;
   }
-  const lowerCaseQuery = query.toLowerCase();
-  const results = bible.filter((rowArray) => {
-    const chineseReference = (rowArray[2] || "").toLowerCase();
-    const japaneseReference = (rowArray[4] || "").toLowerCase();
-    return chineseReference.includes(lowerCaseQuery) || japaneseReference.includes(lowerCaseQuery);
+  const requestId = ++bibleAiSearchRequestId;
+  const lowerCaseQuery = query.toLocaleLowerCase();
+  const results = bible.slice(1).filter((rowArray) => {
+    return rowArray.slice(1, 5).some(value => String(value || '').toLocaleLowerCase().includes(lowerCaseQuery));
   });
-  displayResults(results, query);
+  // まず高速な文字一致を使い、見つからない曖昧な内容だけをGeminiへ問い合わせる。
+  if (results.length > 0) {
+    displayResults(results, query);
+  } else if (geminiSettings.apiKey) {
+    await performAiBibleSearch(query, requestId);
+  } else {
+    displayResults([], query);
+  }
 }
 
 function displayResults(results, query) {
-  searchResultsDiv.innerHTML = "";
+  searchResultsDiv.replaceChildren();
   if (results.length === 0) {
-    searchResultsDiv.innerHTML = "<p>「" + escapeHTML(query) + "」に一致する情報は見つかりませんでした。</p>";
+    const empty = document.createElement('div');
+    empty.className = 'search-empty-state';
+    empty.innerHTML = `<p>「${escapeHTML(query)}」に文字が一致する聖句は見つかりませんでした。</p>`;
+    if (!geminiSettings.apiKey) {
+      const hint = document.createElement('p');
+      hint.className = 'search-ai-hint';
+      hint.textContent = 'AI機能設定でAPIキーを設定すると、ざっくりした内容からAI候補を探せます。';
+      empty.appendChild(hint);
+    }
+    searchResultsDiv.appendChild(empty);
     return;
   }
+  const shownResults = results.slice(0, 200);
+  const summary = document.createElement('div');
+  summary.className = 'search-results-summary';
+  summary.textContent = results.length > shownResults.length
+    ? `${results.length}件中、先頭の${shownResults.length}件を表示`
+    : `${results.length}件見つかりました`;
+  searchResultsDiv.appendChild(summary);
+
+  shownResults.forEach((rowArray) => {
+    searchResultsDiv.appendChild(createBibleResultItem(rowArray, { query }));
+  });
+}
+
+function createBibleResultItem(rowArray, { query = '', reason = '', aiCandidate = false } = {}) {
   const highlight = (text, queryToHighlight) => {
     if (!text || !queryToHighlight) return escapeHTML(text || "");
     const regex = new RegExp("(" + escapeRegExp(queryToHighlight) + ")", "gi");
     return escapeHTML(text).replace(regex, '<span class="highlight">$1</span>');
   };
-  results.forEach((rowArray) => {
-    const resultItem = document.createElement("div");
-    resultItem.className = "result-item";
-    const chFullText = rowArray[1] || "";
-    const chReference = rowArray[2] || "";
-    const jpFullText = rowArray[3] || "";
-    const jpReference = rowArray[4] || "";
-    let displayReferenceText =
-      chReference && jpReference
-        ? chReference === jpReference ? chReference : `${chReference} / ${jpReference}`
-        : chReference || jpReference || "参照情報なし";
-    let contentHTML = `<p class="verse-ref">${highlight(displayReferenceText, query)}</p>`;
-    if (jpFullText) contentHTML += `<p><span class="lang-label">日本語:</span> ${highlight(jpFullText, query)}</p>`;
-    if (chFullText) contentHTML += `<p><span class="lang-label">中文:</span> ${highlight(chFullText, query)}</p>`;
-    const safeRef = (rowArray[3] || '').replace(/'/g, "\\'");
-    contentHTML += `<button class="apply-verse-btn" onclick="applySearchResult('${safeRef}')">➜ 反映</button>`;
-    resultItem.innerHTML = contentHTML;
-    searchResultsDiv.appendChild(resultItem);
+
+  const resultItem = document.createElement("div");
+  resultItem.className = `result-item${aiCandidate ? ' ai-bible-result' : ''}`;
+  const chReference = rowArray[1] || "";
+  const chFullText = rowArray[2] || "";
+  const jpReference = rowArray[3] || "";
+  const jpFullText = rowArray[4] || "";
+  const displayReferenceText = [jpReference, chReference].filter(Boolean).join(' / ') || "参照情報なし";
+  let contentHTML = `<p class="verse-ref">${aiCandidate ? '<span class="ai-candidate-badge">これかも？</span>' : ''}${highlight(displayReferenceText, query)}</p>`;
+  if (reason) contentHTML += `<p class="ai-candidate-reason">${escapeHTML(reason)}</p>`;
+  if (jpFullText) contentHTML += `<p><span class="lang-label">日本語:</span> ${highlight(jpFullText, query)}</p>`;
+  if (chFullText) contentHTML += `<p><span class="lang-label">中文:</span> ${highlight(chFullText, query)}</p>`;
+  resultItem.innerHTML = contentHTML;
+
+  const applyButton = document.createElement('button');
+  applyButton.type = 'button';
+  applyButton.className = 'apply-verse-btn';
+  applyButton.textContent = '➜ 反映';
+  applyButton.addEventListener('click', () => applySearchResult(jpReference));
+  resultItem.appendChild(applyButton);
+  return resultItem;
+}
+
+async function performAiBibleSearchFromInput() {
+  const query = searchInput?.value.trim();
+  if (!query) {
+    searchResultsDiv.innerHTML = '<p>探したい聖句の内容を入力してください。</p>';
+    searchInput?.focus();
+    return;
+  }
+  await performAiBibleSearch(query, ++bibleAiSearchRequestId);
+}
+
+async function performAiBibleSearch(query, requestId = ++bibleAiSearchRequestId) {
+  if (!geminiSettings.apiKey) {
+    showToast('AI候補を使うにはAPIキーを設定してください', 'error');
+    openGeminiSettings();
+    return;
+  }
+
+  setBibleSearchBusy(true);
+  searchResultsDiv.innerHTML = `
+    <div class="ai-search-loading" role="status">
+      <span class="ai-search-spinner" aria-hidden="true"></span>
+      <div><strong>「${escapeHTML(query)}」から候補を探しています…</strong><small>AIが候補を選び、本文は登録済みの聖書データから表示します。</small></div>
+    </div>`;
+
+  const bookCatalog = FullNameJP.map((name, index) => `${index + 1}:${name}`).join(', ');
+  const systemPrompt = `あなたは聖書箇所を探す案内役です。利用者の曖昧な記憶、テーマ、悩み、場面に合いそうな聖句を最大5件提案してください。
+聖書に実在する1つの節だけを候補にし、同じ箇所を重複させないでください。
+出力は説明文やMarkdownを付けず、次のJSON配列だけにしてください。
+[{"bookNumber":43,"chapter":3,"verse":16,"reason":"候補にした理由を日本語で短く"}]
+bookNumberは次の対応表の番号です: ${bookCatalog}`;
+
+  try {
+    const responseText = await requestGeminiText(systemPrompt, query, 0.2);
+    if (requestId !== bibleAiSearchRequestId) return;
+    const parsed = parseGeminiJson(responseText);
+    const rawCandidates = Array.isArray(parsed) ? parsed : parsed?.candidates;
+    if (!Array.isArray(rawCandidates)) throw new Error('AIの候補形式を読み取れませんでした');
+
+    // AIには参照候補だけを選ばせ、表示本文は必ずローカルの聖書データから取得する。
+    const seenReferences = new Set();
+    const candidates = [];
+    rawCandidates.slice(0, 8).forEach((candidate) => {
+      if (!candidate || typeof candidate !== 'object') return;
+      const bookNumber = Number.parseInt(candidate.bookNumber, 10);
+      const chapter = Number.parseInt(candidate.chapter, 10);
+      const verse = Number.parseInt(candidate.verse, 10);
+      if (!Number.isInteger(bookNumber) || !Number.isInteger(chapter) || !Number.isInteger(verse)
+        || bookNumber < 1 || bookNumber > Abbre.length || chapter < 1 || verse < 1) return;
+      const jpReference = `${Abbre[bookNumber - 1]}${chapter}:${verse}`;
+      if (seenReferences.has(jpReference)) return;
+      const row = bible.find(item => item?.[3] === jpReference);
+      if (!row) return;
+      seenReferences.add(jpReference);
+      candidates.push({ row, reason: String(candidate.reason || '').trim() });
+    });
+
+    if (candidates.length === 0) throw new Error('登録済みの聖書データに一致するAI候補がありませんでした');
+    displayAiBibleResults(candidates, query);
+  } catch (error) {
+    if (requestId !== bibleAiSearchRequestId) return;
+    recordGeminiError('聖句AI検索', error);
+    displayAiBibleSearchError(query, error);
+  } finally {
+    if (requestId === bibleAiSearchRequestId) setBibleSearchBusy(false);
+  }
+}
+
+function setBibleSearchBusy(isBusy) {
+  searchResultsDiv?.setAttribute('aria-busy', String(isBusy));
+  if (executeSearchBtn) executeSearchBtn.disabled = isBusy;
+  if (aiBibleSearchBtn) {
+    aiBibleSearchBtn.disabled = isBusy;
+    aiBibleSearchBtn.textContent = isBusy ? '検索中…' : '✨ AI候補';
+  }
+}
+
+function displayAiBibleResults(candidates, query) {
+  searchResultsDiv.replaceChildren();
+  const heading = document.createElement('div');
+  heading.className = 'ai-results-heading';
+  heading.innerHTML = `<strong>✨ 「${escapeHTML(query)}」の、これかも？</strong><small>AIの提案です。本文を確認してから反映してください。</small>`;
+  searchResultsDiv.appendChild(heading);
+  candidates.forEach(({ row, reason }) => {
+    searchResultsDiv.appendChild(createBibleResultItem(row, { reason, aiCandidate: true }));
   });
+}
+
+function displayAiBibleSearchError(query, error) {
+  searchResultsDiv.replaceChildren();
+  const panel = document.createElement('div');
+  panel.className = 'ai-search-error';
+  const title = document.createElement('strong');
+  title.textContent = 'AI候補を取得できませんでした';
+  const message = document.createElement('p');
+  message.textContent = error.message;
+  const actions = document.createElement('div');
+  actions.className = 'ai-search-error-actions';
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'primary-btn';
+  retry.textContent = 'もう一度試す';
+  retry.addEventListener('click', () => performAiBibleSearch(query, ++bibleAiSearchRequestId));
+  const settings = document.createElement('button');
+  settings.type = 'button';
+  settings.className = 'secondary-btn';
+  settings.textContent = '設定とエラーログを見る';
+  settings.addEventListener('click', openGeminiSettings);
+  actions.append(retry, settings);
+  panel.append(title, message, actions);
+  searchResultsDiv.appendChild(panel);
 }
 
 function applySearchResult(jpRef) {
@@ -2464,7 +2880,9 @@ function setupEventListeners() {
   closeSearchModalBtn = document.getElementById('closeSearchModalBtn');
   searchInput = document.getElementById('searchInput');
   executeSearchBtn = document.getElementById('executeSearchBtn');
+  aiBibleSearchBtn = document.getElementById('aiBibleSearchBtn');
   searchResultsDiv = document.getElementById('searchResults');
+  updateTranslateButtonsVisibility();
 
   // Logo Settings Init
   loadLogoSettings();
@@ -2544,6 +2962,7 @@ if(switch_lang.length > 1) {
   if (openSearchModalBtn) openSearchModalBtn.addEventListener("click", openBibleSearchModal);
   if (closeSearchModalBtn) closeSearchModalBtn.addEventListener("click", closeBibleSearchModal);
   if (executeSearchBtn) executeSearchBtn.addEventListener("click", performSearch);
+  if (aiBibleSearchBtn) aiBibleSearchBtn.addEventListener("click", performAiBibleSearchFromInput);
 if (searchInput) {
   searchInput.addEventListener("keypress", function (event) {
     if (event.key === "Enter") {

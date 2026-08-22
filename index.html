@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#00838f">
   <link rel="apple-touch-icon" href="./tjc.png">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=4">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
   </style>
@@ -33,7 +33,7 @@
       <div class="card-header">
         <h3>基本情報</h3>
         <div class="header-actions">
-          <button class="icon-btn" onclick="openGeminiSettings();" title="翻訳設定 (AI)" aria-label="翻訳設定">
+          <button class="icon-btn" onclick="openGeminiSettings();" title="AI機能設定 (Gemini)" aria-label="AI機能設定">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path
@@ -276,12 +276,14 @@
   </main>
 
   <div id="bibleSearchModal" class="search-modal">
-    <div class="search-modal-content">
+    <div class="search-modal-content bible-search-modal-content">
       <span class="search-modal-close" id="closeSearchModalBtn">&times;</span>
       <h2>聖句検索</h2>
+      <p class="bible-search-lead">聖句の言葉、または「不安な時に励まされる聖句」のような内容で検索できます。</p>
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="検索キーワード (日本語 or 中文)">
+        <input type="text" id="searchInput" placeholder="語句や、探したい聖句の内容を入力">
         <button id="executeSearchBtn" class="button">検索</button>
+        <button id="aiBibleSearchBtn" class="button ai-bible-search-btn" type="button" hidden>✨ AI候補</button>
       </div>
       <div id="searchResults">
         <p>検索結果はここに表示されます。</p>
@@ -463,8 +465,8 @@
       <h2 class="servicer-modal-title">奉仕者リスト</h2>
       <p class="servicer-modal-lead">名前の登録と、候補に表示される順序を管理します。</p>
 
-      <div class="servicer-add-form">
-        <h3 class="servicer-section-title">新しい奉仕者を追加</h3>
+      <details class="servicer-add-form">
+        <summary class="servicer-section-title">＋ 新しい奉仕者を追加</summary>
         <div class="servicer-form-row">
           <div class="servicer-form-field" style="flex: 2;">
             <label for="newServicerName">氏名</label>
@@ -481,7 +483,7 @@
             <button onclick="addServicerToDB();" class="primary-btn servicer-add-btn">追加</button>
           </div>
         </div>
-      </div>
+      </details>
 
       <div class="servicer-filter-tabs">
         <button class="servicer-tab active" data-filter="all" onclick="filterServicerList('all', this);">すべて</button>
@@ -491,9 +493,16 @@
         <span id="servicerCount" class="servicer-count"></span>
       </div>
 
-      <div class="servicer-sort-guide">
-        <span class="servicer-sort-icon" aria-hidden="true">☰</span>
-        <span>ハンドルをドラッグ、または矢印ボタンで並べ替え</span>
+      <div class="servicer-sort-toolbar">
+        <div class="servicer-sort-guide">
+          <span class="servicer-sort-icon" aria-hidden="true">⠿</span>
+          <span>ドラッグで入れ替え。番号を入力すると離れた位置へ一度で移動できます。</span>
+        </div>
+        <label class="servicer-find-control" for="servicerQuickFind">
+          <span class="visually-hidden">奉仕者を検索</span>
+          <input type="search" id="servicerQuickFind" placeholder="名前を検索" oninput="findServicerInList(this.value);">
+          <span id="servicerFindStatus" class="servicer-find-status" aria-live="polite"></span>
+        </label>
       </div>
 
       <div class="servicer-table-header">
@@ -516,7 +525,7 @@
   <div id="geminiSettingsModal" class="search-modal">
     <div class="search-modal-content servicer-modal">
       <span class="search-modal-close" onclick="closeGeminiSettings();">&times;</span>
-      <h2 class="servicer-modal-title">🤖 翻訳設定 (Gemini API)</h2>
+      <h2 class="servicer-modal-title">🤖 AI機能設定 (Gemini API)</h2>
 
       <div class="form-group" style="margin-bottom: 15px;">
         <label for="geminiApiKey">APIキー</label>
@@ -524,7 +533,7 @@
             rel="noopener noreferrer">Google AI StudioでAPIキーを取得する</a></p>
         <input type="text" id="geminiApiKey" placeholder="AI StudioのAPIキーを入力" style="-webkit-text-security: disc;"
           autocomplete="off" spellcheck="false" data-lpignore="true">
-        <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">※キーはブラウザ内にのみ保存されます</p>
+        <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">※キーは形式を限定せず、ブラウザ内にのみ保存されます。利用できない場合はAI機能の実行時にエラーを表示します。</p>
         <details style="margin-top: 10px; font-size: 0.85rem;">
           <summary style="cursor: pointer; color: #1976d2;">APIキー取得方法の動画を見る</summary>
           <video id="tutorial-video" data-src="./assets/api-chutorial.mp4" preload="none" controls
@@ -541,6 +550,14 @@
         <input type="text" id="geminiCustomModel" placeholder="モデル名を入力 (例: gemini-pro)"
           style="display: none; margin-top: 10px;">
       </div>
+
+      <section id="geminiErrorLogPanel" class="gemini-error-log-panel" hidden>
+        <div class="gemini-error-log-header">
+          <h3>直近のAIエラー</h3>
+          <button type="button" onclick="clearGeminiErrorLog();" class="gemini-log-clear-btn">ログを消去</button>
+        </div>
+        <div id="geminiErrorLog" class="gemini-error-log" aria-live="polite"></div>
+      </section>
 
       <div class="mgmt-actions">
         <button onclick="saveGeminiSettings();" class="primary-btn mgmt-btn" style="flex:1;">💾 保存して閉じる</button>
@@ -701,7 +718,7 @@
   </div>
 
   <script src="./worship.js"></script>
-  <script src="./script.js"></script>
+  <script src="./script.js?v=4"></script>
   <!-- 更新通知バナー -->
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>
