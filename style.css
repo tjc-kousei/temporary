@@ -708,13 +708,13 @@ body.book-picker-open {
 .book-picker-header h2 {
   margin-top: 3px;
   color: #183f46;
-  font-size: 1.35rem;
+  font-size: 1.55rem;
 }
 
 .book-picker-header p {
   margin-top: 5px;
   color: #6b7e83;
-  font-size: 0.84rem;
+  font-size: 0.95rem;
 }
 
 .book-picker-language {
@@ -723,7 +723,7 @@ body.book-picker-open {
   border-radius: 999px;
   background: #e7f4f6;
   color: #17646c;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
@@ -768,12 +768,12 @@ body.book-picker-open {
 }
 
 .book-picker-testament-tab strong {
-  font-size: 0.96rem;
+  font-size: 1.1rem;
 }
 
 .book-picker-testament-tab small {
   color: #7d8e92;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
 }
 
 .book-picker-testament-tab.is-active {
@@ -793,7 +793,7 @@ body.book-picker-open {
 
 .book-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 9px;
   min-height: 0;
   padding: 2px 4px 4px 2px;
@@ -804,8 +804,8 @@ body.book-picker-open {
   justify-content: flex-start;
   gap: 9px;
   min-width: 0;
-  min-height: 48px;
-  padding: 9px 11px;
+  min-height: 58px;
+  padding: 11px 13px;
   border: 1px solid #d8e2e4;
   border-radius: 8px;
   background: #fbfcfc;
@@ -829,9 +829,9 @@ body.book-picker-open {
 
 .book-picker-number {
   flex: 0 0 auto;
-  min-width: 27px;
+  min-width: 30px;
   color: #789095;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -843,7 +843,9 @@ body.book-picker-open {
 
 .book-picker-book-name {
   min-width: 0;
-  line-height: 1.25;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
