@@ -278,12 +278,30 @@
   <div id="bibleSearchModal" class="search-modal">
     <div class="search-modal-content bible-search-modal-content">
       <span class="search-modal-close" id="closeSearchModalBtn">&times;</span>
-      <h2>聖句検索</h2>
-      <p class="bible-search-lead">聖句の言葉、または「不安な時に励まされる聖句」のような内容で検索できます。</p>
+      <h2>聖句を検索</h2>
+      <div class="bible-search-mode-tabs" role="tablist" aria-label="検索方法">
+        <button id="searchModeTextBtn" class="bible-search-mode-tab is-active" type="button" role="tab"
+          aria-selected="true" aria-controls="searchResults">
+          <span>全文検索</span>
+          <small>本文中の言葉と一致</small>
+        </button>
+        <button id="searchModeAiBtn" class="bible-search-mode-tab bible-search-mode-tab-ai" type="button" role="tab"
+          aria-selected="false" aria-controls="searchResults">
+          <span>✨ AI検索</span>
+          <small>テーマや状況から提案</small>
+        </button>
+      </div>
+      <p id="bibleSearchModeDescription" class="bible-search-lead"></p>
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="語句や、探したい聖句の内容を入力">
-        <button id="executeSearchBtn" class="button">検索</button>
-        <button id="aiBibleSearchBtn" class="button ai-bible-search-btn" type="button" hidden>✨ AI候補</button>
+        <input type="text" id="searchInput">
+        <button id="executeSearchBtn" class="button" type="button">全文検索</button>
+      </div>
+      <div id="aiSearchSetupNotice" class="ai-search-setup" hidden>
+        <div>
+          <strong>AI検索を使うにはAPIキーの設定が必要です</strong>
+          <small>通常の全文検索は設定なしで利用できます。</small>
+        </div>
+        <button id="openAiSettingsFromSearch" class="secondary-btn" type="button">AI機能設定を開く</button>
       </div>
       <div id="searchResults">
         <p>検索結果はここに表示されます。</p>

@@ -226,8 +226,7 @@ function updateTranslateButtonsVisibility() {
   btns.forEach(btn => {
     btn.style.display = hasKey ? 'inline-block' : 'none';
   });
-  const aiBibleSearchBtn = document.getElementById('aiBibleSearchBtn');
-  if (aiBibleSearchBtn) aiBibleSearchBtn.hidden = !hasKey;
+  updateBibleSearchModeUi();
 }
 
 function getGeminiModelName() {
@@ -724,8 +723,11 @@ const FullNameCH = [
 // ==========================================
 let db;
 let lang_type_id = 'ja_ot';
-let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, aiBibleSearchBtn, searchResultsDiv;
+let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, searchResultsDiv;
+let searchModeTextBtn, searchModeAiBtn, bibleSearchModeDescription, aiSearchSetupNotice, openAiSettingsFromSearch;
 let bibleAiSearchRequestId = 0;
+let bibleSearchMode = 'text';
+let bibleSearchBusy = false;
 
 // ==========================================
 // 2. INITIALIZATION & DATA LOADING (CSV, GAS)
@@ -2250,26 +2252,77 @@ async function toggleFullscreen() {
   }
 }
 
+function hasBibleSearchData() {
+  return Array.isArray(bible) && bible.length > 0;
+}
+
+function getBibleSearchInitialMessage() {
+  if (!hasBibleSearchData()) {
+    return '<p class="search-data-error">エラー: 聖書データが正しく読み込まれていません。</p>';
+  }
+  if (bibleSearchMode === 'ai') {
+    return geminiSettings.apiKey
+      ? '<p>テーマや状況を入力すると、AIが関連しそうな聖句を提案します。</p>'
+      : '<p>AI機能設定を完了すると、テーマや状況から聖句候補を探せます。</p>';
+  }
+  return '<p>聖句本文に含まれる言葉を入力して、文字が一致する箇所を検索します。</p>';
+}
+
+function updateBibleSearchModeUi({ resetResults = false } = {}) {
+  const hasKey = !!geminiSettings.apiKey;
+  const isAiMode = bibleSearchMode === 'ai';
+  const hasData = hasBibleSearchData();
+
+  searchModeTextBtn = searchModeTextBtn || document.getElementById('searchModeTextBtn');
+  searchModeAiBtn = searchModeAiBtn || document.getElementById('searchModeAiBtn');
+  bibleSearchModeDescription = bibleSearchModeDescription || document.getElementById('bibleSearchModeDescription');
+  aiSearchSetupNotice = aiSearchSetupNotice || document.getElementById('aiSearchSetupNotice');
+  searchInput = searchInput || document.getElementById('searchInput');
+  executeSearchBtn = executeSearchBtn || document.getElementById('executeSearchBtn');
+  searchResultsDiv = searchResultsDiv || document.getElementById('searchResults');
+  bibleSearchModal = bibleSearchModal || document.getElementById('bibleSearchModal');
+
+  searchModeTextBtn?.classList.toggle('is-active', !isAiMode);
+  searchModeTextBtn?.setAttribute('aria-selected', String(!isAiMode));
+  searchModeAiBtn?.classList.toggle('is-active', isAiMode);
+  searchModeAiBtn?.classList.toggle('needs-setup', !hasKey);
+  searchModeAiBtn?.setAttribute('aria-selected', String(isAiMode));
+  bibleSearchModal?.classList.toggle('is-ai-mode', isAiMode);
+
+  if (bibleSearchModeDescription) {
+    bibleSearchModeDescription.textContent = isAiMode
+      ? '入力したテーマや状況からAIが候補を提案します。全文の文字一致検索は行いません。'
+      : '登録済みの聖書本文から文字が一致する箇所だけを検索します。AIは使用しません。';
+  }
+  if (searchInput) {
+    searchInput.placeholder = isAiMode
+      ? '例：不安な時に励まされる聖句'
+      : '例：いつも喜んでいなさい';
+    searchInput.disabled = bibleSearchBusy || !hasData;
+  }
+  if (executeSearchBtn) {
+    executeSearchBtn.textContent = bibleSearchBusy ? '検索中…' : (isAiMode ? 'AIで探す' : '全文検索');
+    executeSearchBtn.disabled = bibleSearchBusy || !hasData || (isAiMode && !hasKey);
+  }
+  if (searchModeTextBtn) searchModeTextBtn.disabled = bibleSearchBusy;
+  if (searchModeAiBtn) searchModeAiBtn.disabled = bibleSearchBusy;
+  if (aiSearchSetupNotice) aiSearchSetupNotice.hidden = !isAiMode || hasKey;
+  if (resetResults && searchResultsDiv) searchResultsDiv.innerHTML = getBibleSearchInitialMessage();
+}
+
+function setBibleSearchMode(mode, { clearInput = true, focus = true } = {}) {
+  bibleAiSearchRequestId += 1;
+  bibleSearchBusy = false;
+  bibleSearchMode = mode === 'ai' ? 'ai' : 'text';
+  if (clearInput && searchInput) searchInput.value = '';
+  updateBibleSearchModeUi({ resetResults: true });
+  if (focus && !searchInput?.disabled) setTimeout(() => searchInput.focus(), 0);
+}
+
 function openBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "block";
-  if (searchInput) searchInput.value = "";
-  updateTranslateButtonsVisibility();
-  setBibleSearchBusy(false);
-  if (searchResultsDiv)
-    searchResultsDiv.innerHTML = "<p>語句または探したい内容を入力して「検索」ボタンを押してください。</p>";
-
-  if (typeof bible === "undefined" || !Array.isArray(bible) || bible.length === 0) {
-    if (searchResultsDiv)
-      searchResultsDiv.innerHTML = '<p style="color: red; font-weight: bold;">エラー: 聖書データが正しく読み込まれていません。</p>';
-    if (searchInput) searchInput.disabled = true;
-    if (executeSearchBtn) executeSearchBtn.disabled = true;
-    if (aiBibleSearchBtn) aiBibleSearchBtn.disabled = true;
-  } else {
-    if (searchInput) searchInput.disabled = false;
-    if (executeSearchBtn) executeSearchBtn.disabled = false;
-    if (aiBibleSearchBtn) aiBibleSearchBtn.disabled = false;
-    setTimeout(() => searchInput?.focus(), 0);
-  }
+  setBibleSearchMode('text', { clearInput: true, focus: false });
+  setTimeout(() => searchInput?.focus(), 0);
 }
 
 function closeBibleSearchModal() {
@@ -2278,26 +2331,19 @@ function closeBibleSearchModal() {
   if (bibleSearchModal) bibleSearchModal.style.display = "none";
 }
 
-async function performSearch() {
+function performSearch() {
   setBibleSearchBusy(false);
   const query = searchInput.value.trim();
   if (!query) {
     searchResultsDiv.innerHTML = "<p>検索キーワードを入力してください。</p>";
     return;
   }
-  const requestId = ++bibleAiSearchRequestId;
+  bibleAiSearchRequestId += 1;
   const lowerCaseQuery = query.toLocaleLowerCase();
   const results = bible.slice(1).filter((rowArray) => {
     return rowArray.slice(1, 5).some(value => String(value || '').toLocaleLowerCase().includes(lowerCaseQuery));
   });
-  // まず高速な文字一致を使い、見つからない曖昧な内容だけをGeminiへ問い合わせる。
-  if (results.length > 0) {
-    displayResults(results, query);
-  } else if (geminiSettings.apiKey) {
-    await performAiBibleSearch(query, requestId);
-  } else {
-    displayResults([], query);
-  }
+  displayResults(results, query);
 }
 
 function displayResults(results, query) {
@@ -2306,12 +2352,6 @@ function displayResults(results, query) {
     const empty = document.createElement('div');
     empty.className = 'search-empty-state';
     empty.innerHTML = `<p>「${escapeHTML(query)}」に文字が一致する聖句は見つかりませんでした。</p>`;
-    if (!geminiSettings.apiKey) {
-      const hint = document.createElement('p');
-      hint.className = 'search-ai-hint';
-      hint.textContent = 'AI機能設定でAPIキーを設定すると、ざっくりした内容からAI候補を探せます。';
-      empty.appendChild(hint);
-    }
     searchResultsDiv.appendChild(empty);
     return;
   }
@@ -2365,6 +2405,14 @@ async function performAiBibleSearchFromInput() {
     return;
   }
   await performAiBibleSearch(query, ++bibleAiSearchRequestId);
+}
+
+function executeActiveBibleSearch() {
+  if (bibleSearchMode === 'ai') {
+    performAiBibleSearchFromInput();
+  } else {
+    performSearch();
+  }
 }
 
 async function performAiBibleSearch(query, requestId = ++bibleAiSearchRequestId) {
@@ -2425,12 +2473,9 @@ bookNumberは次の対応表の番号です: ${bookCatalog}`;
 }
 
 function setBibleSearchBusy(isBusy) {
+  bibleSearchBusy = isBusy;
   searchResultsDiv?.setAttribute('aria-busy', String(isBusy));
-  if (executeSearchBtn) executeSearchBtn.disabled = isBusy;
-  if (aiBibleSearchBtn) {
-    aiBibleSearchBtn.disabled = isBusy;
-    aiBibleSearchBtn.textContent = isBusy ? '検索中…' : '✨ AI候補';
-  }
+  updateBibleSearchModeUi();
 }
 
 function displayAiBibleResults(candidates, query) {
@@ -2911,8 +2956,12 @@ function setupEventListeners() {
   closeSearchModalBtn = document.getElementById('closeSearchModalBtn');
   searchInput = document.getElementById('searchInput');
   executeSearchBtn = document.getElementById('executeSearchBtn');
-  aiBibleSearchBtn = document.getElementById('aiBibleSearchBtn');
   searchResultsDiv = document.getElementById('searchResults');
+  searchModeTextBtn = document.getElementById('searchModeTextBtn');
+  searchModeAiBtn = document.getElementById('searchModeAiBtn');
+  bibleSearchModeDescription = document.getElementById('bibleSearchModeDescription');
+  aiSearchSetupNotice = document.getElementById('aiSearchSetupNotice');
+  openAiSettingsFromSearch = document.getElementById('openAiSettingsFromSearch');
   updateTranslateButtonsVisibility();
 
   // Logo Settings Init
@@ -2992,13 +3041,15 @@ if(switch_lang.length > 1) {
   // Search Modal Listeners
   if (openSearchModalBtn) openSearchModalBtn.addEventListener("click", openBibleSearchModal);
   if (closeSearchModalBtn) closeSearchModalBtn.addEventListener("click", closeBibleSearchModal);
-  if (executeSearchBtn) executeSearchBtn.addEventListener("click", performSearch);
-  if (aiBibleSearchBtn) aiBibleSearchBtn.addEventListener("click", performAiBibleSearchFromInput);
+  if (searchModeTextBtn) searchModeTextBtn.addEventListener("click", () => setBibleSearchMode('text'));
+  if (searchModeAiBtn) searchModeAiBtn.addEventListener("click", () => setBibleSearchMode('ai'));
+  if (executeSearchBtn) executeSearchBtn.addEventListener("click", executeActiveBibleSearch);
+  if (openAiSettingsFromSearch) openAiSettingsFromSearch.addEventListener("click", openGeminiSettings);
 if (searchInput) {
   searchInput.addEventListener("keypress", function (event) {
     if (event.key === "Enter") {
       event.preventDefault();
-      performSearch();
+      executeActiveBibleSearch();
     }
   });
 }

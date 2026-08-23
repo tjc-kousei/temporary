@@ -2406,29 +2406,126 @@ input[type=range]::-webkit-slider-thumb {
 
 /* 通常検索とAI聖句候補 */
 .bible-search-modal-content {
-  max-width: 760px;
+  max-width: 780px;
 }
 
 .bible-search-lead {
-  margin: -4px 38px 15px 0;
+  margin: 12px 38px 14px 0;
   color: #607d8b;
   font-size: 0.86rem;
 }
 
+.bible-search-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.bible-search-mode-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid #cbdcdf;
+  border-radius: 8px;
+  background: #f8fbfb;
+  color: #375158;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.bible-search-mode-tab span {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.bible-search-mode-tab small {
+  color: #6f8186;
+  font-size: 0.75rem;
+}
+
+.bible-search-mode-tab:hover:not(:disabled) {
+  border-color: #62aeb5;
+  background: #f0f9fa;
+}
+
+.bible-search-mode-tab.is-active {
+  border-color: var(--primary-color);
+  background: #e8f7f8;
+  color: var(--primary-dark);
+  box-shadow: 0 0 0 2px rgba(0, 131, 143, 0.10);
+}
+
+.bible-search-mode-tab-ai.is-active {
+  border-color: #6a4bb1;
+  background: #f3effb;
+  color: #4c3485;
+  box-shadow: 0 0 0 2px rgba(106, 75, 177, 0.11);
+}
+
+.bible-search-mode-tab-ai.needs-setup:not(.is-active) small::after {
+  content: "（要設定）";
+  color: #7957b5;
+}
+
 .bible-search-modal-content .search-bar {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  margin-bottom: 14px;
 }
 
 .bible-search-modal-content .search-bar input {
-  min-width: 260px;
+  min-width: 0;
 }
 
-.ai-bible-search-btn {
-  background: #6a4bb1 !important;
+#bibleSearchModal.is-ai-mode .search-bar button {
+  background: #6a4bb1;
 }
 
-.ai-bible-search-btn:hover:not(:disabled) {
-  background: #523691 !important;
+#bibleSearchModal.is-ai-mode .search-bar button:hover:not(:disabled) {
+  background: #523691;
+}
+
+.ai-search-setup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #d9ccef;
+  border-radius: 8px;
+  background: #faf8ff;
+  color: #4c3485;
+}
+
+.ai-search-setup[hidden] {
+  display: none;
+}
+
+.ai-search-setup div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-search-setup small {
+  color: #76698d;
+  font-size: 0.75rem;
+}
+
+.ai-search-setup button {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+}
+
+.search-data-error {
+  color: #b3261e;
+  font-weight: 700;
 }
 
 .search-results-summary {
