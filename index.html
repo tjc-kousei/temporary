@@ -181,11 +181,9 @@
           <div class="testament-btns">
             <button id="ot" class="testament-open-btn" type="button" onclick="active_abbre('ot');">
               <span class="testament-name">旧約</span>
-              <small class="testament-meta">39巻から選択</small>
             </button>
             <button id="nt" class="testament-open-btn" type="button" onclick="active_abbre('nt');">
               <span class="testament-name">新約</span>
-              <small class="testament-meta">27巻から選択</small>
             </button>
           </div>
           <div class="verse-input">
@@ -316,25 +314,18 @@
   </div>
 
   <div id="bookPickerModal" class="book-picker-modal" hidden>
-    <section class="book-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="bookPickerTitle">
+    <section id="bookPickerDialog" class="book-picker-dialog" role="dialog" aria-modal="true" aria-label="書巻を選択">
       <header class="book-picker-header">
-        <div>
-          <span id="bookPickerLanguage" class="book-picker-language">日本語聖書</span>
-          <h2 id="bookPickerTitle">書巻を選択</h2>
-          <p id="bookPickerGuide">旧約・新約を切り替えて、開く書巻を選んでください。</p>
-        </div>
         <button id="closeBookPickerBtn" class="book-picker-close" type="button" aria-label="書巻選択を閉じる">&times;</button>
       </header>
       <div class="book-picker-testaments" role="tablist" aria-label="旧約と新約">
         <button id="bookPickerOtTab" class="book-picker-testament-tab" data-testament="ot" type="button" role="tab"
           aria-selected="true" aria-controls="bookPickerGrid">
           <strong>旧約</strong>
-          <small>39巻</small>
         </button>
         <button id="bookPickerNtTab" class="book-picker-testament-tab" data-testament="nt" type="button" role="tab"
           aria-selected="false" aria-controls="bookPickerGrid">
           <strong>新約</strong>
-          <small>27巻</small>
         </button>
       </div>
       <div id="bookPickerGrid" class="book-picker-grid" role="tabpanel"></div>

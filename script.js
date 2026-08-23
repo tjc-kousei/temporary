@@ -2558,25 +2558,12 @@ function updateBibleBookSelectionUi() {
   const selectedIndex = Number.parseInt(abbre, 10);
   const hasSelection = Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < Abbre.length;
   const names = getBiblePickerBookNames();
-  const isChinese = getBiblePickerLanguage() === 'ch';
   const oldTestamentButton = document.getElementById('ot');
   const newTestamentButton = document.getElementById('nt');
-  const oldMeta = oldTestamentButton?.querySelector('.testament-meta');
-  const newMeta = newTestamentButton?.querySelector('.testament-meta');
   const abbreviationMemo = document.getElementById('abbre_memo');
 
   oldTestamentButton?.classList.toggle('has-current-book', hasSelection && selectedIndex < 39);
   newTestamentButton?.classList.toggle('has-current-book', hasSelection && selectedIndex >= 39);
-  if (oldMeta) {
-    oldMeta.textContent = hasSelection && selectedIndex < 39
-      ? `${isChinese ? '当前' : '選択中'}: ${names[selectedIndex]}`
-      : (isChinese ? '从39卷中选择' : '39巻から選択');
-  }
-  if (newMeta) {
-    newMeta.textContent = hasSelection && selectedIndex >= 39
-      ? `${isChinese ? '当前' : '選択中'}: ${names[selectedIndex]}`
-      : (isChinese ? '从27卷中选择' : '27巻から選択');
-  }
   if (hasSelection && abbreviationMemo) abbreviationMemo.textContent = names[selectedIndex];
 }
 
@@ -2584,9 +2571,8 @@ function updateBibleLanguageUi() {
   const isChinese = getBiblePickerLanguage() === 'ch';
   const oldTestamentButton = document.getElementById('ot');
   const newTestamentButton = document.getElementById('nt');
-  const languageLabel = document.getElementById('bookPickerLanguage');
-  const pickerTitle = document.getElementById('bookPickerTitle');
-  const pickerGuide = document.getElementById('bookPickerGuide');
+  const pickerDialog = document.getElementById('bookPickerDialog');
+  const closeButton = document.getElementById('closeBookPickerBtn');
   const oldTab = document.getElementById('bookPickerOtTab');
   const newTab = document.getElementById('bookPickerNtTab');
 
@@ -2596,15 +2582,10 @@ function updateBibleLanguageUi() {
   if (newTestamentButton?.querySelector('.testament-name')) {
     newTestamentButton.querySelector('.testament-name').textContent = isChinese ? '新约' : '新約';
   }
-  if (languageLabel) languageLabel.textContent = isChinese ? '中文圣经' : '日本語聖書';
-  if (pickerTitle) pickerTitle.textContent = isChinese ? '选择书卷' : '書巻を選択';
-  if (pickerGuide) {
-    pickerGuide.textContent = isChinese
-      ? '切换旧约、新约，然后选择要打开的书卷。'
-      : '旧約・新約を切り替えて、開く書巻を選んでください。';
-  }
-  if (oldTab) oldTab.innerHTML = `<strong>${isChinese ? '旧约' : '旧約'}</strong><small>39${isChinese ? '卷' : '巻'}</small>`;
-  if (newTab) newTab.innerHTML = `<strong>${isChinese ? '新约' : '新約'}</strong><small>27${isChinese ? '卷' : '巻'}</small>`;
+  pickerDialog?.setAttribute('aria-label', isChinese ? '选择书卷' : '書巻を選択');
+  closeButton?.setAttribute('aria-label', isChinese ? '关闭书卷选择' : '書巻選択を閉じる');
+  if (oldTab) oldTab.innerHTML = `<strong>${isChinese ? '旧约' : '旧約'}</strong>`;
+  if (newTab) newTab.innerHTML = `<strong>${isChinese ? '新约' : '新約'}</strong>`;
 
   updateBibleBookSelectionUi();
   if (!document.getElementById('bookPickerModal')?.hidden) renderBookPicker();

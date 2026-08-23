@@ -410,7 +410,6 @@ button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
   min-width: 0;
   padding: 11px 13px;
   background: white;
@@ -440,12 +439,6 @@ button {
 .testament-name {
   font-size: 1rem;
   font-weight: 700;
-}
-
-.testament-meta {
-  color: #70858a;
-  font-size: 0.72rem;
-  font-weight: 500;
 }
 
 .verse-input {
@@ -685,6 +678,7 @@ body.book-picker-open {
 }
 
 .book-picker-dialog {
+  position: relative;
   width: min(1180px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   padding: 20px;
@@ -699,32 +693,12 @@ body.book-picker-open {
 }
 
 .book-picker-header {
+  position: absolute;
+  z-index: 1;
+  top: 14px;
+  right: 14px;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.book-picker-header h2 {
-  margin-top: 3px;
-  color: #183f46;
-  font-size: 1.55rem;
-}
-
-.book-picker-header p {
-  margin-top: 5px;
-  color: #6b7e83;
-  font-size: 0.95rem;
-}
-
-.book-picker-language {
-  display: inline-flex;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #e7f4f6;
-  color: #17646c;
-  font-size: 0.8rem;
-  font-weight: 700;
+  justify-content: flex-end;
 }
 
 .book-picker-close {
@@ -750,6 +724,7 @@ body.book-picker-open {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  margin-right: 48px;
   padding: 5px;
   border-radius: 10px;
   background: #eef3f4;
@@ -758,7 +733,6 @@ body.book-picker-open {
 .book-picker-testament-tab {
   display: flex;
   align-items: baseline;
-  gap: 8px;
   min-width: 0;
   padding: 10px 14px;
   border: 1px solid transparent;
@@ -769,11 +743,6 @@ body.book-picker-open {
 
 .book-picker-testament-tab strong {
   font-size: 1.1rem;
-}
-
-.book-picker-testament-tab small {
-  color: #7d8e92;
-  font-size: 0.82rem;
 }
 
 .book-picker-testament-tab.is-active {
