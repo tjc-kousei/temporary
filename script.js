@@ -722,7 +722,8 @@ const FullNameCH = [
 // 2. INITIALIZATION & DATA LOADING
 // ==========================================
 let db;
-let lang_type_id = 'ja_ot';
+let bookPickerTestament = 'ot';
+let bookPickerTrigger = null;
 let bibleSearchModal, openSearchModalBtn, closeSearchModalBtn, searchInput, executeSearchBtn, searchResultsDiv;
 let searchModeTextBtn, searchModeAiBtn, bibleSearchModeDescription, aiSearchSetupNotice, openAiSettingsFromSearch;
 let bibleAiSearchRequestId = 0;
@@ -2526,9 +2527,10 @@ function applySearchResult(jpRef) {
             abbre = i;
             syou = parts[0];
             setu = parts[1];
-            document.getElementById('abbre_memo').innerHTML = Abbre[i];
+            document.getElementById('abbre_memo').textContent = Abbre[i];
             document.getElementById('syou').value = syou;
             document.getElementById('setu').value = setu;
+            updateBibleBookSelectionUi();
             showBible();
             checkwindow('bible');
             countVersesInChapter();
@@ -2543,24 +2545,150 @@ function applySearchResult(jpRef) {
   }
   showToast('参照情報を解析できませんでした', 'error');
 }
+function getBiblePickerLanguage() {
+  const switchLang = document.querySelectorAll('.switch');
+  return switchLang[1]?.checked ? 'ch' : 'ja';
+}
+
+function getBiblePickerBookNames() {
+  return getBiblePickerLanguage() === 'ch' ? FullNameCH : FullNameJP;
+}
+
+function updateBibleBookSelectionUi() {
+  const selectedIndex = Number.parseInt(abbre, 10);
+  const hasSelection = Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < Abbre.length;
+  const names = getBiblePickerBookNames();
+  const isChinese = getBiblePickerLanguage() === 'ch';
+  const oldTestamentButton = document.getElementById('ot');
+  const newTestamentButton = document.getElementById('nt');
+  const oldMeta = oldTestamentButton?.querySelector('.testament-meta');
+  const newMeta = newTestamentButton?.querySelector('.testament-meta');
+  const abbreviationMemo = document.getElementById('abbre_memo');
+
+  oldTestamentButton?.classList.toggle('has-current-book', hasSelection && selectedIndex < 39);
+  newTestamentButton?.classList.toggle('has-current-book', hasSelection && selectedIndex >= 39);
+  if (oldMeta) {
+    oldMeta.textContent = hasSelection && selectedIndex < 39
+      ? `${isChinese ? '当前' : '選択中'}: ${names[selectedIndex]}`
+      : (isChinese ? '从39卷中选择' : '39巻から選択');
+  }
+  if (newMeta) {
+    newMeta.textContent = hasSelection && selectedIndex >= 39
+      ? `${isChinese ? '当前' : '選択中'}: ${names[selectedIndex]}`
+      : (isChinese ? '从27卷中选择' : '27巻から選択');
+  }
+  if (hasSelection && abbreviationMemo) abbreviationMemo.textContent = names[selectedIndex];
+}
+
+function updateBibleLanguageUi() {
+  const isChinese = getBiblePickerLanguage() === 'ch';
+  const oldTestamentButton = document.getElementById('ot');
+  const newTestamentButton = document.getElementById('nt');
+  const languageLabel = document.getElementById('bookPickerLanguage');
+  const pickerTitle = document.getElementById('bookPickerTitle');
+  const pickerGuide = document.getElementById('bookPickerGuide');
+  const oldTab = document.getElementById('bookPickerOtTab');
+  const newTab = document.getElementById('bookPickerNtTab');
+
+  if (oldTestamentButton?.querySelector('.testament-name')) {
+    oldTestamentButton.querySelector('.testament-name').textContent = isChinese ? '旧约' : '旧約';
+  }
+  if (newTestamentButton?.querySelector('.testament-name')) {
+    newTestamentButton.querySelector('.testament-name').textContent = isChinese ? '新约' : '新約';
+  }
+  if (languageLabel) languageLabel.textContent = isChinese ? '中文圣经' : '日本語聖書';
+  if (pickerTitle) pickerTitle.textContent = isChinese ? '选择书卷' : '書巻を選択';
+  if (pickerGuide) {
+    pickerGuide.textContent = isChinese
+      ? '切换旧约、新约，然后选择要打开的书卷。'
+      : '旧約・新約を切り替えて、開く書巻を選んでください。';
+  }
+  if (oldTab) oldTab.innerHTML = `<strong>${isChinese ? '旧约' : '旧約'}</strong><small>39${isChinese ? '卷' : '巻'}</small>`;
+  if (newTab) newTab.innerHTML = `<strong>${isChinese ? '新约' : '新約'}</strong><small>27${isChinese ? '卷' : '巻'}</small>`;
+
+  updateBibleBookSelectionUi();
+  if (!document.getElementById('bookPickerModal')?.hidden) renderBookPicker();
+}
+
+function renderBookPicker() {
+  const grid = document.getElementById('bookPickerGrid');
+  if (!grid) return;
+  const names = getBiblePickerBookNames();
+  const startIndex = bookPickerTestament === 'nt' ? 39 : 0;
+  const endIndex = bookPickerTestament === 'nt' ? 66 : 39;
+  const selectedIndex = Number.parseInt(abbre, 10);
+  grid.replaceChildren();
+
+  for (let index = startIndex; index < endIndex; index++) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'book-picker-book';
+    button.dataset.bookIndex = String(index);
+    if (index === selectedIndex) {
+      button.classList.add('is-selected');
+      button.setAttribute('aria-current', 'true');
+    }
+
+    const number = document.createElement('span');
+    number.className = 'book-picker-number';
+    number.textContent = String(index + 1).padStart(2, '0');
+    const name = document.createElement('span');
+    name.className = 'book-picker-book-name';
+    name.textContent = names[index];
+    button.append(number, name);
+    button.addEventListener('click', () => selectBibleBook(index));
+    grid.appendChild(button);
+  }
+}
+
+function setBookPickerTestament(type) {
+  bookPickerTestament = type === 'nt' ? 'nt' : 'ot';
+  const oldTab = document.getElementById('bookPickerOtTab');
+  const newTab = document.getElementById('bookPickerNtTab');
+  oldTab?.classList.toggle('is-active', bookPickerTestament === 'ot');
+  oldTab?.setAttribute('aria-selected', String(bookPickerTestament === 'ot'));
+  newTab?.classList.toggle('is-active', bookPickerTestament === 'nt');
+  newTab?.setAttribute('aria-selected', String(bookPickerTestament === 'nt'));
+  renderBookPicker();
+}
+
 function active_abbre(type) {
-  const switch_lang = document.querySelectorAll(".switch");
-  if (switch_lang[0].checked) {
-    const id_name = "ja_" + type;
-    document.getElementById(id_name).style.left = "0";
-    lang_type_id = id_name;
-  }
-  if (switch_lang[1].checked) {
-    const id_name = "ch_" + type;
-    document.getElementById(id_name).style.left = "0";
-    lang_type_id = id_name;
-  }
+  const modal = document.getElementById('bookPickerModal');
+  if (!modal) return;
+  bookPickerTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  modal.hidden = false;
+  document.body.classList.add('book-picker-open');
+  updateBibleLanguageUi();
+  setBookPickerTestament(type);
+  setTimeout(() => {
+    (modal.querySelector('.book-picker-book.is-selected') || modal.querySelector('.book-picker-book'))?.focus();
+  }, 0);
+}
+
+function closeBookPicker({ restoreFocus = true } = {}) {
+  const modal = document.getElementById('bookPickerModal');
+  if (!modal || modal.hidden) return;
+  modal.hidden = true;
+  document.body.classList.remove('book-picker-open');
+  if (restoreFocus) bookPickerTrigger?.focus();
+}
+
+function selectBibleBook(index) {
+  const names = getBiblePickerBookNames();
+  memobible(index);
+  const abbreviationMemo = document.getElementById('abbre_memo');
+  if (abbreviationMemo) abbreviationMemo.textContent = names[index];
+  updateBibleBookSelectionUi();
+  closeBookPicker({ restoreFocus: false });
+  document.getElementById('syou')?.focus();
 }
 
 function abbre_btn(num, value) {
   memobible(num);
-  document.getElementById("abbre_memo").innerHTML = value;
-  document.getElementById(lang_type_id).style.left = "-100vw";
+  const abbreviationMemo = document.getElementById('abbre_memo');
+  if (abbreviationMemo) abbreviationMemo.textContent = value;
+  updateBibleBookSelectionUi();
+  closeBookPicker({ restoreFocus: false });
 }
 
 function display_history(element, index) {
@@ -3009,20 +3137,9 @@ function setupEventListeners() {
 
   // Language Switch
   const switch_lang = document.querySelectorAll(".switch");
-  // 初期化時に一つ目を選択
-  if(switch_lang.length > 0) switch_lang[0].click();
-if(switch_lang.length > 0) {
-  switch_lang[0].addEventListener("click", () => {
-    document.getElementById("ot").innerHTML = "旧約";
-    document.getElementById("nt").innerHTML = "新約";
-  });
-}
-if(switch_lang.length > 1) {
-  switch_lang[1].addEventListener("click", () => {
-    document.getElementById("ot").innerHTML = "旧约";
-    document.getElementById("nt").innerHTML = "新约";
-  });
-}
+  switch_lang.forEach((input) => input.addEventListener("change", updateBibleLanguageUi));
+  if (switch_lang.length > 0) switch_lang[0].checked = true;
+  updateBibleLanguageUi();
 
   const fullscreenButton = document.getElementById("fullscreen-toggle");
   if (fullscreenButton) {
@@ -3031,11 +3148,13 @@ if(switch_lang.length > 1) {
   }
   window.addEventListener("focus", updateFullscreenButton);
 
-  // Modal Buttons
-  document.querySelectorAll(".modal_abbre_btn").forEach((ele) => {
-    ele.addEventListener("click", (e) => {
-      if (e.target.className == "modal_abbre_btn") ele.style.left = "-100vw";
-    });
+  // Book Picker
+  const bookPickerModal = document.getElementById('bookPickerModal');
+  document.getElementById('closeBookPickerBtn')?.addEventListener('click', () => closeBookPicker());
+  document.getElementById('bookPickerOtTab')?.addEventListener('click', () => setBookPickerTestament('ot'));
+  document.getElementById('bookPickerNtTab')?.addEventListener('click', () => setBookPickerTestament('nt'));
+  bookPickerModal?.addEventListener('click', (event) => {
+    if (event.target === bookPickerModal) closeBookPicker();
   });
 
   // Search Modal Listeners
@@ -3060,6 +3179,7 @@ window.addEventListener("click", function (event) {
 });
 window.addEventListener("keydown", function (event) {
   if (event.key === "Escape") {
+    closeBookPicker();
     document.querySelectorAll(".search-modal").forEach(modal => {
       if (modal.style.display === "block") modal.style.display = "none";
     });

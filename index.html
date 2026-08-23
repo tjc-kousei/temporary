@@ -179,8 +179,14 @@
       <div class="card-content">
         <div class="bible-selector">
           <div class="testament-btns">
-            <div id="ot" onclick="active_abbre('ot');">旧約</div>
-            <div id="nt" onclick="active_abbre('nt');">新約</div>
+            <button id="ot" class="testament-open-btn" type="button" onclick="active_abbre('ot');">
+              <span class="testament-name">旧約</span>
+              <small class="testament-meta">39巻から選択</small>
+            </button>
+            <button id="nt" class="testament-open-btn" type="button" onclick="active_abbre('nt');">
+              <span class="testament-name">新約</span>
+              <small class="testament-meta">27巻から選択</small>
+            </button>
           </div>
           <div class="verse-input">
             <pre id="abbre_memo"></pre>
@@ -309,161 +315,30 @@
     </div>
   </div>
 
-  <div id="ja_ot" class="modal_abbre_btn" style="left: -100vw;">
-    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
-      <button class="primary-btn" style="width: 200px; background: #1976d2;"
-        onclick="document.getElementById('ja_ot').style.left='-100vw'; active_abbre('nt');">新約聖書へ切替</button>
-    </div>
-    <button value="0" onclick="abbre_btn(this.value,this.innerHTML);">01 創世記</button><button value="1"
-      onclick="abbre_btn(this.value,this.innerHTML);">02 出エジプト記</button><button value="2"
-      onclick="abbre_btn(this.value,this.innerHTML);">03 レビ記</button><button value="3"
-      onclick="abbre_btn(this.value,this.innerHTML);">04 民数記</button><button value="4"
-      onclick="abbre_btn(this.value,this.innerHTML);">05 申命記</button><button value="5"
-      onclick="abbre_btn(this.value,this.innerHTML);">06 ヨシュア記</button><button value="6"
-      onclick="abbre_btn(this.value,this.innerHTML);">07 士師記</button><button value="7"
-      onclick="abbre_btn(this.value,this.innerHTML);">08 ルツ記</button><button value="8"
-      onclick="abbre_btn(this.value,this.innerHTML);">09 サムエル記上</button><button value="9"
-      onclick="abbre_btn(this.value,this.innerHTML);">10 サムエル記下</button><button value="10"
-      onclick="abbre_btn(this.value,this.innerHTML);">11 列王記上</button><button value="11"
-      onclick="abbre_btn(this.value,this.innerHTML);">12 列王記下</button><button value="12"
-      onclick="abbre_btn(this.value,this.innerHTML);">13 歴代志上</button><button value="13"
-      onclick="abbre_btn(this.value,this.innerHTML);">14 歴代志下</button><button value="14"
-      onclick="abbre_btn(this.value,this.innerHTML);">15 エズラ記</button><button value="15"
-      onclick="abbre_btn(this.value,this.innerHTML);">16 ネヘミヤ記</button><button value="16"
-      onclick="abbre_btn(this.value,this.innerHTML);">17 エステル記</button><button value="17"
-      onclick="abbre_btn(this.value,this.innerHTML);">18 ヨブ記</button><button value="18"
-      onclick="abbre_btn(this.value,this.innerHTML);">19 詩篇</button><button value="19"
-      onclick="abbre_btn(this.value,this.innerHTML);">20 箴言</button><button value="20"
-      onclick="abbre_btn(this.value,this.innerHTML);">21 伝道の書</button><button value="21"
-      onclick="abbre_btn(this.value,this.innerHTML);">22 雅歌</button><button value="22"
-      onclick="abbre_btn(this.value,this.innerHTML);">23 イザヤ書</button><button value="23"
-      onclick="abbre_btn(this.value,this.innerHTML);">24 エレミヤ書</button><button value="24"
-      onclick="abbre_btn(this.value,this.innerHTML);">25 哀歌</button><button value="25"
-      onclick="abbre_btn(this.value,this.innerHTML);">26 エゼキエル書</button><button value="26"
-      onclick="abbre_btn(this.value,this.innerHTML);">27 ダニエル書</button><button value="27"
-      onclick="abbre_btn(this.value,this.innerHTML);">28 ホセア書</button><button value="28"
-      onclick="abbre_btn(this.value,this.innerHTML);">29 ヨエル書</button><button value="29"
-      onclick="abbre_btn(this.value,this.innerHTML);">30 アモス書</button><button value="30"
-      onclick="abbre_btn(this.value,this.innerHTML);">31 オバデア書</button><button value="31"
-      onclick="abbre_btn(this.value,this.innerHTML);">32 ヨナ書</button><button value="32"
-      onclick="abbre_btn(this.value,this.innerHTML);">33 ミカ書</button><button value="33"
-      onclick="abbre_btn(this.value,this.innerHTML);">34 ナホム書</button><button value="34"
-      onclick="abbre_btn(this.value,this.innerHTML);">35 ハバクク書</button><button value="35"
-      onclick="abbre_btn(this.value,this.innerHTML);">36 ゼパニヤ書</button><button value="36"
-      onclick="abbre_btn(this.value,this.innerHTML);">37 ハガイ書</button><button value="37"
-      onclick="abbre_btn(this.value,this.innerHTML);">38 ゼカリヤ書</button><button value="38"
-      onclick="abbre_btn(this.value,this.innerHTML);">39 マラキ書</button>
-  </div>
-  <div id="ja_nt" class="modal_abbre_btn" style="left: -100vw;">
-    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
-      <button class="primary-btn" style="width: 200px; background: #1976d2;"
-        onclick="document.getElementById('ja_nt').style.left='-100vw'; active_abbre('ot');">旧約聖書へ切替</button>
-    </div>
-    <button value="39" onclick="abbre_btn(this.value,this.innerHTML);">40 マタイによる福音書</button><button value="40"
-      onclick="abbre_btn(this.value,this.innerHTML);">41 マルコによる福音書</button><button value="41"
-      onclick="abbre_btn(this.value,this.innerHTML);">42 ルカによる福音書</button><button value="42"
-      onclick="abbre_btn(this.value,this.innerHTML);">43 ヨハネによる福音書</button><button value="43"
-      onclick="abbre_btn(this.value,this.innerHTML);">44 使徒行伝</button><button value="44"
-      onclick="abbre_btn(this.value,this.innerHTML);">45 ローマ人への手紙</button><button value="45"
-      onclick="abbre_btn(this.value,this.innerHTML);">46 コリント人への第一の手紙</button><button value="46"
-      onclick="abbre_btn(this.value,this.innerHTML);">47 コリント人への第二の手紙</button><button value="47"
-      onclick="abbre_btn(this.value,this.innerHTML);">48 ガラテヤ人への手紙</button><button value="48"
-      onclick="abbre_btn(this.value,this.innerHTML);">49 エペソ人への手紙</button><button value="49"
-      onclick="abbre_btn(this.value,this.innerHTML);">50 ピリピ人への手紙</button><button value="50"
-      onclick="abbre_btn(this.value,this.innerHTML);">51 コロサイ人への手紙</button><button value="51"
-      onclick="abbre_btn(this.value,this.innerHTML);">52 テサロニケ人への第一の手紙</button><button value="52"
-      onclick="abbre_btn(this.value,this.innerHTML);">53 テサロニケ人への第二の手紙</button><button value="53"
-      onclick="abbre_btn(this.value,this.innerHTML);">54 テモテへの第一の手紙</button><button value="54"
-      onclick="abbre_btn(this.value,this.innerHTML);">55 テモテへの第二の手紙</button><button value="55"
-      onclick="abbre_btn(this.value,this.innerHTML);">56 テトスへの手紙</button><button value="56"
-      onclick="abbre_btn(this.value,this.innerHTML);">57 ピレモンへの手紙</button><button value="57"
-      onclick="abbre_btn(this.value,this.innerHTML);">58 ヘブル人への手紙</button><button value="58"
-      onclick="abbre_btn(this.value,this.innerHTML);">59 ヤコブの手紙</button><button value="59"
-      onclick="abbre_btn(this.value,this.innerHTML);">60 ペテロの第一の手紙</button><button value="60"
-      onclick="abbre_btn(this.value,this.innerHTML);">61 ペテロの第二の手紙</button><button value="61"
-      onclick="abbre_btn(this.value,this.innerHTML);">62 ヨハネの第一の手紙</button><button value="62"
-      onclick="abbre_btn(this.value,this.innerHTML);">63 ヨハネの第二の手紙</button><button value="63"
-      onclick="abbre_btn(this.value,this.innerHTML);">64 ヨハネの第三の手紙</button><button value="64"
-      onclick="abbre_btn(this.value,this.innerHTML);">65 ユダの手紙</button><button value="65"
-      onclick="abbre_btn(this.value,this.innerHTML);">66 ヨハネの黙示録</button>
-  </div>
-  <div id="ch_ot" class="modal_abbre_btn" style="left: -100vw;">
-    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
-      <button class="primary-btn" style="width: 200px; background: #1976d2;"
-        onclick="document.getElementById('ch_ot').style.left='-100vw'; active_abbre('nt');">切换成新约</button>
-    </div>
-    <button value="0" onclick="abbre_btn(this.value,this.innerHTML);">01 创世记</button><button value="1"
-      onclick="abbre_btn(this.value,this.innerHTML);">02 出埃及记</button><button value="2"
-      onclick="abbre_btn(this.value,this.innerHTML);">03 利未记</button><button value="3"
-      onclick="abbre_btn(this.value,this.innerHTML);">04 民数记</button><button value="4"
-      onclick="abbre_btn(this.value,this.innerHTML);">05 申命记</button><button value="5"
-      onclick="abbre_btn(this.value,this.innerHTML);">06 约书亚记</button><button value="6"
-      onclick="abbre_btn(this.value,this.innerHTML);">07 士师记</button><button value="7"
-      onclick="abbre_btn(this.value,this.innerHTML);">08 路得记</button><button value="8"
-      onclick="abbre_btn(this.value,this.innerHTML);">09 撒母耳记上</button><button value="9"
-      onclick="abbre_btn(this.value,this.innerHTML);">10 撒母耳记下</button><button value="10"
-      onclick="abbre_btn(this.value,this.innerHTML);">11 列王纪上</button><button value="11"
-      onclick="abbre_btn(this.value,this.innerHTML);">12 列王纪下</button><button value="12"
-      onclick="abbre_btn(this.value,this.innerHTML);">13 历代志上</button><button value="13"
-      onclick="abbre_btn(this.value,this.innerHTML);">14 历代志下</button><button value="14"
-      onclick="abbre_btn(this.value,this.innerHTML);">15 以斯拉记</button><button value="15"
-      onclick="abbre_btn(this.value,this.innerHTML);">16 尼希米记</button><button value="16"
-      onclick="abbre_btn(this.value,this.innerHTML);">17 以斯帖记</button><button value="17"
-      onclick="abbre_btn(this.value,this.innerHTML);">18 约伯记</button><button value="18"
-      onclick="abbre_btn(this.value,this.innerHTML);">19 诗篇</button><button value="19"
-      onclick="abbre_btn(this.value,this.innerHTML);">20 箴言</button><button value="20"
-      onclick="abbre_btn(this.value,this.innerHTML);">21 传道书</button><button value="21"
-      onclick="abbre_btn(this.value,this.innerHTML);">22 雅歌</button><button value="22"
-      onclick="abbre_btn(this.value,this.innerHTML);">23 以赛亚书</button><button value="23"
-      onclick="abbre_btn(this.value,this.innerHTML);">24 耶利米书</button><button value="24"
-      onclick="abbre_btn(this.value,this.innerHTML);">25 耶利米哀歌</button><button value="25"
-      onclick="abbre_btn(this.value,this.innerHTML);">26 以西结书</button><button value="26"
-      onclick="abbre_btn(this.value,this.innerHTML);">27 但以理书</button><button value="27"
-      onclick="abbre_btn(this.value,this.innerHTML);">28 何西阿书</button><button value="28"
-      onclick="abbre_btn(this.value,this.innerHTML);">29 约珥书</button><button value="29"
-      onclick="abbre_btn(this.value,this.innerHTML);">30 阿摩司书</button><button value="30"
-      onclick="abbre_btn(this.value,this.innerHTML);">31 俄巴底亚书</button><button value="31"
-      onclick="abbre_btn(this.value,this.innerHTML);">32 约拿书</button><button value="32"
-      onclick="abbre_btn(this.value,this.innerHTML);">33 弥迦书</button><button value="33"
-      onclick="abbre_btn(this.value,this.innerHTML);">34 那鸿书</button><button value="34"
-      onclick="abbre_btn(this.value,this.innerHTML);">35 哈巴谷书</button><button value="35"
-      onclick="abbre_btn(this.value,this.innerHTML);">36 西番雅书</button><button value="36"
-      onclick="abbre_btn(this.value,this.innerHTML);">37 哈该书</button><button value="37"
-      onclick="abbre_btn(this.value,this.innerHTML);">38 撒迦利亚书</button><button value="38"
-      onclick="abbre_btn(this.value,this.innerHTML);">39 玛拉基书</button>
-  </div>
-  <div id="ch_nt" class="modal_abbre_btn" style="left: -100vw;">
-    <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 15px;">
-      <button class="primary-btn" style="width: 200px; background: #1976d2;"
-        onclick="document.getElementById('ch_nt').style.left='-100vw'; active_abbre('ot');">切换成旧约</button>
-    </div>
-    <button value="39" onclick="abbre_btn(this.value,this.innerHTML);">40 马太福音</button><button value="40"
-      onclick="abbre_btn(this.value,this.innerHTML);">41 马可福音</button><button value="41"
-      onclick="abbre_btn(this.value,this.innerHTML);">42 路加福音</button><button value="42"
-      onclick="abbre_btn(this.value,this.innerHTML);">43 约翰福音</button><button value="43"
-      onclick="abbre_btn(this.value,this.innerHTML);">44 使徒行传</button><button value="44"
-      onclick="abbre_btn(this.value,this.innerHTML);">45 罗马书</button><button value="45"
-      onclick="abbre_btn(this.value,this.innerHTML);">46 哥林多前书</button><button value="46"
-      onclick="abbre_btn(this.value,this.innerHTML);">47 哥林多后书</button><button value="47"
-      onclick="abbre_btn(this.value,this.innerHTML);">48 加拉太书</button><button value="48"
-      onclick="abbre_btn(this.value,this.innerHTML);">49 以弗所书</button><button value="49"
-      onclick="abbre_btn(this.value,this.innerHTML);">50 腓立比书</button><button value="50"
-      onclick="abbre_btn(this.value,this.innerHTML);">51 歌罗西书</button><button value="51"
-      onclick="abbre_btn(this.value,this.innerHTML);">52 帖撒罗尼迦前书</button><button value="52"
-      onclick="abbre_btn(this.value,this.innerHTML);">53 帖撒罗尼迦后书</button><button value="53"
-      onclick="abbre_btn(this.value,this.innerHTML);">54 提摩太前书</button><button value="54"
-      onclick="abbre_btn(this.value,this.innerHTML);">55 提摩太后书</button><button value="55"
-      onclick="abbre_btn(this.value,this.innerHTML);">56 提多书</button><button value="56"
-      onclick="abbre_btn(this.value,this.innerHTML);">57 腓利门书</button><button value="57"
-      onclick="abbre_btn(this.value,this.innerHTML);">58 希伯来书</button><button value="58"
-      onclick="abbre_btn(this.value,this.innerHTML);">59 雅各书</button><button value="59"
-      onclick="abbre_btn(this.value,this.innerHTML);">60 彼得前书</button><button value="60"
-      onclick="abbre_btn(this.value,this.innerHTML);">61 彼得后书</button><button value="61"
-      onclick="abbre_btn(this.value,this.innerHTML);">62 约翰一书</button><button value="62"
-      onclick="abbre_btn(this.value,this.innerHTML);">63 约翰二书</button><button value="63"
-      onclick="abbre_btn(this.value,this.innerHTML);">64 约翰三书</button><button value="64"
-      onclick="abbre_btn(this.value,this.innerHTML);">65 犹大书</button><button value="65"
-      onclick="abbre_btn(this.value,this.innerHTML);">66 启示录</button>
+  <div id="bookPickerModal" class="book-picker-modal" hidden>
+    <section class="book-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="bookPickerTitle">
+      <header class="book-picker-header">
+        <div>
+          <span id="bookPickerLanguage" class="book-picker-language">日本語聖書</span>
+          <h2 id="bookPickerTitle">書巻を選択</h2>
+          <p id="bookPickerGuide">旧約・新約を切り替えて、開く書巻を選んでください。</p>
+        </div>
+        <button id="closeBookPickerBtn" class="book-picker-close" type="button" aria-label="書巻選択を閉じる">&times;</button>
+      </header>
+      <div class="book-picker-testaments" role="tablist" aria-label="旧約と新約">
+        <button id="bookPickerOtTab" class="book-picker-testament-tab" data-testament="ot" type="button" role="tab"
+          aria-selected="true" aria-controls="bookPickerGrid">
+          <strong>旧約</strong>
+          <small>39巻</small>
+        </button>
+        <button id="bookPickerNtTab" class="book-picker-testament-tab" data-testament="nt" type="button" role="tab"
+          aria-selected="false" aria-controls="bookPickerGrid">
+          <strong>新約</strong>
+          <small>27巻</small>
+        </button>
+      </div>
+      <div id="bookPickerGrid" class="book-picker-grid" role="tabpanel"></div>
+    </section>
   </div>
 
   <div id="loading-overlay">
