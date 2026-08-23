@@ -2927,7 +2927,7 @@ function showLyricsVerse(index) {
   const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
   const verseTotal = currentLyricsSections.length;
   const versePosition = index + 1;
-  const verseMeta = escapeHTML(`${verseLabel}  (${versePosition} / ${verseTotal})`);
+  const verseMeta = escapeHTML(`(${versePosition}/${verseTotal})`);
 
   const doc = display_win.document;
   const outputDiv = doc.getElementById("h_output");
