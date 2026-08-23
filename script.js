@@ -953,6 +953,36 @@ function initCustomChoiceControls() {
   window.addEventListener("scroll", handleChoiceMenuScroll, true);
 }
 
+function suppressNativeTextSuggestions(root = document) {
+  const textControls = [];
+  if (root instanceof Element && root.matches('input[type="text"], input[type="search"], textarea')) {
+    textControls.push(root);
+  }
+  if (typeof root.querySelectorAll === "function") {
+    textControls.push(...root.querySelectorAll('input[type="text"], input[type="search"], textarea'));
+  }
+
+  textControls.forEach((control) => {
+    control.setAttribute("autocomplete", "off");
+    control.setAttribute("autocorrect", "off");
+    control.setAttribute("autocapitalize", "none");
+    control.setAttribute("spellcheck", "false");
+    control.setAttribute("data-lpignore", "true");
+    control.setAttribute("data-1p-ignore", "true");
+  });
+}
+
+function initNativeSuggestionSuppression() {
+  suppressNativeTextSuggestions();
+  new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof Element) suppressNativeTextSuggestions(node);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
 function normalizeHymnRecommendationGroups(groups) {
   if (!Array.isArray(groups)) return [];
 
@@ -2873,6 +2903,7 @@ function fontsizecommit() {
 // ==========================================
 
 function setupEventListeners() {
+  initNativeSuggestionSuppression();
   initCustomChoiceControls();
   // DOM Elements Assignment
   bibleSearchModal = document.getElementById('bibleSearchModal');
