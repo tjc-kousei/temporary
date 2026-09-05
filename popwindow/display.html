@@ -389,10 +389,13 @@
             padding-right: 2vw;
             justify-content: flex-start;
         }
+        #projection-blackout { display: none; position: fixed; inset: 0; background: #000; z-index: 2147483647; }
+        body.is-blacked-out #projection-blackout { display: block; }
     </style>
 </head>
 
 <body class="title-mode">
+    <div id="projection-blackout" aria-hidden="true"></div>
 
     <img id="common-logo" src="../tjc-char.png" alt="Logo"
         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMzMzIj5MT0dPPC90ZXh0Pjwvc3ZnPg=='" />

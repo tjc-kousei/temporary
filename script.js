@@ -116,9 +116,8 @@ function updateBibleSetting(key, value) {
   bibleDisplaySettings[key] = parseFloat(value);
   saveBibleSettings();
   if (display_win && !display_win.closed && currentMode === "bible") {
-    // DOMを再生成して確実にMutationObserverを発火させ、
-    // また表示文字自体も最新状態にアップデートする
-    showBible();
+    // 文字サイズ変更で未確定の入力を投影しない。
+    renderProjectedBible();
   }
 }
 
@@ -548,7 +547,7 @@ function showTranslationCandidates(candidates, targetInputId) {
 function selectTranslation(text, targetInputId) {
   document.getElementById(targetInputId).value = text;
   document.getElementById('translationResultModal').style.display = 'none';
-  commit(); // プレビュー反映
+  updateInfoDraft(); // 翻訳は入力欄に適用し、投影は明示的に確定する
   showToast('翻訳を適用しました', 'success');
 }
 
@@ -1128,7 +1127,7 @@ function applyRecommendedHymn(song) {
 
   prehymnInput.value = normalizedSong;
   recievehymn(normalizedSong);
-  showToast(`讃美歌 ${normalizedSong} を表示しました`, "success");
+  showToast(`讃美歌 ${normalizedSong} を選択しました`, "info");
 }
 
 async function loadInitialData() {
@@ -1320,7 +1319,7 @@ function syncSelectToInput(inputId, selectElem) {
   const input = document.getElementById(inputId);
   if (selectElem.value) {
     input.value = selectElem.value;
-    commit(); // 値が変わったのでタイトル画面にも反映
+    updateInfoDraft();
     selectElem.selectedIndex = 0; // 反映後に自動的にデフォルトに戻す
   }
 }
@@ -1941,14 +1940,13 @@ function renderLyricsControls(sections) {
   });
 }
 
+let lyricsRequestId = 0;
 async function recievehymn(value) {
+  const requestId = ++lyricsRequestId;
   const lyricsArea = document.getElementById("lyrics_area");
   if (!lyricsArea) return;
 
   lyricsArea.innerHTML = "";
-  currentTitleInfo = null;
-  currentLyricsSections = [];
-  clearDisplayedHymn();
 
   const hymnNumber = getNormalizedHymnNumber(value);
   if (!hymnNumber) {
@@ -1956,8 +1954,8 @@ async function recievehymn(value) {
     return;
   }
 
-  currentTitleInfo = getHymnTitleInfo(hymnNumber);
-  if (!currentTitleInfo) {
+  const titleInfo = getHymnTitleInfo(hymnNumber);
+  if (!titleInfo) {
     setLyricsMessage(`讃美歌 ${hymnNumber} は一覧に見つかりません。`, "warning");
     return;
   }
@@ -1966,6 +1964,9 @@ async function recievehymn(value) {
 
   try {
     const lyricsData = await loadLyricsData();
+    if (requestId !== lyricsRequestId) return;
+    currentTitleInfo = titleInfo;
+    currentLyricsSections = [];
     const text = lyricsData ? lyricsData[`${hymnNumber}.txt`] : null;
 
     if (text) {
@@ -1986,6 +1987,7 @@ async function recievehymn(value) {
       console.warn("歌詞データが見つかりませんでした:", hymnNumber);
     }
   } catch (e) {
+    if (requestId !== lyricsRequestId) return;
     setLyricsMessage("歌詞データの取得に失敗しました。通信状況を確認してください。", "error");
     console.warn("歌詞の取得に失敗しました:", hymnNumber, e);
   }
@@ -2081,15 +2083,21 @@ function memobible(num) {
   abbre = num;
   document.getElementById("syou").value = "";
   document.getElementById("setu").value = "";
+  syou = "";
+  setu = "";
+  setBibleDraftStatus("章・節を入力し、Enterで投影します");
   countVersesInChapter();
 }
 function memosyou(num) {
   syou = num;
+  setu = "";
+  setBibleDraftStatus("入力中：Enterで投影します");
   document.getElementById("setu").value = "";
   countVersesInChapter();
 }
 function memosetu(num) {
   setu = num;
+  setBibleDraftStatus("入力中：Enterで投影します");
 }
 
 function bindDisplayFullscreenEvents() {
@@ -2103,19 +2111,20 @@ function bindDisplayFullscreenEvents() {
 
 function openwindow() {
   if (display_win && !display_win.closed) {
-    display_win.focus();
+    return;
   } else {
     display_win = window.open(
-      "./popwindow/display.html",
+      "./popwindow/display.html?v=5",
       "display",
       "width=1500,height=800,scrollbars=yes,resizable=yes"
     );
     if (display_win) {
-      display_win.addEventListener("load", bindDisplayFullscreenEvents);
+      display_win.addEventListener("load", () => { bindDisplayFullscreenEvents(); bindProjectionPreview(); });
     }
   }
   bindDisplayFullscreenEvents();
   updateFullscreenButton();
+  if (!display_win) showToast("投影画面を開けませんでした。ブラウザでポップアップを許可して、表示ボタンを押してください", "error");
 }
 
 function openServicerManager() {
@@ -2177,6 +2186,7 @@ function updateActiveButton(activeBtn) {
 }
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
+  toast.setAttribute("role", type === "error" ? "alert" : "status");
   toast.innerText = message;
   toast.style.position = 'fixed';
   toast.style.bottom = '20px';
@@ -2214,7 +2224,7 @@ function updateFullscreenButton() {
   if (!button) return;
 
   const isFullscreen = !!getDisplayFullscreenElement();
-  button.textContent = isFullscreen ? "全画面解除" : "全画面表示";
+  button.textContent = isFullscreen ? "投影画面の全画面を解除" : "投影画面を全画面に";
   button.classList.toggle("is-active", isFullscreen);
   button.setAttribute("aria-pressed", String(isFullscreen));
 }
@@ -2321,6 +2331,7 @@ function setBibleSearchMode(mode, { clearInput = true, focus = true } = {}) {
 }
 
 function openBibleSearchModal() {
+  searchReturnFocus = document.activeElement;
   if (bibleSearchModal) bibleSearchModal.style.display = "block";
   setBibleSearchMode('text', { clearInput: true, focus: false });
   setTimeout(() => searchInput?.focus(), 0);
@@ -2330,6 +2341,7 @@ function closeBibleSearchModal() {
   bibleAiSearchRequestId += 1;
   setBibleSearchBusy(false);
   if (bibleSearchModal) bibleSearchModal.style.display = "none";
+  searchReturnFocus?.focus();
 }
 
 function performSearch() {
@@ -2392,7 +2404,7 @@ function createBibleResultItem(rowArray, { query = '', reason = '', aiCandidate 
   const applyButton = document.createElement('button');
   applyButton.type = 'button';
   applyButton.className = 'apply-verse-btn';
-  applyButton.textContent = '➜ 反映';
+  applyButton.textContent = 'この聖句を投影';
   applyButton.addEventListener('click', () => applySearchResult(jpReference));
   resultItem.appendChild(applyButton);
   return resultItem;
@@ -2680,16 +2692,18 @@ function display_history(element, index) {
   setu = arr[2];
   const text = element[index].innerHTML;
   abbre_btn(abbre, text);
+  syou = arr[1];
+  setu = arr[2];
   document.getElementById("syou").value = syou;
   document.getElementById("setu").value = setu;
-  showBible();
+  if (showBible()) checkwindow("bible");
   element[0].selected = true;
   countVersesInChapter();
 }
 
 function append_history() {
-  if (abbre === "" || syou === "" || setu === "") {
-    showToast('聖書箇所を選択してください', 'error');
+  if (!findBibleRow(abbre, syou, setu)) {
+    showToast('存在する聖書箇所を選択してください', 'error');
     return;
   }
   const history = document.getElementById("history");
@@ -2704,18 +2718,18 @@ function append_history() {
     }
   }
   history[0].after(option);
-  showToast('📌 聖句を記憶しました', 'success');
+  showToast('聖句を登録しました', 'success');
 }
 
 function clear_history() {
   const history = document.getElementById("history");
   if (history.length <= 1) {
-    showToast('消去する履歴がありません', 'error');
+    showToast('消去する登録がありません', 'error');
     return;
   }
-  if (!confirm('履歴をすべて消去しますか？')) return;
-  history.innerHTML = `<option value="">📖 履歴</option>`;
-  showToast('🗑️ 履歴を消去しました', 'info');
+  if (!confirm('登録した聖句をすべて消去しますか？')) return;
+  history.innerHTML = `<option value="">登録した聖句</option>`;
+  showToast('登録した聖句をすべて消去しました', 'info');
 }
 
 // ==========================================
@@ -2740,27 +2754,21 @@ function switchScreen(mode) {
 }
 
 function checkwindow(mode) {
-  let targetMode = "bible";
-  if (mode === "bible_win" || mode === "bible") targetMode = "bible";
-  if (mode === "title_win" || mode === "title") targetMode = "title";
-  if (mode === "hymn_win" || mode === "hymn") targetMode = "hymn";
-  if (mode === "capture") targetMode = "capture";
-
-  if (display_win && !display_win.closed) {
+  const targetMode = ({ title_win: 'title', hymn_win: 'hymn', bible_win: 'bible' })[mode] || mode;
+  if (!['title', 'hymn', 'bible', 'capture'].includes(targetMode)) return;
+  openwindow();
+  if (!display_win) return;
+  const show = () => {
     switchScreen(targetMode);
-    if (targetMode === "bible") showBible();
-    if (targetMode === "title") commit();
-    display_win.focus();
-  } else {
-    openwindow();
-    display_win.onload = () => {
-      applyLogoSettings();
-      switchScreen(targetMode);
-      if (targetMode === "bible") showBible();
-      if (targetMode === "title") commit();
-    };
-    display_win.focus();
-  }
+    applyLogoSettings();
+    commit();
+    renderProjectedBible();
+    if (targetMode === 'hymn' && currentTitleInfo && !display_win.document.getElementById('h_output')?.innerHTML) showTitleInPopup();
+    bindProjectionPreview();
+    refreshProjectionConsole();
+  };
+  if (display_win.document.getElementById('title-view')) show();
+  else display_win.addEventListener('load', show, { once: true });
 }
 
 // ==========================================
@@ -2819,6 +2827,7 @@ function updateCaptureButtons() {
     if (btnReselect) btnReselect.disabled = true;
     if (btnStop) btnStop.disabled = true;
   }
+  refreshProjectionConsole();
 }
 
 let captureStream = null;
@@ -2869,29 +2878,29 @@ async function initializeCapture() {
 }
 
 function showBible() {
-  if (!display_win || display_win.closed) return;
-  let where = Abbre[abbre] + syou + ":" + setu;
-  const outDiv = display_win.document.getElementById("b_out");
-  for (let n = 1; n < bible.length; n++) {
-    if (bible[n][3] == where) {
-      outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}">
-        <div id="jp">
-          <div class="bible_ref_row"><b class="target_ref_jp">${bible[n][3]}</b> / ${kr[abbre]}${syou}:${setu}</div>
-          <div class="target_jp bible_body_row">${bible[n][4]}</div>
-        </div>
-        <div id="ch">
-          <div class="bible_ref_row"><b class="target_ref_ch">${bible[n][1]}</b> / ${en[abbre]}${syou}:${setu}</div>
-          <div class="target_ch bible_body_row">${bible[n][2]}</div>
-        </div>
-      </div>`;
-      break;
-    } else {
-      outDiv.innerHTML = "";
-    }
+  const row = findBibleRow(abbre, syou, setu);
+  if (!row) {
+    setBibleDraftStatus('存在する書巻・章・節を指定してください。投影内容は保持しています。');
+    return false;
   }
+  projectedBible = { book: String(abbre), chapter: String(Number(syou)), verse: String(Number(setu)) };
+  renderProjectedBible();
   commit();
+  setBibleDraftStatus(`${row[3]} を投影に反映しました`);
+  return true;
 }
 
+function renderProjectedBible() {
+  if (!display_win || display_win.closed || !projectedBible) return;
+  const outDiv = display_win.document.getElementById('b_out');
+  const { book, chapter, verse } = projectedBible;
+  const row = findBibleRow(book, chapter, verse);
+  if (!outDiv || !row) return;
+  outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}">
+    <div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b> / ${kr[book]}${chapter}:${verse}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>
+    <div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b> / ${en[book]}${chapter}:${verse}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>
+  </div>`;
+}
 function showTitleInPopup() {
   if (!display_win || display_win.closed || !currentTitleInfo) return;
   if (currentMode !== "hymn") switchScreen("hymn");
@@ -2982,14 +2991,14 @@ function adjustFontSizeForLyrics(container, element) {
   }
 }
 function commit() {
-  const worship = document.getElementById("worship").value;
-  const thema_ja = document.getElementById("jtitle").value;
-  const thema_ch = document.getElementById("ctitle").value;
+  const worship = escapeHTML(appliedInfo.worship);
+  const thema_ja = escapeHTML(appliedInfo.jtitle);
+  const thema_ch = escapeHTML(appliedInfo.ctitle);
 
-  const speech = document.getElementById("speecher").value != "" ? "説教者：" + document.getElementById("speecher").value : "";
-  const translator = document.getElementById("translator").value != "" ? "通訳者：" + document.getElementById("translator").value : "";
-  const hymn_1nd = document.getElementById("hymn").value;
-  const hymn_2nd = document.getElementById("hymn2nd").value;
+  const speech = escapeHTML(appliedInfo.speecher) != "" ? "説教者：" + escapeHTML(appliedInfo.speecher) : "";
+  const translator = escapeHTML(appliedInfo.translator) != "" ? "通訳者：" + escapeHTML(appliedInfo.translator) : "";
+  const hymn_1nd = escapeHTML(appliedInfo.hymn);
+  const hymn_2nd = escapeHTML(appliedInfo.hymn2nd);
   let hymnText = "";
   if (hymn_1nd !== "") {
     hymnText = "讃美歌：" + hymn_1nd;
@@ -3022,16 +3031,16 @@ function commit() {
   const tickerCh = doc.getElementById('ticker-ch');
 
   if (tickerJp && tickerCh) {
-    if (abbre !== "" && syou !== "" && setu !== "") {
-      tickerJp.innerText = `${FullNameJP[abbre]} ${syou}章 ${setu}節`;
-      tickerCh.innerText = `${FullNameCH[abbre]} ${syou}章 ${setu}節`;
+    if (projectedBible) {
+      const { book, chapter, verse } = projectedBible;
+      tickerJp.innerText = `${FullNameJP[book]} ${chapter}章 ${verse}節`;
+      tickerCh.innerText = `${FullNameCH[book]} ${chapter}章 ${verse}節`;
     } else {
       tickerJp.innerText = "";
       tickerCh.innerText = "";
     }
   }
 
-  saveCookies();
   fontsizecommit();
   applyColors();
   applyTicker();
@@ -3156,13 +3165,19 @@ if (searchInput) {
 
 window.addEventListener("click", function (event) {
   const modal = event.target.closest(".search-modal");
-  if (modal && event.target === modal) modal.style.display = "none";
+  if (modal && event.target === modal) {
+    if (modal === bibleSearchModal) closeBibleSearchModal();
+    else modal.style.display = "none";
+  }
 });
 window.addEventListener("keydown", function (event) {
   if (event.key === "Escape") {
     closeBookPicker();
     document.querySelectorAll(".search-modal").forEach(modal => {
-      if (modal.style.display === "block") modal.style.display = "none";
+      if (modal.style.display === "block") {
+        if (modal === bibleSearchModal) closeBibleSearchModal();
+        else modal.style.display = "none";
+      }
     });
   }
 });
@@ -3185,18 +3200,6 @@ window.addEventListener('load', () => {
   loadTickerSettings();
   initDB();
   setupEventListeners();
-  loadInitialData().then(() => {
-    // データ読み込み完了後に自動でウィンドウを開く
-    try {
-      openwindow();
-      if (display_win) {
-        display_win.onload = () => {
-          switchScreen('title');
-          commit();
-        };
-      }
-    } catch (e) {
-      console.warn('ポップアップがブロックされた可能性があります:', e);
-    }
-  });
+  initProjectionConsole();
+  loadInitialData();
 });
