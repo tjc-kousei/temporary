@@ -1,6 +1,5 @@
-// Drafts belong to the control screen; only confirmed state is sent to the projector.
+// Both layouts share the same live input and projection state.
 const infoFields = ['worship', 'jtitle', 'ctitle', 'speecher', 'translator', 'hymn', 'hymn2nd'];
-let appliedInfo = Object.fromEntries(infoFields.map(key => [key, '']));
 let projectedBible = null;
 let searchReturnFocus = null;
 let projectionObserver = null;
@@ -8,28 +7,46 @@ let observedProjectionDocument = null;
 let previewTimer = null;
 let previewMarkup = '';
 
-function readInfoDraft() {
+function readInfoInputs() {
   return Object.fromEntries(infoFields.map(key => [key, document.getElementById(key).value]));
 }
 
-function updateInfoDraft() {
+function updateLiveInfo() {
   saveCookies();
-  const dirty = infoFields.some(key => document.getElementById(key).value !== appliedInfo[key]);
-  document.getElementById('info-draft-status').textContent = dirty
-    ? '未反映の変更があります。入力内容はブラウザに保存済みです。'
-    : '入力内容は反映済みです。';
-  document.getElementById('info-draft-status').classList.toggle('is-pending', dirty);
+  commit();
   renderPlannedHymns();
 }
 
-function applyInfoDraft() {
-  appliedInfo = readInfoDraft();
-  try { localStorage.setItem('projectionAppliedInfo', JSON.stringify(appliedInfo)); }
-  catch { showToast('今回の投影には反映しますが、反映済み情報をブラウザに保存できませんでした', 'error'); }
-  updateInfoDraft();
-  if (display_win && !display_win.closed) commit();
-  else checkwindow('title');
+function getSavedUiStyle() {
+  try { return localStorage.getItem('meetingUiStyle') === 'modern' ? 'modern' : 'classic'; }
+  catch { return 'classic'; }
+}
+
+function setUiStyle(style, { persist = true } = {}) {
+  const selected = style === 'modern' ? 'modern' : 'classic';
+  document.documentElement.dataset.uiStyle = selected;
+  const select = document.getElementById('ui-style-select');
+  select.value = selected;
+  select.dispatchEvent(new Event('sync-selection'));
+  if (persist) {
+    try { localStorage.setItem('meetingUiStyle', selected); }
+    catch { /* The selection still works for this page session. */ }
+  }
+  const fullscreen = document.getElementById('fullscreen-toggle');
+  const slot = selected === 'classic' ? document.getElementById('classic-fullscreen-slot') : document.querySelector('.projection-toolbar-secondary');
+  slot.prepend(fullscreen);
+  updateLayoutLabels();
+  updateFullscreenButton();
   refreshProjectionConsole();
+}
+
+function updateLayoutLabels() {
+  const classic = document.documentElement.dataset.uiStyle === 'classic';
+  document.getElementById('register-verse-btn').textContent = classic ? '📌 記憶' : '聖句を登録';
+  document.getElementById('clear-verses-btn').textContent = classic ? '🗑️ 消去' : '登録を全消去';
+  const history = document.getElementById('history');
+  if (history.options[0]) history.options[0].textContent = classic ? '📖 履歴' : '登録した聖句';
+  history.dispatchEvent(new Event('sync-selection'));
 }
 
 function renderPlannedHymns() {
@@ -65,31 +82,25 @@ function findBibleRow(book, chapter, verse) {
   return bible.find(row => row && row[3] === `${Abbre[book]}${Number(chapter)}:${Number(verse)}`) || null;
 }
 
-function setBibleDraftStatus(message) {
-  const status = document.getElementById('bible-draft-status');
+function setBibleStatus(message) {
+  const status = document.getElementById('verse_count_display');
   if (status) status.textContent = message;
 }
 
-function clearBibleDraft() {
+function clearBibleInputs() {
   document.getElementById('syou').value = '';
   document.getElementById('setu').value = '';
   syou = '';
   setu = '';
   countVersesInChapter();
-  setBibleDraftStatus('入力をクリアしました。投影中の聖句は保持しています。');
-}
-
-function applyBibleDraft() {
-  syou = document.getElementById('syou').value;
-  setu = document.getElementById('setu').value;
-  if (showBible()) checkwindow('bible');
+  showBible();
 }
 
 function navigateBible(direction) {
-  const base = projectedBible || { book: abbre, chapter: syou, verse: setu };
+  const base = { book: abbre, chapter: syou, verse: setu };
   const nextVerse = Number(base.verse) + direction;
   if (!findBibleRow(base.book, base.chapter, nextVerse)) {
-    setBibleDraftStatus('この章には移動先の節がありません。投影内容は保持しています。');
+    setBibleStatus('この章には移動先の節がありません。投影内容は保持しています。');
     return;
   }
   abbre = base.book;
@@ -162,6 +173,12 @@ function refreshProjectionConsole() {
     observedProjectionDocument = null;
     return;
   }
+  if (document.documentElement.dataset.uiStyle !== 'modern') {
+    frame.hidden = true;
+    video.hidden = true;
+    video.srcObject = null;
+    return;
+  }
   const width = Math.max(1, display_win.innerWidth);
   const height = Math.max(1, display_win.innerHeight);
   preview.style.aspectRatio = `${width} / ${height}`;
@@ -208,15 +225,10 @@ function refreshProjectionConsole() {
 }
 
 function initProjectionConsole() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('projectionAppliedInfo') || '{}');
-    infoFields.forEach(key => { if (typeof saved?.[key] === 'string') appliedInfo[key] = saved[key]; });
-  } catch { /* Old or damaged storage does not prevent using the console. */ }
   document.getElementById('projection-preview-frame').addEventListener('load', () => { previewMarkup = ''; refreshProjectionConsole(); });
-  updateInfoDraft();
-  ['syou', 'setu'].forEach(id => document.getElementById(id).addEventListener('keydown', event => {
-    if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); applyBibleDraft(); }
-  }));
+  setUiStyle(getSavedUiStyle(), { persist: false });
+  updateLiveInfo();
+  loadLastUpdated();
   new ResizeObserver(refreshProjectionConsole).observe(document.getElementById('projection-preview'));
   // Window closure has no reliable cross-browser notification; poll only the connection, not preview content.
   setInterval(() => {
@@ -237,4 +249,30 @@ function initProjectionConsole() {
     }
   });
   refreshProjectionConsole();
+}
+
+// GitHub Pages exposes the published HTML timestamp in Last-Modified.
+// Do not substitute the visitor's current date when metadata is unavailable.
+function showLastUpdated(value) {
+  const timestamp = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(timestamp)) return false;
+  const date = new Date(timestamp);
+  const time = document.getElementById('last-updated-time');
+  time.dateTime = date.toISOString();
+  time.textContent = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(date);
+  document.getElementById('last-updated').hidden = false;
+  document.getElementById('last-updated').title = '公開ページの更新日（日本時間）';
+  return true;
+}
+
+async function loadLastUpdated() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache', signal: controller.signal });
+    if (response.ok) showLastUpdated(response.headers.get('Last-Modified'));
+  } catch { /* Offline or missing metadata: leave the date hidden. */ }
+  finally { clearTimeout(timer); }
 }

@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-ui-style="classic">
 
 <head>
   <meta charset="UTF-8">
+  <script>
+    try {
+      document.documentElement.dataset.uiStyle = localStorage.getItem('meetingUiStyle') === 'modern' ? 'modern' : 'classic';
+    } catch { /* Storage unavailable: use the classic layout. */ }
+  </script>
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>集会管理</title>
@@ -12,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#00838f">
   <link rel="apple-touch-icon" href="./tjc.png">
-  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=7">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
   </style>
@@ -27,42 +32,14 @@
   <datalist id="worshiplist"></datalist>
   <datalist id="prehymnservicerlist"></datalist>
 
+  <header class="layout-preferences">
+    <label for="ui-style-select">画面スタイル</label>
+    <select id="ui-style-select" onchange="setUiStyle(this.value);">
+      <option value="classic">従来スタイル</option>
+      <option value="modern">新スタイル</option>
+    </select>
+  </header>
   <main class="dashboard-container">
-    <section class="card control-card" aria-label="投影操作">
-      <div class="projection-toolbar">
-        <div class="projection-status"><span class="status-dot" aria-hidden="true"></span><strong id="projection-status" role="status">投影画面：未接続</strong></div>
-        <div class="display-buttons" aria-label="投影を切り替え">
-          <button id="btn-mode-title" onclick="checkwindow('title');" class="display-btn" aria-pressed="false">基本情報 表示</button>
-          <button id="btn-mode-hymn" onclick="checkwindow('hymn');" class="display-btn" aria-pressed="false">讃美歌 表示</button>
-          <button id="btn-mode-bible" onclick="checkwindow('bible');" class="display-btn" aria-pressed="false">聖書 表示</button>
-          <button id="btn-mode-capture" onclick="startCapture();" class="display-btn" aria-pressed="false">画面キャプチャ 表示</button>
-        </div>
-        <button id="blackout-toggle" class="blackout-btn" type="button" onclick="toggleBlackout();" aria-pressed="false" disabled>黒画面にする</button>
-      </div>
-      <div class="projection-toolbar-secondary">
-        <button type="button" id="fullscreen-toggle" class="fullscreen-toggle">投影画面を全画面に</button>
-        <button type="button" class="secondary-btn" onclick="openDisplaySettings();">投影画面の設定</button>
-        <div class="capture-secondary">
-          <span>キャプチャ</span>
-          <button id="btn-capture-reselect" onclick="reselectCapture();" class="secondary-btn" disabled>対象を変更</button>
-          <button id="btn-capture-stop" onclick="stopCapture();" class="secondary-btn" disabled>切断</button>
-        </div>
-      </div>
-    </section>
-    <aside class="card projection-preview-card" aria-label="現在の投影内容">
-      <div class="card-header"><h3>現在投影中</h3><span id="preview-mode">未接続</span></div>
-      <div class="card-content">
-        <div id="projection-preview" class="projection-preview">
-          <iframe id="projection-preview-frame" title="投影画面のプレビュー" sandbox="allow-same-origin" tabindex="-1" hidden></iframe>
-          <video id="projection-preview-video" autoplay muted playsinline hidden aria-label="キャプチャのプレビュー"></video>
-          <p id="preview-empty">上部の表示ボタンから<br>投影画面を開いてください</p>
-        </div>
-        <p id="projection-description" class="projection-description">投影先の内容をここで確認できます。</p>
-        <p class="preview-note">投影画面と同じ比率で縮小表示します。</p>
-      </div>
-    </aside>
-
-
     <section class="card info-card">
       <div class="card-header">
         <h3>基本情報</h3>
@@ -92,13 +69,13 @@
       <div class="card-content form-grid">
         <div class="form-group full-width">
           <label for="worship">礼拝種類</label>
-          <input type="search" id="worship" list="worshiplist" oninput="updateInfoDraft();" autocomplete="off"
+          <input type="search" id="worship" list="worshiplist" oninput="updateLiveInfo();" autocomplete="off"
             placeholder="選択または入力">
         </div>
         <div class="form-group full-width">
           <label for="jtitle">日本語タイトル</label>
           <div class="inline-input-action">
-            <input type="search" id="jtitle" list="jtitlelist" oninput="updateInfoDraft();" autocomplete="off">
+            <input type="search" id="jtitle" list="jtitlelist" oninput="updateLiveInfo();" autocomplete="off">
             <button class="translate-btn" onclick="translateTitle('j2c')" title="中国語へ翻訳">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
@@ -112,7 +89,7 @@
         <div class="form-group full-width">
           <label for="ctitle">中国語タイトル</label>
           <div class="inline-input-action">
-            <input type="search" id="ctitle" list="ctitlelist" oninput="updateInfoDraft();" autocomplete="off">
+            <input type="search" id="ctitle" list="ctitlelist" oninput="updateLiveInfo();" autocomplete="off">
             <button class="translate-btn" onclick="translateTitle('c2j')" title="日本語へ翻訳">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;">
@@ -131,7 +108,7 @@
           <div style="flex:1;">
             <label for="speecher">説教者</label>
             <div class="combobox-wrapper">
-              <input type="text" id="speecher" oninput="updateInfoDraft();" placeholder="名前を入力..."
+              <input type="text" id="speecher" oninput="updateLiveInfo();" placeholder="名前を入力..."
                 autocomplete="off">
               <select id="sekkyouSelect" onchange="syncSelectToInput('speecher', this);" tabindex="-1">
                 <option value="">▼</option>
@@ -141,7 +118,7 @@
           <div style="flex:1;">
             <label for="translator">通訳者</label>
             <div class="combobox-wrapper">
-              <input type="text" id="translator" oninput="updateInfoDraft();" placeholder="名前を入力..."
+              <input type="text" id="translator" oninput="updateLiveInfo();" placeholder="名前を入力..."
                 autocomplete="off">
               <select id="tuyakuSelect" onchange="syncSelectToInput('translator', this);" tabindex="-1">
                 <option value="">▼</option>
@@ -153,16 +130,48 @@
           <label for="hymn">礼拝讃美歌</label>
           <div class="input-row">
             <input type="text" id="hymn" list="hymnlist"
-              oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); updateInfoDraft();" maxlength="4" placeholder="1曲目">
+              oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); updateLiveInfo();" maxlength="4" placeholder="1曲目">
             <span>/</span>
             <input type="text" id="hymn2nd" aria-label="礼拝讃美歌 2曲目" list="hymnlist"
-              oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); updateInfoDraft();" maxlength="4" placeholder="2曲目">
+              oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); updateLiveInfo();" maxlength="4" placeholder="2曲目">
           </div>
         </div>
-        <div class="info-apply-row">
-          <span id="info-draft-status" role="status">入力内容は投影に反映するまで公開されません</span>
-          <button type="button" id="apply-info-btn" class="primary-btn" onclick="applyInfoDraft();">投影に反映</button>
+      </div>
+    </section>
+
+    <section class="card hymn-card">
+      <div class="card-header">
+        <h3>讃美歌</h3>
+        <div class="header-actions">
+          <button onclick="reloadLyricsData();" class="icon-btn" title="最新の歌詞データを再取得" aria-label="最新の歌詞データを再取得">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
         </div>
+      </div>
+      <div class="card-content">
+        <div class="form-group">
+          <label class="hymn-number-label" for="prehymn">讃美歌番号</label>
+          <input type="search" id="prehymn" list="hymnlist"
+            oninput="this.value = (this.value).replace(/[^(0-9)(甲乙)]/g, ''); recievehymn(this.value);"
+            maxlength="4" placeholder="番号を入力">
+        </div>
+        <div id="planned-hymns" class="planned-hymns" aria-label="礼拝讃美歌から選択"></div>
+        <div id="lyrics_area" class="lyrics-actions"></div>
+        <div id="hymn-recommendation-panel" class="hymn-recommendation-panel">
+          <div class="hymn-recommendation-head">
+            <span class="hymn-recommendation-title">候補ラベル</span>
+            <span class="hymn-recommendation-note">ラベルを押すと候補曲を表示</span>
+          </div>
+          <div id="hymn-recommendation-tags" class="hymn-recommendation-tags"></div>
+          <div id="hymn-recommendation-songs" class="hymn-recommendation-songs"></div>
+        </div>
+        <p style="margin-top: 15px; font-size: 0.8rem; color: #666; text-align: right;">
+          讃美歌の歌詞に間違いがあれば川口教会 林までご連絡ください
+        </p>
       </div>
     </section>
 
@@ -200,7 +209,7 @@
                 oninput="this.value=(this.value).replace(/[^(0-9)(甲乙)]/g, ''); memosetu(this.value);"
                 placeholder="節">
               <button class="nav-btn danger"
-                onclick="clearBibleDraft();"
+                onclick="clearBibleInputs();"
                 style="width: 45px; height: 45px; margin-left:8px;" title="章・節の入力をクリア" aria-label="章・節の入力をクリア">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3.5"
                   stroke="currentColor" style="width: 26px; height: 26px;">
@@ -227,13 +236,9 @@
           </div>
         </div>
 
-        <div class="bible-apply-row">
-          <button type="button" class="primary-btn" onclick="applyBibleDraft();">聖句を投影（Enter）</button>
-          <p id="bible-draft-status" role="status">書巻・章・節を選び、Enterで投影します</p>
-        </div>
         <div class="memory-tools">
-          <button onclick="append_history();" class="memory-btn save-btn">聖句を登録</button>
-          <button onclick="clear_history();" class="memory-btn clear-btn">登録を全消去</button>
+          <button onclick="append_history();" id="register-verse-btn" class="memory-btn save-btn">聖句を登録</button>
+          <button onclick="clear_history();" id="clear-verses-btn" class="memory-btn clear-btn">登録を全消去</button>
           <select name="history" id="history" class="history-select"
             onchange="display_history(this,this.selectedIndex);">
             <option value="">登録した聖句</option>
@@ -247,43 +252,42 @@
       </div>
     </section>
 
-    <section class="card hymn-card">
-      <div class="card-header">
-        <h3>讃美歌</h3>
-        <div class="header-actions">
-          <button onclick="reloadLyricsData();" class="icon-btn" title="最新の歌詞データを再取得" aria-label="最新の歌詞データを再取得">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </button>
+    <section class="card control-card" aria-label="投影操作">
+      <div class="card-header classic-only"><h3>表示制御</h3><div id="classic-fullscreen-slot" class="header-actions"></div></div>
+      <div class="projection-toolbar">
+        <div class="projection-status"><span class="status-dot" aria-hidden="true"></span><strong id="projection-status" role="status">投影画面：未接続</strong></div>
+        <div class="display-buttons" aria-label="投影を切り替え">
+          <button id="btn-mode-title" onclick="checkwindow('title');" class="display-btn" aria-pressed="false">基本情報 表示</button>
+          <button id="btn-mode-hymn" onclick="checkwindow('hymn');" class="display-btn" aria-pressed="false">讃美歌 表示</button>
+          <button id="btn-mode-bible" onclick="checkwindow('bible');" class="display-btn" aria-pressed="false">聖書 表示</button>
+          <button id="btn-mode-capture" hidden disabled onclick="startCapture();" class="display-btn" aria-pressed="false">画面キャプチャ 表示</button>
         </div>
+        <button id="blackout-toggle" class="blackout-btn" type="button" onclick="toggleBlackout();" aria-pressed="false" disabled>黒画面にする</button>
       </div>
-      <div class="card-content">
-        <div class="form-group">
-          <label for="prehymn">讃美歌番号</label>
-          <input type="search" id="prehymn" list="hymnlist"
-            oninput="this.value = (this.value).replace(/[^(0-9)(甲乙)]/g, '');"
-            onkeydown="if(event.key === 'Enter' &amp;&amp; !event.isComposing) { event.preventDefault(); recievehymn(this.value); }"
-            maxlength="4" placeholder="番号を入力してEnter">
-          <button class="secondary-btn" type="button" onclick="recievehymn(document.getElementById('prehymn').value);">曲を選択</button>
+      <div class="projection-toolbar-secondary">
+        <div class="classic-only classic-settings-copy"><strong>別窓表示設定</strong><span>文字サイズ、ロゴ、色を調整</span></div>
+        <button type="button" id="fullscreen-toggle" class="fullscreen-toggle">投影画面を全画面に</button>
+        <button type="button" class="secondary-btn" onclick="openDisplaySettings();">投影画面の設定</button>
+        <div class="capture-secondary" hidden>
+          <span>キャプチャ</span>
+          <button id="btn-capture-reselect" onclick="reselectCapture();" class="secondary-btn" disabled>対象を変更</button>
+          <button id="btn-capture-stop" onclick="stopCapture();" class="secondary-btn" disabled>切断</button>
         </div>
-        <div id="planned-hymns" class="planned-hymns" aria-label="礼拝讃美歌から選択"></div>
-        <div id="lyrics_area" class="lyrics-actions"></div>
-        <div id="hymn-recommendation-panel" class="hymn-recommendation-panel">
-          <div class="hymn-recommendation-head">
-            <span class="hymn-recommendation-title">候補ラベル</span>
-            <span class="hymn-recommendation-note">ラベルを押すと候補曲を表示</span>
-          </div>
-          <div id="hymn-recommendation-tags" class="hymn-recommendation-tags"></div>
-          <div id="hymn-recommendation-songs" class="hymn-recommendation-songs"></div>
-        </div>
-        <p style="margin-top: 15px; font-size: 0.8rem; color: #666; text-align: right;">
-          讃美歌の歌詞に間違いがあれば川口教会 林までご連絡ください
-        </p>
       </div>
     </section>
+    <aside class="card projection-preview-card" aria-label="現在の投影内容">
+      <div class="card-header"><h3>現在投影中</h3><span id="preview-mode">未接続</span></div>
+      <div class="card-content">
+        <div id="projection-preview" class="projection-preview">
+          <iframe id="projection-preview-frame" title="投影画面のプレビュー" sandbox="allow-same-origin" tabindex="-1" hidden></iframe>
+          <video id="projection-preview-video" autoplay muted playsinline hidden aria-label="キャプチャのプレビュー"></video>
+          <p id="preview-empty">上部の表示ボタンから<br>投影画面を開いてください</p>
+        </div>
+        <p id="projection-description" class="projection-description">投影先の内容をここで確認できます。</p>
+        <p class="preview-note">投影画面と同じ比率で縮小表示します。</p>
+      </div>
+    </aside>
+
 
     <section class="card memo-card full-span">
       <textarea cols="30" rows="3" placeholder="説教テーマなどのメモにお使いください"
@@ -291,6 +295,9 @@
     </section>
 
   </main>
+  <footer class="page-footer">
+    <span id="last-updated" hidden>最終更新：<time id="last-updated-time"></time></span>
+  </footer>
 
   <div id="bibleSearchModal" class="search-modal">
     <div class="search-modal-content bible-search-modal-content" role="dialog" aria-modal="true" aria-labelledby="bible-search-title">
@@ -616,8 +623,8 @@
   </div>
 
   <script src="./worship.js"></script>
-  <script src="./script.js?v=5"></script>
-  <script src="./projection-console.js?v=5"></script>
+  <script src="./script.js?v=7"></script>
+  <script src="./projection-console.js?v=7"></script>
   <!-- 更新通知バナー -->
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>

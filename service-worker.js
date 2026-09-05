@@ -1,19 +1,19 @@
 // Service Worker - 集会管理アプリ
 // バージョンを変更するとキャッシュが更新される
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = `meeting-app-${CACHE_VERSION}`;
 
 // 起動時に必ずキャッシュするコアファイル
 const CORE_ASSETS = [
   './',
   './index.html',
-  './script.js?v=5',
-  './projection-console.js?v=5',
-  './style.css?v=5',
+  './script.js?v=7',
+  './projection-console.js?v=7',
+  './style.css?v=7',
   './worship.js',
   './tjc.png',
   './manifest.json',
-  './popwindow/display.html?v=5',
+  './popwindow/display.html?v=7',
   './Data.csv',
   './hymn.csv'
 ];
@@ -52,6 +52,8 @@ self.addEventListener('activate', (event) => {
 
 // fetch: ネットワーク優先、失敗時はキャッシュから返す
 self.addEventListener('fetch', (event) => {
+  // HEAD metadata requests must reach the server; Cache.put only supports GET.
+  if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
   // 外部リクエスト（GAS API、Google Fontsなど）はネットワーク優先
