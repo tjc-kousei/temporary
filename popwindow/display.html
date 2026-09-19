@@ -170,6 +170,8 @@
             width: 48%;
         }
 
+        .bible_ref_row { white-space: nowrap; overflow-wrap: normal; }
+
         #jp {
             font-family: 'Noto Serif JP', serif;
         }
@@ -472,17 +474,25 @@
                 refScale = parseFloat(content.getAttribute('data-bible-ref-scale'));
             }
 
-            // 聖書箇所のフォントサイズ分割適用
+            const refMax = Number(content.getAttribute('data-bible-ref-max')) || 80;
             const refRows = content.querySelectorAll('.bible_ref_row');
-            refRows.forEach(row => {
-               row.style.fontSize = refScale + 'em';
-            });
-
-            let min = 10, max = customMax, optimal = min;
-            content.style.fontSize = max + 'px';
+            function fitReferences(bodySize) {
+                refRows.forEach(row => {
+                    let low = 1, high = Math.max(1, Math.floor(Math.min(refMax, bodySize * refScale))), best = 1;
+                    while (low <= high) {
+                        const size = Math.floor((low + high) / 2);
+                        row.style.fontSize = size + 'px';
+                        if (row.scrollWidth > row.clientWidth) high = size - 1;
+                        else { best = size; low = size + 1; }
+                    }
+                    row.style.fontSize = best + 'px';
+                });
+            }
+            let min = 1, max = customMax, optimal = min;
             while (min <= max) {
                 const mid = Math.floor((min + max) / 2);
                 content.style.fontSize = mid + 'px';
+                fitReferences(mid);
                 if (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth) {
                     max = mid - 1;
                 } else {
@@ -490,7 +500,9 @@
                     min = mid + 1;
                 }
             }
-            content.style.fontSize = (optimal * 0.95) + 'px';
+            const finalSize = optimal * 0.95;
+            content.style.fontSize = finalSize + 'px';
+            fitReferences(finalSize);
         }
 
         const observer = new MutationObserver(() => {
@@ -506,6 +518,8 @@
         const bOut = document.getElementById('b_out');
         if (bHeader) observer.observe(bHeader, { childList: true, subtree: true, characterData: true });
         if (bOut) observer.observe(bOut, { childList: true, subtree: true });
+
+        document.fonts?.ready.then(() => { fitHeader(); fitTextToContainer(); });
 
         window.addEventListener('resize', () => {
             if (document.body.classList.contains('bible-mode')) {

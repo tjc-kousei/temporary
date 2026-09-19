@@ -107,3 +107,15 @@ node --test tests/projection-console.test.cjs
 
 漢字の後に `(読み)` を記述します。
 例: `栄光(えいこう)` → 「栄光」の上に「えいこう」を表示。
+
+## 聖書のページ番号
+
+GitHub Pages側はルートの `bible-pages.json` を読み込み、操作画面・投影画面に旧約／新約のページ番号を表示します。PHPは不要です。
+
+共同入力アプリはアップロード用の `php-server` フォルダに独立しています。PHP 8.1以上の自分のサーバーへフォルダごと配置すると、ページの開始聖句へのチェック、共有保存、日別活動グラフ、書ごとの進捗が使えます。詳細は同フォルダのREADME.mdを参照してください。GitHub Pagesの画面には記入アプリへの案内を設けません。
+
+共同入力画面のヘッダーから書き出した `bible-pages.json` をこのプロジェクトのルートへ置き換え、commit・pushすると表示用データへ反映されます。共同入力サーバーとGitHub Pagesは独立しており、サーバーからGitHubへの自動pushは行いません。
+
+番号は旧約・新約別に印を聖句順に数えて決めます。次の開始位置が登録された時点で、その直前までを同じ番号で補完します。次の印がない最後の区間は未確定です。
+
+動作確認：`node --test tests/*.test.cjs`。共同入力APIは `node --test php-server/tests/bible-pages-api.integration.cjs`（PHPが必要、一時ディレクトリ内で検証）。

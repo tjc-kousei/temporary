@@ -3,3 +3,7 @@ korean.txt
 oldscript.js
 memo.txt
 temp/
+bible-pages.lock
+.bible-pages-*
+/php-server/
+/tests/

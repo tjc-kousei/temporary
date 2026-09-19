@@ -13,7 +13,7 @@ function fixture() {
   const context = vm.createContext({ document, window: { location: { href: 'https://example.test/app/' }, addEventListener() {} }, console,
     Event: class { constructor(type) { this.type = type; } }, AbortController,
     setTimeout() {}, clearTimeout() {}, localStorage: { getItem(key) { return storage.get(key) ?? null; }, setItem(key, value) { storage.set(key, value); } } });
-  for (const file of ['script.js', 'projection-console.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), context);
+  for (const file of ['bible-pages.js', 'script.js', 'projection-console.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), context);
   const run = code => vm.runInContext(code, context);
   run(`bible = [[], ['','','','ヨハ3:1','本文1'], ['','','','ヨハ3:16','本文16'], ['','','','ヨハ3:17','本文17']];
     abbre = '42'; syou = '3'; setu = '16';
@@ -154,4 +154,29 @@ test('clearing the hymn number immediately clears projected lyrics', async () =>
   assert.equal(document.getElementById('h_output').innerHTML, '');
   assert.equal(document.getElementById('h_bg_number').innerText, '');
   assert.equal(run('currentTitleInfo'), null);
+});
+
+test('page label follows the projected verse and disappears for unmapped or cleared verses', () => {
+  const { run, document } = fixture();
+  run("biblePageMap.set('ヨハ3:16', { section: 'NT', page: 123 }); showBible();");
+  assert.match(document.getElementById('b_out').innerHTML, /新約 p.123/);
+  assert.equal(document.getElementById('bible_page_display').textContent, '新約 p.123');
+  run("memosetu('17');");
+  assert.doesNotMatch(document.getElementById('b_out').innerHTML, /新約 p.123/);
+  assert.equal(document.getElementById('bible_page_display').textContent, '');
+  run('clearBibleInputs();');
+  assert.equal(document.getElementById('bible_page_display').textContent, '');
+});
+
+test('Bible size limits persist, synchronize controls and reach the projector', () => {
+  const { run, document, storage } = fixture();
+  run("currentMode = 'bible'; showBible(); updateBibleSetting('refMax', '42'); updateBibleSetting('bodyMax', '100');");
+  assert.equal(document.getElementById('bible_ref_max').value, 42);
+  assert.equal(document.getElementById('setting_bible_body_max').value, 100);
+  assert.match(document.getElementById('b_out').innerHTML, /data-bible-ref-max="42"/);
+  assert.equal(JSON.parse(storage.get('bibleDisplaySettings')).bodyMax, 100);
+  run("updateBibleSetting('refMax', '');");
+  assert.equal(run('bibleDisplaySettings.refMax'), 42);
+  run('resetBibleSettings();');
+  assert.equal(document.getElementById('bible_ref_max').value, 80);
 });

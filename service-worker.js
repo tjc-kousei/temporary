@@ -1,20 +1,22 @@
 // Service Worker - 集会管理アプリ
 // バージョンを変更するとキャッシュが更新される
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = `meeting-app-${CACHE_VERSION}`;
 
 // 起動時に必ずキャッシュするコアファイル
 const CORE_ASSETS = [
   './',
   './index.html',
-  './script.js?v=7',
-  './projection-console.js?v=7',
-  './style.css?v=7',
+  './script.js?v=13',
+  './projection-console.js?v=8',
+  './style.css?v=13',
   './worship.js',
   './tjc.png',
   './manifest.json',
-  './popwindow/display.html?v=7',
+  './popwindow/display.html?v=12',
   './Data.csv',
+  './bible-pages.js?v=10',
+  './bible-pages.json',
   './hymn.csv'
 ];
 
@@ -55,6 +57,8 @@ self.addEventListener('fetch', (event) => {
   // HEAD metadata requests must reach the server; Cache.put only supports GET.
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+  // Persistence API must never return a cached success or revision.
+  if (url.pathname.endsWith('/bible-pages-api.php')) return;
 
   // 外部リクエスト（GAS API、Google Fontsなど）はネットワーク優先
   if (url.origin !== location.origin) {

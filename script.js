@@ -34,6 +34,24 @@ let en = [
 ];
 
 let bible = [];
+let biblePageMap = new Map();
+
+async function loadBiblePageData() {
+  try {
+    const items = BiblePages.verses(bible);
+    biblePageMap = BiblePages.expand(await BiblePages.load(items), items);
+  } catch (error) {
+    console.warn('ページ情報を読み込めませんでした。聖句のみ表示します。', error);
+  }
+  renderProjectedBible();
+}
+
+window.addEventListener('focus', () => { if (bible.length) loadBiblePageData(); });
+if (window.BroadcastChannel) {
+  const pageChannel = new window.BroadcastChannel('bible-pages');
+  pageChannel.onmessage = () => { if (bible.length) loadBiblePageData(); };
+}
+window.setInterval?.(() => { if (bible.length) loadBiblePageData(); }, 30000);
 let hymn = [];
 let servicerList = {};
 let currentLyricsSections = [];
@@ -96,6 +114,7 @@ function applyLogoSettings() {
 // ==========================================
 let bibleDisplaySettings = {
   bodyMax: 80,
+  refMax: 80,
   refScale: 1.0
 };
 
@@ -113,8 +132,21 @@ function saveBibleSettings() {
   localStorage.setItem("bibleDisplaySettings", JSON.stringify(bibleDisplaySettings));
 }
 
+function syncBibleSizeControls() {
+  for (const [id, key] of [['setting_bible_body_max', 'bodyMax'], ['bible_body_max', 'bodyMax'], ['bible_ref_max', 'refMax'], ['bible_body_max_range', 'bodyMax'], ['bible_ref_max_range', 'refMax'], ['setting_bible_ref_scale', 'refScale']]) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = bibleDisplaySettings[key];
+      if (id.endsWith('_range') && el.style.setProperty) el.style.setProperty('--range-fill', ((bibleDisplaySettings[key] - 10) / 240 * 100) + '%');
+    }
+  }
+}
+
 function updateBibleSetting(key, value) {
-  bibleDisplaySettings[key] = parseFloat(value);
+  const numeric = Number(value);
+  if (!['bodyMax', 'refMax', 'refScale'].includes(key) || !Number.isFinite(numeric) || value === '') return;
+  bibleDisplaySettings[key] = key === 'refScale' ? Math.min(2, Math.max(0.3, numeric)) : Math.min(250, Math.max(10, numeric));
+  syncBibleSizeControls();
   saveBibleSettings();
   if (display_win && !display_win.closed && currentMode === "bible") {
     // 投影中の本文に文字サイズ設定を反映する。
@@ -124,6 +156,7 @@ function updateBibleSetting(key, value) {
 
 function resetBibleSettings() {
   bibleDisplaySettings.bodyMax = 80;
+  bibleDisplaySettings.refMax = 80;
   bibleDisplaySettings.refScale = 1.0;
   
   const elMax = document.getElementById("setting_bible_body_max");
@@ -131,6 +164,7 @@ function resetBibleSettings() {
   if(elMax) elMax.value = bibleDisplaySettings.bodyMax;
   if(elScale) elScale.value = bibleDisplaySettings.refScale;
   
+  syncBibleSizeControls();
   updateBibleSetting('bodyMax', 80);
   updateBibleSetting('refScale', 1.0);
 }
@@ -1181,6 +1215,7 @@ async function loadInitialData() {
     updateProgress(40, "聖書データを読み込んでいます...");
     const bibleData = await loadCSVAsync("./Data.csv");
     convertbibleCSVtoArray(bibleData);
+    await loadBiblePageData();
     updateProgress(75, "讃美歌データを読み込んでいます...");
     const hymnData = await loadCSVAsync("./hymn.csv");
     converthymnCSVtoArray(hymnData);
@@ -2121,7 +2156,7 @@ function openwindow() {
     return;
   } else {
     display_win = window.open(
-      "./popwindow/display.html?v=7",
+      "./popwindow/display.html?v=12",
       "display",
       "width=1500,height=800,scrollbars=yes,resizable=yes"
     );
@@ -2907,6 +2942,9 @@ function showBible() {
 }
 
 function renderProjectedBible() {
+  const pageLabel = projectedBible ? BiblePages.label(biblePageMap.get(`${Abbre[projectedBible.book]}${projectedBible.chapter}:${projectedBible.verse}`)) : '';
+  const pageStatus = document.getElementById('bible_page_display');
+  if (pageStatus) pageStatus.textContent = pageLabel;
   if (!display_win || display_win.closed) return;
   const outDiv = display_win.document.getElementById('b_out');
   if (!projectedBible) {
@@ -2916,8 +2954,8 @@ function renderProjectedBible() {
   const { book, chapter, verse } = projectedBible;
   const row = findBibleRow(book, chapter, verse);
   if (!outDiv || !row) return;
-  outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}">
-    <div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b> / ${kr[book]}${chapter}:${verse}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>
+  outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}" data-bible-ref-max="${bibleDisplaySettings.refMax}">
+    <div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b> / ${kr[book]}${chapter}:${verse}${pageLabel ? ` <span class="bible_page" style="font-size:0.65em;white-space:nowrap">（${pageLabel}）</span>` : ''}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>
     <div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b> / ${en[book]}${chapter}:${verse}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>
   </div>`;
 }
@@ -3112,6 +3150,7 @@ function setupEventListeners() {
 
   // Bible Settings Init
   loadBibleSettings();
+  syncBibleSizeControls();
   const elBibleMax = document.getElementById("setting_bible_body_max");
   const elBibleScale = document.getElementById("setting_bible_ref_scale");
   if(elBibleMax) elBibleMax.value = bibleDisplaySettings.bodyMax;

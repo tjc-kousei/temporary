@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#00838f">
   <link rel="apple-touch-icon" href="./tjc.png">
-  <link rel="stylesheet" href="./style.css?v=7">
+  <link rel="stylesheet" href="./style.css?v=13">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
   </style>
@@ -32,13 +32,7 @@
   <datalist id="worshiplist"></datalist>
   <datalist id="prehymnservicerlist"></datalist>
 
-  <header class="layout-preferences">
-    <label for="ui-style-select">画面スタイル</label>
-    <select id="ui-style-select" onchange="setUiStyle(this.value);">
-      <option value="classic">従来スタイル</option>
-      <option value="modern">新スタイル</option>
-    </select>
-  </header>
+
   <main class="dashboard-container">
     <section class="card info-card">
       <div class="card-header">
@@ -248,6 +242,25 @@
         <div class="search-tools">
           <button id="openSearchModalBtn" class="primary-btn">聖句全文検索</button>
         </div>
+        <section class="bible-size-controls" aria-labelledby="bible-size-title">
+          <div class="bible-size-heading"><span class="bible-size-icon" aria-hidden="true">Aa</span><div><h4 id="bible-size-title">投影の文字サイズ</h4><p>読みやすさに合わせて上限を調整</p></div><span class="bible-size-badge">自動調整</span></div>
+          <div class="bible-size-grid">
+            <div class="bible-size-field">
+              <label for="bible_body_max">本文</label>
+              <div class="bible-size-value"><input id="bible_body_max" type="number" min="10" max="250" step="1" value="80" onchange="updateBibleSetting('bodyMax', this.value);"><span>px</span></div>
+              <input id="bible_body_max_range" class="bible-size-range" type="range" min="10" max="250" value="80" aria-label="本文の最大サイズ" oninput="updateBibleSetting('bodyMax', this.value);">
+              <div class="bible-size-scale" aria-hidden="true"><span>小</span><span>大</span></div>
+            </div>
+            <div class="bible-size-field">
+              <label for="bible_ref_max">聖書箇所</label>
+              <div class="bible-size-value"><input id="bible_ref_max" type="number" min="10" max="250" step="1" value="80" onchange="updateBibleSetting('refMax', this.value);"><span>px</span></div>
+              <input id="bible_ref_max_range" class="bible-size-range" type="range" min="10" max="250" value="80" aria-label="聖書箇所の最大サイズ" oninput="updateBibleSetting('refMax', this.value);">
+              <div class="bible-size-scale" aria-hidden="true"><span>小</span><span>大</span></div>
+            </div>
+          </div>
+          <p class="bible-size-note">聖書箇所とページ番号は、1行に収まるよう調整します。</p>
+        </section>
+        <div id="bible_page_display" aria-live="polite" style="text-align:right;color:#20604f;"></div>
         <div id="verse_count_display" style="text-align: right; font-size: small; color: gray; margin-top: 5px;"></div>
       </div>
     </section>
@@ -473,10 +486,18 @@
   <div id="displaySettingsModal" class="search-modal">
     <div class="search-modal-content display-settings-modal">
       <span class="search-modal-close" onclick="closeDisplaySettings();">&times;</span>
-      <h2 class="servicer-modal-title">別窓表示設定</h2>
+      <h2 class="servicer-modal-title">画面・投影設定</h2>
       <p class="settings-modal-note">聖書表示画面は本文サイズを自動調整します。</p>
 
       <div class="settings-modal-body">
+        <section class="settings-section appearance-settings">
+          <div><h3>操作画面のスタイル</h3><p>使いやすいレイアウトを選べます。</p></div>
+          <label for="ui-style-select" class="appearance-select-label">レイアウト</label>
+          <select id="ui-style-select" onchange="setUiStyle(this.value);">
+            <option value="classic">従来スタイル</option>
+            <option value="modern">新スタイル</option>
+          </select>
+        </section>
         <section class="settings-section">
           <h3>タイトル画面</h3>
           <div class="settings-grid">
@@ -518,7 +539,7 @@
             </div>
             <div class="slider-group">
               <label>本文 最大サイズ</label>
-              <input type="range" id="setting_bible_body_max" tabindex="-1" min="30" max="250" step="1" value="80"
+              <input type="range" id="setting_bible_body_max" tabindex="-1" min="10" max="250" step="1" value="80"
                 oninput="updateBibleSetting('bodyMax', this.value);">
             </div>
             <div class="slider-group">
@@ -623,8 +644,9 @@
   </div>
 
   <script src="./worship.js"></script>
-  <script src="./script.js?v=7"></script>
-  <script src="./projection-console.js?v=7"></script>
+  <script src="./bible-pages.js?v=10"></script>
+  <script src="./script.js?v=13"></script>
+  <script src="./projection-console.js?v=8"></script>
   <!-- 更新通知バナー -->
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>
