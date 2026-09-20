@@ -114,9 +114,10 @@ function navigateBible(direction) {
 }
 
 function toggleBlackout() {
-  const doc = getDisplayDocument();
-  if (!doc?.getElementById('projection-blackout')) return;
-  doc.body.classList.toggle('is-blacked-out');
+  const windows = getProjectionWindows();
+  if (!windows.length) return;
+  projectionBlackedOut = !projectionBlackedOut;
+  windows.forEach(win => win.document.body.classList.toggle('is-blacked-out', projectionBlackedOut));
   refreshProjectionConsole();
 }
 
@@ -138,7 +139,7 @@ function bindProjectionPreview() {
 function refreshProjectionConsole() {
   const doc = getDisplayDocument();
   const connected = !!doc?.getElementById('title-view');
-  const blackedOut = connected && doc.body.classList.contains('is-blacked-out');
+  const blackedOut = getProjectionWindows().length > 0 && projectionBlackedOut;
   const names = { title: '基本情報', hymn: '讃美歌', bible: '聖書', capture: '画面キャプチャ' };
   const status = document.getElementById('projection-status');
   const preview = document.getElementById('projection-preview');
@@ -147,12 +148,15 @@ function refreshProjectionConsole() {
   const empty = document.getElementById('preview-empty');
   const blackButton = document.getElementById('blackout-toggle');
   const modeText = blackedOut ? '黒画面' : names[currentMode];
-  const statusText = connected ? `投影中：${modeText}` : '投影画面：未接続';
+  const count = getProjectionWindows().length;
+  const dualStatus = document.getElementById('dual-projection-status');
+  if (dualStatus) dualStatus.textContent = dualProjection ? `2画面設定：${count}/2画面 接続中${count < 2 ? '（表示ボタンで再接続）' : ''}` : '1画面設定（日本語・中国語）';
+  const statusText = dualProjection ? `投影画面：${count}/2画面 接続中・${modeText}（プレビュー：日本語）` : (connected ? `投影中：${modeText}` : '投影画面：未接続');
   if (status.textContent !== statusText) status.textContent = statusText;
   document.getElementById('preview-mode').textContent = connected ? modeText : '未接続';
   document.querySelector('.projection-status').classList.toggle('is-connected', connected);
   document.querySelector('.projection-status').classList.toggle('is-blacked-out', blackedOut);
-  blackButton.disabled = !connected;
+  blackButton.disabled = getProjectionWindows().length === 0;
   blackButton.textContent = blackedOut ? '投影を再開' : '黒画面にする';
   blackButton.setAttribute('aria-pressed', String(blackedOut));
   Object.keys(names).forEach(mode => {
@@ -202,11 +206,12 @@ function refreshProjectionConsole() {
       Array.from(el.attributes).filter(attr => attr.name.startsWith('on')).forEach(attr => el.removeAttribute(attr.name));
     });
     const rootStyle = doc.documentElement.getAttribute('style') || '';
-    const markup = head + rootStyle + body.outerHTML;
+    const markup = head + rootStyle + doc.documentElement.dataset.bibleLanguage + body.outerHTML;
     const target = frame.contentDocument;
     if (target && markup !== previewMarkup) {
       previewMarkup = markup;
-      target.documentElement.lang = 'ja';
+      target.documentElement.lang = doc.documentElement.lang;
+      target.documentElement.dataset.bibleLanguage = doc.documentElement.dataset.bibleLanguage || 'both';
       target.documentElement.setAttribute('style', rootStyle);
       if (target.head.dataset.previewHead !== head) {
         target.head.replaceChildren();
@@ -231,8 +236,10 @@ function initProjectionConsole() {
   loadLastUpdated();
   new ResizeObserver(refreshProjectionConsole).observe(document.getElementById('projection-preview'));
   // Window closure has no reliable cross-browser notification; poll only the connection, not preview content.
+  let lastConnection = '';
   setInterval(() => {
-    if (observedProjectionDocument && (!display_win || display_win.closed)) refreshProjectionConsole();
+    const connection = `${!!display_win && !display_win.closed}:${!!chineseDisplayWindow && !chineseDisplayWindow.closed}:${dualProjection}`;
+    if (connection !== lastConnection) { lastConnection = connection; refreshProjectionConsole(); }
   }, 500);
   document.addEventListener('keydown', event => {
     if (event.key !== 'Tab' || bibleSearchModal?.style.display !== 'block') return;

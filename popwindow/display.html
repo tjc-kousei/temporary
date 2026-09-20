@@ -170,6 +170,11 @@
             width: 48%;
         }
 
+        html[data-bible-language="jp"] #jp,
+        html[data-bible-language="ch"] #ch { width: 100%; }
+        html[data-bible-language="jp"] #b_thema-ch,
+        html[data-bible-language="ch"] #b_thema-jp { display: none; }
+
         .bible_ref_row { white-space: nowrap; overflow-wrap: normal; }
 
         #jp {
@@ -518,6 +523,22 @@
         const bOut = document.getElementById('b_out');
         if (bHeader) observer.observe(bHeader, { childList: true, subtree: true, characterData: true });
         if (bOut) observer.observe(bOut, { childList: true, subtree: true });
+
+        // Refit when returning from title/hymn mode as well as when text changes.
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bible-language'] });
+        document.addEventListener('dblclick', async () => {
+            try {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+                    if (exit) await exit.call(document);
+                } else {
+                    const root = document.documentElement;
+                    const enter = root.requestFullscreen || root.webkitRequestFullscreen;
+                    if (enter) await enter.call(root);
+                }
+            } catch (error) { console.warn('全画面表示を切り替えられませんでした', error); }
+        });
 
         document.fonts?.ready.then(() => { fitHeader(); fitTextToContainer(); });
 

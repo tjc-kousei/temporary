@@ -180,3 +180,124 @@ test('Bible size limits persist, synchronize controls and reach the projector', 
   run('resetBibleSettings();');
   assert.equal(document.getElementById('bible_ref_max').value, 80);
 });
+
+test('general AI requires a saved key and renders an answer as plain text', async () => {
+  const { run, document } = fixture();
+  document.getElementById('generalAiQuestion').value = '案内文を考えて';
+  run("geminiSettings.apiKey = ''; updateGeneralAiUi(); requestGeminiText = async () => { throw new Error('must not call'); };");
+  await run('askGeneralAi()');
+  assert.equal(document.getElementById('generalAiForm').hidden, true);
+  assert.match(document.getElementById('generalAiStatus').textContent, /APIキー/);
+  run("geminiSettings.apiKey = 'test-key'; updateGeneralAiUi(); requestGeminiText = async () => '<b>回答</b>'; ");
+  await run('askGeneralAi()');
+  assert.equal(document.getElementById('generalAiForm').hidden, false);
+  assert.equal(document.getElementById('generalAiAnswer').textContent, '<b>回答</b>');
+  assert.equal(document.getElementById('generalAiAnswer').innerHTML, '');
+  assert.equal(document.getElementById('generalAiSubmit').disabled, false);
+});
+
+test('general AI prevents duplicate requests and recovers after failure', async () => {
+  const { run, document } = fixture();
+  document.getElementById('generalAiQuestion').value = '質問';
+  run("geminiSettings.apiKey = 'test-key'; var rejectQuestion, questionCalls = 0; recordGeminiError = () => {}; requestGeminiText = () => { questionCalls++; return new Promise((resolve, reject) => { rejectQuestion = reject; }); };");
+  const pending = run('askGeneralAi()');
+  await run('askGeneralAi()');
+  assert.equal(run('questionCalls'), 1);
+  run("rejectQuestion(new Error('接続エラー'));");
+  await pending;
+  assert.match(document.getElementById('generalAiStatus').textContent, /接続エラー/);
+  assert.equal(document.getElementById('generalAiSubmit').disabled, false);
+});
+
+function dualFixture() {
+  const setup = fixture();
+  setup.run(`
+    function makeProjection() {
+      const nodes = new Map();
+      const classes = new Set();
+      const doc = {
+        documentElement: { dataset: {}, style: { setProperty() {} } },
+        body: { classList: {
+          add(...names) { names.forEach(name => classes.add(name)); },
+          remove(...names) { names.forEach(name => classes.delete(name)); },
+          contains(name) { return classes.has(name); },
+          toggle(name, force) { if (force) classes.add(name); else classes.delete(name); }
+        } },
+        getElementById(id) {
+          if (!nodes.has(id)) nodes.set(id, { innerHTML: '', innerText: '', style: {} });
+          return nodes.get(id);
+        }
+      };
+      return { document: doc, closed: false, close() { this.closed = true; }, addEventListener() {} };
+    }
+    display_win = makeProjection(); chineseDisplayWindow = makeProjection(); dualProjection = true;
+    refreshProjectionConsole = () => {}; bindProjectionPreview = () => {}; bindDisplayFullscreenEvents = () => {};
+    bible[2][1] = '約3:16'; bible[2][2] = '中文經文';
+  `);
+  return setup;
+}
+
+test('two outputs separate scripture, synchronize live info and mode, and restore bilingual output on disable', () => {
+  const { run, document, storage } = dualFixture();
+  document.getElementById('jtitle').value = '日本語題';
+  document.getElementById('ctitle').value = '中文題';
+  run('showBible(); switchScreen("bible");');
+  assert.match(run('display_win.document.getElementById("b_out").innerHTML'), /本文16/);
+  assert.doesNotMatch(run('display_win.document.getElementById("b_out").innerHTML'), /中文經文|id="ch"/);
+  assert.match(run('chineseDisplayWindow.document.getElementById("b_out").innerHTML'), /中文經文/);
+  assert.doesNotMatch(run('chineseDisplayWindow.document.getElementById("b_out").innerHTML'), /本文16|id="jp"/);
+  for (const win of ['display_win', 'chineseDisplayWindow']) {
+    assert.equal(run(`${win}.document.getElementById('t_thema_ja').innerHTML`), '日本語題');
+    assert.equal(run(`${win}.document.getElementById('t_thema_ch').innerHTML`), '中文題');
+    assert.equal(run(`${win}.document.body.classList.contains('bible-mode')`), true);
+  }
+  run('const oldChinese = chineseDisplayWindow; setDualProjection(false);');
+  assert.equal(run('oldChinese.closed'), true);
+  assert.equal(run('display_win.closed'), false);
+  assert.equal(storage.get('dualProjection'), 'false');
+  assert.equal(run('display_win.document.documentElement.dataset.bibleLanguage'), 'both');
+  assert.match(run('display_win.document.getElementById("b_out").innerHTML'), /本文16.*中文經文/s);
+  assert.equal(run('projectedBible.verse'), '16');
+});
+
+test('hymn verse, mode and blackout survive reconnecting either window, and clearing updates both', () => {
+  const { run } = dualFixture();
+  run(`currentTitleInfo = ['1', '中文歌名', '日本語曲名'];
+    currentLyricsSections = [{ label: '1', content: '<div>第一節</div>' }, { label: '2', content: '<div>第二節</div>' }];
+    showLyricsVerse(1); toggleBlackout();
+    chineseDisplayWindow.close(); chineseDisplayWindow = makeProjection(); initializeProjectionWindow(chineseDisplayWindow);`);
+  for (const win of ['display_win', 'chineseDisplayWindow']) {
+    assert.match(run(`${win}.document.getElementById('h_output').innerHTML`), /第二節/);
+    assert.equal(run(`${win}.document.body.classList.contains('hymn-mode')`), true);
+    assert.equal(run(`${win}.document.body.classList.contains('is-blacked-out')`), true);
+  }
+  run(`switchScreen('bible'); display_win.close(); display_win = makeProjection(); initializeProjectionWindow(display_win);`);
+  assert.equal(run('currentMode'), 'bible');
+  assert.equal(run(`display_win.document.body.classList.contains('bible-mode')`), true);
+  run('toggleBlackout(); clearDisplayedHymn();');
+  for (const win of ['display_win', 'chineseDisplayWindow']) {
+    assert.equal(run(`${win}.document.getElementById('h_output').innerHTML`), '');
+    assert.equal(run(`${win}.document.body.classList.contains('is-blacked-out')`), false);
+  }
+});
+
+test('blocked second popup can be retried without reopening the first, and saved mode does not open on startup', () => {
+  const { run, storage } = dualFixture();
+  storage.set('dualProjection', 'true');
+  run(`let opens = 0; window.open = () => { opens++; return null; }; loadProjectionSettings();`);
+  assert.equal(run('opens'), 0);
+  run(`chineseDisplayWindow = null; showToast = () => {}; openwindow();`);
+  assert.equal(run('opens'), 1);
+  assert.equal(run('chineseDisplayWindow'), null);
+  run(`window.open = () => { opens++; return makeProjection(); }; openwindow();`);
+  assert.equal(run('opens'), 2);
+  assert.equal(run('getProjectionWindows().length'), 2);
+  run(`localStorage.getItem = () => { throw Error('unavailable'); }; loadProjectionSettings();`);
+  assert.equal(run('dualProjection'), false);
+});
+
+test('verse clearing still reaches Chinese output when primary window has been closed', () => {
+  const { run } = dualFixture();
+  run('showBible(); display_win.close(); clearBibleInputs();');
+  assert.equal(run('chineseDisplayWindow.document.getElementById("b_out").innerHTML'), '');
+});

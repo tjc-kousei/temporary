@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#00838f">
   <link rel="apple-touch-icon" href="./tjc.png">
-  <link rel="stylesheet" href="./style.css?v=13">
+  <link rel="stylesheet" href="./style.css?v=15">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
   </style>
@@ -469,6 +469,18 @@
           style="display: none; margin-top: 10px;">
       </div>
 
+      <section class="general-ai-panel" aria-labelledby="general-ai-title">
+        <div class="general-ai-heading"><span aria-hidden="true">✦</span><div><h3 id="general-ai-title">AIに質問</h3><p>聖句に限らず、自由に質問できます。</p></div></div>
+        <p id="generalAiSetup" class="general-ai-note">APIキーを保存すると利用できます。</p>
+        <form id="generalAiForm" hidden onsubmit="event.preventDefault(); askGeneralAi();">
+          <label for="generalAiQuestion">質問内容</label>
+          <textarea id="generalAiQuestion" rows="3" maxlength="12000" placeholder="例：集会の案内文を、初めて参加する方向けに考えて" required></textarea>
+          <div class="general-ai-actions"><small>保存済みのキー・モデルを使用します。Web検索は行いません。</small><button id="generalAiSubmit" class="primary-btn" type="submit">AIに質問する</button></div>
+          <p id="generalAiStatus" role="status" aria-live="polite"></p>
+          <div id="generalAiAnswer" class="general-ai-answer" role="region" tabindex="0" aria-label="AIの回答" hidden></div>
+        </form>
+      </section>
+
       <section id="geminiErrorLogPanel" class="gemini-error-log-panel" hidden>
         <div class="gemini-error-log-header">
           <h3>直近のAIエラー</h3>
@@ -497,6 +509,13 @@
             <option value="classic">従来スタイル</option>
             <option value="modern">新スタイル</option>
           </select>
+        </section>
+        <section class="settings-section">
+          <h3>投影画面の数</h3>
+          <label><input type="checkbox" id="setting_dual_projection" onchange="setDualProjection(this.checked);"> 2画面で投影（聖書を日本語・中国語に分ける）</label>
+          <p>ON：基本情報・讃美歌は両画面で同期し、聖書は1画面目に日本語、2画面目に中国語を表示します。OFF：1画面で従来の2言語表示に戻ります。</p>
+          <p>各投影ウィンドウを使用するモニターへ移動してください。各画面をダブルクリックすると全画面表示を切り替えられます。開かない場合はポップアップを許可し、表示ボタンをもう一度押してください。</p>
+          <p id="dual-projection-status" role="status"></p>
         </section>
         <section class="settings-section">
           <h3>タイトル画面</h3>
@@ -645,8 +664,8 @@
 
   <script src="./worship.js"></script>
   <script src="./bible-pages.js?v=10"></script>
-  <script src="./script.js?v=13"></script>
-  <script src="./projection-console.js?v=8"></script>
+  <script src="./script.js?v=15"></script>
+  <script src="./projection-console.js?v=9"></script>
   <!-- 更新通知バナー -->
   <div id="update-banner" class="update-banner" style="display:none;">
     <span>🔄 新しいバージョンが利用可能です</span>

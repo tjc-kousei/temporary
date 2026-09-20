@@ -2980,3 +2980,38 @@ button:focus-visible { outline: 3px solid #007b8a; outline-offset: 3px; }
 .appearance-settings p { font-size: 12px; color: var(--muted-text); margin-bottom: 14px; }
 .appearance-select-label { display: block; font-size: 12px; margin-bottom: 6px; color: #526b70; }
 @media (max-width: 380px) { .bible-size-controls { padding: 12px; } .bible-size-badge { display: none; } .bible-size-grid { gap: 8px; } }
+
+.general-ai-panel { margin: 20px 0; padding: 18px; border: 1px solid #cfe4e6; border-radius: 12px; background: #f1f8f9; }
+.general-ai-heading { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.general-ai-heading > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #dceef0; color: var(--primary-color); font-size: 22px; }
+.general-ai-heading h3 { font-size: 15px; color: #23484d; margin: 0 0 3px; }
+.general-ai-heading p, .general-ai-note { font-size: 12px; color: var(--muted-text); }
+#generalAiForm > label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+#generalAiQuestion { width: 100%; padding: 12px; border: 1px solid #c8dce0; border-radius: 8px; background: white; resize: vertical; font: inherit; font-size: 14px; }
+.general-ai-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-top: 10px; }
+.general-ai-actions small { flex: 1 1 180px; color: var(--muted-text); font-size: 11px; }
+.general-ai-actions button { width: auto; padding: 10px 16px; }
+#generalAiStatus { margin-top: 12px; color: #526b70; font-size: 12px; }
+.general-ai-answer { margin-top: 10px; padding: 16px; background: #fff; border: 1px solid #dbe8ea; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.85; max-height: 420px; overflow-y: auto; }
+
+/* AI settings share the service modal shell, but must scroll as a whole. */
+#geminiSettingsModal .search-modal-content {
+  display: block;
+  max-height: 90vh;
+  max-height: 90dvh;
+  margin: 5vh auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#geminiSettingsModal .general-ai-answer {
+  max-height: min(420px, 45vh);
+  max-height: min(420px, 45dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#geminiSettingsModal .general-ai-answer:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

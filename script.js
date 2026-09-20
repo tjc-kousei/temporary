@@ -2,7 +2,64 @@
 // 1. GLOBALS & STATE
 // ==========================================
 const SCREEN_CAPTURE_ENABLED = false; // Temporarily disabled; retain implementation for possible reuse.
-let display_win; // 統合されたウィンドウ
+let display_win; // 主投影画面（2画面時は日本語）
+let chineseDisplayWindow;
+let dualProjection = false;
+let projectionBlackedOut = false;
+let projectedHymnVerse = null;
+
+function getProjectionWindows() {
+  return [display_win, ...(dualProjection ? [chineseDisplayWindow] : [])]
+    .filter(win => win && !win.closed && win.document.getElementById('title-view'));
+}
+
+function loadProjectionSettings() {
+  try { dualProjection = localStorage.getItem('dualProjection') === 'true'; }
+  catch { dualProjection = false; }
+  document.getElementById('setting_dual_projection').checked = dualProjection;
+}
+
+function applyProjectionLanguage(win) {
+  const language = dualProjection ? (win === chineseDisplayWindow ? 'ch' : 'jp') : 'both';
+  win.document.documentElement.dataset.bibleLanguage = language;
+  win.document.documentElement.lang = language === 'ch' ? 'zh' : 'ja';
+  win.document.title = language === 'both' ? 'スクリーン表示' : `スクリーン表示（${language === 'jp' ? '日本語' : '中国語'}）`;
+}
+
+function setDualProjection(enabled) {
+  const hadChineseWindow = chineseDisplayWindow && !chineseDisplayWindow.closed;
+  dualProjection = !!enabled;
+  document.getElementById('setting_dual_projection').checked = dualProjection;
+  try { localStorage.setItem('dualProjection', String(dualProjection)); } catch { /* Session only. */ }
+  if (!dualProjection) {
+    if (chineseDisplayWindow && !chineseDisplayWindow.closed) chineseDisplayWindow.close();
+    chineseDisplayWindow = null;
+  }
+  // Opening remains tied to a user gesture, never to page startup.
+  if (dualProjection || (hadChineseWindow && (!display_win || display_win.closed))) openwindow();
+  getProjectionWindows().forEach(win => {
+    applyProjectionLanguage(win);
+    commit(win);
+    renderProjectedBible(win);
+  });
+  refreshProjectionConsole();
+}
+
+function initializeProjectionWindow(win) {
+  if (!win || win.closed || !win.document.getElementById('title-view')) return;
+  applyProjectionLanguage(win);
+  applyLogoSettings(win);
+  commit(win);
+  renderProjectedBible(win);
+  if (currentTitleInfo) {
+    if (projectedHymnVerse === null) showTitleInPopup(win);
+    else showLyricsVerse(projectedHymnVerse, win);
+  }
+  switchScreen(currentMode, win);
+  win.document.body.classList.toggle('is-blacked-out', projectionBlackedOut);
+  if (win === display_win) { bindDisplayFullscreenEvents(); bindProjectionPreview(); }
+  refreshProjectionConsole();
+}
 
 let Abbre = [
   "創", "出エジ", "レビ", "民", "申", "ヨシュ", "士", "ルツ", "サム上", "サム下",
@@ -101,9 +158,13 @@ function updateLogoSetting(key, value) {
   applyLogoSettings();
 }
 
-function applyLogoSettings() {
-  if (display_win && !display_win.closed) {
-    const root = display_win.document.documentElement;
+function applyLogoSettings(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => applyLogoSettings(win));
+    return;
+  }
+  if (targetWindow && !targetWindow.closed) {
+    const root = targetWindow.document.documentElement;
     root.style.setProperty('--title-logo-width', logoDisplaySettings.titleLogoWidth + 'px');
     root.style.setProperty('--bible-logo-height', logoDisplaySettings.bibleLogoHeight + 'vh');
   }
@@ -148,7 +209,7 @@ function updateBibleSetting(key, value) {
   bibleDisplaySettings[key] = key === 'refScale' ? Math.min(2, Math.max(0.3, numeric)) : Math.min(250, Math.max(10, numeric));
   syncBibleSizeControls();
   saveBibleSettings();
-  if (display_win && !display_win.closed && currentMode === "bible") {
+  if (currentMode === "bible") {
     // 投影中の本文に文字サイズ設定を反映する。
     renderProjectedBible();
   }
@@ -255,6 +316,7 @@ function saveGeminiSettings() {
 }
 
 function updateTranslateButtonsVisibility() {
+  updateGeneralAiUi();
   const btns = document.querySelectorAll('.translate-btn');
   const hasKey = !!geminiSettings.apiKey;
   btns.forEach(btn => {
@@ -413,7 +475,38 @@ function parseGeminiJson(text) {
   }
 }
 
+let generalAiBusy = false;
+function updateGeneralAiUi() {
+  const enabled = !!String(geminiSettings.apiKey || '').trim();
+  const form = document.getElementById('generalAiForm');
+  const notice = document.getElementById('generalAiSetup');
+  if (form) form.hidden = !enabled;
+  if (notice) notice.hidden = enabled;
+}
+
+async function askGeneralAi() {
+  if (generalAiBusy) return;
+  const status = document.getElementById('generalAiStatus');
+  const answer = document.getElementById('generalAiAnswer');
+  const button = document.getElementById('generalAiSubmit');
+  const query = document.getElementById('generalAiQuestion').value.trim();
+  if (!String(geminiSettings.apiKey || '').trim()) { status.textContent = 'APIキーを保存してから質問してください。'; return; }
+  if (!query) { status.textContent = '質問を入力してください。'; return; }
+  generalAiBusy = true; button.disabled = true; button.textContent = '回答を作成中…';
+  answer.hidden = true; answer.textContent = ''; status.textContent = 'AIに問い合わせています…';
+  try {
+    const text = await requestGeminiText('あなたは日本語で質問に回答するアシスタントです。聖書以外の質問にも答えてください。簡潔で分かりやすい文章で回答し、不明なことは不明と伝えてください。Web検索は実行していないため、最新情報を検索・確認したと主張しないでください。', query, 0.3);
+    answer.textContent = text; answer.hidden = false; status.textContent = '回答を表示しました。';
+  } catch (error) {
+    recordGeminiError('自由質問', error);
+    status.textContent = `回答を取得できませんでした：${redactGeminiSensitiveText(error.message)}`;
+  } finally {
+    generalAiBusy = false; button.disabled = false; button.textContent = 'AIに質問する';
+  }
+}
+
 function openGeminiSettings() {
+  updateGeneralAiUi();
   const modal = document.getElementById("geminiSettingsModal");
   if (modal) {
     document.getElementById('geminiApiKey').value = geminiSettings.apiKey;
@@ -667,9 +760,13 @@ function toggleTicker(checked) {
   applyTicker();
 }
 
-function applyTicker() {
-  if (!display_win || display_win.closed) return;
-  const dBody = display_win.document.body;
+function applyTicker(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => applyTicker(win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed) return;
+  const dBody = targetWindow.document.body;
   if (showTicker) {
     dBody.classList.remove('hide-ticker');
   } else {
@@ -683,9 +780,13 @@ function onColorChange(key, value) {
   applyColors();
 }
 
-function applyColors() {
-  if (!display_win || display_win.closed) return;
-  const doc = display_win.document;
+function applyColors(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => applyColors(win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed) return;
+  const doc = targetWindow.document;
 
   // 基本情報表示モード
   const tWorship = doc.getElementById('t_worship');
@@ -1936,10 +2037,15 @@ async function loadLyricsData({ force = false } = {}) {
   return allLyricsData;
 }
 
-function clearDisplayedHymn() {
-  if (!display_win || display_win.closed) return;
+function clearDisplayedHymn(targetWindow) {
+  projectedHymnVerse = null;
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => clearDisplayedHymn(win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed) return;
 
-  const doc = display_win.document;
+  const doc = targetWindow.document;
   const hOutput = doc.getElementById("h_output");
   const hBgNum = doc.getElementById("h_bg_number");
   if (hOutput) hOutput.innerHTML = "";
@@ -2152,21 +2258,21 @@ function bindDisplayFullscreenEvents() {
 }
 
 function openwindow() {
-  if (display_win && !display_win.closed) {
-    return;
-  } else {
-    display_win = window.open(
-      "./popwindow/display.html?v=12",
-      "display",
-      "width=1500,height=800,scrollbars=yes,resizable=yes"
-    );
-    if (display_win) {
-      display_win.addEventListener("load", () => { bindDisplayFullscreenEvents(); bindProjectionPreview(); });
-    }
+  const openProjection = (name) => {
+    const win = window.open('./popwindow/display.html?v=13', name,
+      'width=1500,height=800,scrollbars=yes,resizable=yes');
+    if (win) win.addEventListener('load', () => initializeProjectionWindow(win));
+    return win;
+  };
+  if (!display_win || display_win.closed) display_win = openProjection('display');
+  if (dualProjection && (!chineseDisplayWindow || chineseDisplayWindow.closed)) {
+    chineseDisplayWindow = openProjection('display-chinese');
   }
-  bindDisplayFullscreenEvents();
+  getProjectionWindows().forEach(applyProjectionLanguage);
   updateFullscreenButton();
-  if (!display_win) showToast("投影画面を開けませんでした。ブラウザでポップアップを許可して、表示ボタンを押してください", "error");
+  if (!display_win || (dualProjection && !chineseDisplayWindow)) {
+    showToast('投影画面を開けませんでした。ブラウザでポップアップを許可して、表示ボタンをもう一度押してください', 'error');
+  }
 }
 
 function openServicerManager() {
@@ -2780,21 +2886,27 @@ function clear_history() {
 // 6. DISPLAY POPUP CONTROL & SYNCHRONIZATION
 // ==========================================
 
-function switchScreen(mode) {
+function switchScreen(mode, targetWindow) {
   if (mode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
-  if (!display_win || display_win.closed) return;
+  currentMode = mode;
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => switchScreen(mode, win));
+    return;
+  }
+  if (mode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
+  if (!targetWindow || targetWindow.closed) return;
   currentMode = mode;
   updateModeUI(mode);
-  const dBody = display_win.document.body;
+  const dBody = targetWindow.document.body;
   dBody.classList.remove("bible-mode", "title-mode", "hymn-mode", "capture-mode");
   dBody.classList.add(mode + "-mode");
 
   const views = ["bible-view", "title-view", "hymn-view", "capture-view"];
   views.forEach((v) => {
-    const el = display_win.document.getElementById(v);
+    const el = targetWindow.document.getElementById(v);
     if (el) el.style.display = "none";
   });
-  const viewEl = display_win.document.getElementById(mode + "-view");
+  const viewEl = targetWindow.document.getElementById(mode + "-view");
   if (viewEl) viewEl.style.display = "";
 }
 
@@ -2802,18 +2914,25 @@ function checkwindow(mode) {
   const targetMode = ({ title_win: 'title', hymn_win: 'hymn', bible_win: 'bible' })[mode] || mode;
   if (!['title', 'hymn', 'bible', 'capture'].includes(targetMode)) return;
   if (targetMode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
+  currentMode = targetMode;
   openwindow();
-  if (!display_win) return;
   const show = () => {
     switchScreen(targetMode);
     applyLogoSettings();
     commit();
     renderProjectedBible();
-    if (targetMode === 'hymn' && currentTitleInfo && !display_win.document.getElementById('h_output')?.innerHTML) showTitleInPopup();
+    if (targetMode === 'hymn' && currentTitleInfo) {
+      getProjectionWindows().forEach(win => {
+        if (!win.document.getElementById('h_output')?.innerHTML) {
+          if (projectedHymnVerse === null) showTitleInPopup(win);
+          else showLyricsVerse(projectedHymnVerse, win);
+        }
+      });
+    }
     bindProjectionPreview();
     refreshProjectionConsole();
   };
-  if (display_win.document.getElementById('title-view')) show();
+  if (!display_win || display_win.document.getElementById('title-view')) show();
   else display_win.addEventListener('load', show, { once: true });
 }
 
@@ -2941,12 +3060,22 @@ function showBible() {
   return true;
 }
 
-function renderProjectedBible() {
+function updateBiblePageStatus() {
   const pageLabel = projectedBible ? BiblePages.label(biblePageMap.get(`${Abbre[projectedBible.book]}${projectedBible.chapter}:${projectedBible.verse}`)) : '';
   const pageStatus = document.getElementById('bible_page_display');
   if (pageStatus) pageStatus.textContent = pageLabel;
-  if (!display_win || display_win.closed) return;
-  const outDiv = display_win.document.getElementById('b_out');
+  return pageLabel;
+}
+
+function renderProjectedBible(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => renderProjectedBible(win));
+    updateBiblePageStatus();
+    return;
+  }
+  const pageLabel = updateBiblePageStatus();
+  if (!targetWindow || targetWindow.closed) return;
+  const outDiv = targetWindow.document.getElementById('b_out');
   if (!projectedBible) {
     if (outDiv) outDiv.innerHTML = '';
     return;
@@ -2955,14 +3084,18 @@ function renderProjectedBible() {
   const row = findBibleRow(book, chapter, verse);
   if (!outDiv || !row) return;
   outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}" data-bible-ref-max="${bibleDisplaySettings.refMax}">
-    <div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b> / ${kr[book]}${chapter}:${verse}${pageLabel ? ` <span class="bible_page" style="font-size:0.65em;white-space:nowrap">（${pageLabel}）</span>` : ''}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>
-    <div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b> / ${en[book]}${chapter}:${verse}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>
+    ${!dualProjection || targetWindow !== chineseDisplayWindow ? `<div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b>${dualProjection ? '' : ` / ${kr[book]}${chapter}:${verse}`} ${pageLabel ? ` <span class="bible_page" style="font-size:0.65em;white-space:nowrap">（${pageLabel}）</span>` : ''}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>` : ''}
+    ${!dualProjection || targetWindow === chineseDisplayWindow ? `<div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b>${dualProjection ? '' : ` / ${en[book]}${chapter}:${verse}`}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>` : ''}
   </div>`;
 }
-function showTitleInPopup() {
-  if (!display_win || display_win.closed || !currentTitleInfo) return;
-  if (currentMode !== "hymn") switchScreen("hymn");
-  const doc = display_win.document;
+function showTitleInPopup(targetWindow) {
+  if (!targetWindow) { projectedHymnVerse = null; if (currentTitleInfo) switchScreen('hymn'); }
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => showTitleInPopup(win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed || !currentTitleInfo) return;
+  const doc = targetWindow.document;
   const outputDiv = doc.getElementById("h_output");
   const bgNumDiv = doc.getElementById("h_bg_number");
 
@@ -2982,9 +3115,13 @@ function showTitleInPopup() {
   wrap += "</div>";
   if (outputDiv) outputDiv.innerHTML = wrap;
 }
-function showLyricsVerse(index) {
-  if (!display_win || display_win.closed || !currentTitleInfo) return;
-  if (currentMode !== "hymn") switchScreen("hymn");
+function showLyricsVerse(index, targetWindow) {
+  if (!targetWindow && currentLyricsSections[index]) { projectedHymnVerse = index; if (currentTitleInfo) switchScreen('hymn'); }
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => showLyricsVerse(index, win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed || !currentTitleInfo) return;
   if (!currentLyricsSections[index]) return;
 
   const contentHtml = currentLyricsSections[index].content;
@@ -2996,7 +3133,7 @@ function showLyricsVerse(index) {
   const versePosition = index + 1;
   const verseMeta = escapeHTML(`(${versePosition}/${verseTotal})`);
 
-  const doc = display_win.document;
+  const doc = targetWindow.document;
   const outputDiv = doc.getElementById("h_output");
   const bgNumDiv = doc.getElementById("h_bg_number");
 
@@ -3024,7 +3161,7 @@ function showLyricsVerse(index) {
       ),
     10
   );
-  display_win.onresize = () => {
+  targetWindow.onresize = () => {
     if (currentMode === "hymn")
       adjustFontSizeForLyrics(
         doc.getElementById("lyric-container"),
@@ -3048,7 +3185,11 @@ function adjustFontSizeForLyrics(container, element) {
     loopCount++;
   }
 }
-function commit() {
+function commit(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => commit(win));
+    return;
+  }
   const liveInfo = readInfoInputs();
   const worship = escapeHTML(liveInfo.worship);
   const thema_ja = escapeHTML(liveInfo.jtitle);
@@ -3064,8 +3205,8 @@ function commit() {
     if (hymn_2nd !== "") hymnText += "/" + hymn_2nd;
   }
 
-  if (!display_win || display_win.closed) return;
-  const doc = display_win.document;
+  if (!targetWindow || targetWindow.closed) return;
+  const doc = targetWindow.document;
 
   const bibleHeader = doc.getElementById("b_header");
   if (bibleHeader) {
@@ -3100,14 +3241,18 @@ function commit() {
     }
   }
 
-  fontsizecommit();
-  applyColors();
-  applyTicker();
+  fontsizecommit(targetWindow);
+  applyColors(targetWindow);
+  applyTicker(targetWindow);
 }
 
-function fontsizecommit() {
-  if (!display_win || display_win.closed) return;
-  const doc = display_win.document;
+function fontsizecommit(targetWindow) {
+  if (!targetWindow) {
+    getProjectionWindows().forEach(win => fontsizecommit(win));
+    return;
+  }
+  if (!targetWindow || targetWindow.closed) return;
+  const doc = targetWindow.document;
   const setSize = (id, size) => {
     const el = doc.getElementById(id);
     if (el) el.style.fontSize = size + "em";
@@ -3248,6 +3393,7 @@ window.addEventListener("keydown", function (event) {
   };
 window.addEventListener("unload", (e) => {
   if (display_win) display_win.close();
+  if (chineseDisplayWindow) chineseDisplayWindow.close();
 });
 
   // Delay commit
@@ -3258,6 +3404,7 @@ window.addEventListener('load', () => {
   loadGeminiSettings();
   loadColorSettings();
   loadTickerSettings();
+  loadProjectionSettings();
   initDB();
   setupEventListeners();
   initProjectionConsole();
