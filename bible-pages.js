@@ -13,13 +13,15 @@
     if (!data || ![1, 2].includes(data.version) || !Array.isArray(data.boundaries)) throw new Error('ページデータの形式が正しくありません。');
     if (data.version === 2) {
       if (!data.starts || !['OT', 'NT'].every(section => Number.isSafeInteger(data.starts[section]) && data.starts[section] > 0 && data.starts[section] <= 1000000)) throw new Error('開始ページ番号を確認してください。');
+      const completed = { OT: false, NT: false, ...data.completed };
+      if (!['OT', 'NT'].every(section => typeof completed[section] === 'boolean')) throw new Error('最終ページの補完設定を確認してください。');
       const positions = new Map(items.map((v, i) => [v.ref, i]));
       const seen = new Set();
       const boundaries = data.boundaries.map(b => {
         if (!b || !positions.has(b.ref) || seen.has(b.ref)) throw new Error('開始位置の聖句・重複を確認してください。');
         seen.add(b.ref); return { ref: b.ref };
       }).sort((a, b) => positions.get(a.ref) - positions.get(b.ref));
-      return { version: 2, starts: { OT: data.starts.OT, NT: data.starts.NT }, boundaries };
+      return { version: 2, starts: { OT: data.starts.OT, NT: data.starts.NT }, completed, boundaries };
     }
     const positions = new Map(items.map((v, i) => [v.ref, i]));
     const seen = new Set();
@@ -45,10 +47,12 @@
     }
     const positions = new Map(items.map((v, i) => [v.ref, i]));
     const result = new Map();
+    const sectionEnds = {};
+    items.forEach((item, i) => { sectionEnds[item.section] = i + 1; });
     clean.boundaries.forEach((b, n) => {
       const start = positions.get(b.ref);
       const next = clean.boundaries[n + 1];
-      const end = next && items[positions.get(next.ref)].section === items[start].section ? positions.get(next.ref) : start + 1;
+      const end = next && items[positions.get(next.ref)].section === items[start].section ? positions.get(next.ref) : clean.completed?.[items[start].section] ? sectionEnds[items[start].section] : start + 1;
       for (let i = start; i < end; i++) result.set(items[i].ref, { page: b.page, section: items[i].section, manual: i === start });
     });
     return result;
