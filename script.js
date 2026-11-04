@@ -92,15 +92,58 @@ let en = [
 
 let bible = [];
 let biblePageMap = new Map();
+let bibleIndex = null;
+let biblePageLoad = null;
+let loadedPageItems = null;
+let loadedPageSignature = '';
 
-async function loadBiblePageData() {
-  try {
-    const items = BiblePages.verses(bible);
-    biblePageMap = BiblePages.expand(await BiblePages.load(items), items);
-  } catch (error) {
-    console.warn('ページ情報を読み込めませんでした。聖句のみ表示します。', error);
+// CSV rows are replaced on reload; build once and reuse across live input/search.
+function getBibleIndex() {
+  if (bibleIndex?.source === bible && bibleIndex.length === bible.length) return bibleIndex;
+  const byReference = new Map(), chapterCounts = new Map(), searchEntries = [];
+  bible.forEach((row, index) => {
+    const ref = row?.[3];
+    if (ref && !byReference.has(ref)) byReference.set(ref, row);
+    if (index === 0 || !row) return;
+    if (ref?.includes(':')) {
+      const chapter = ref.slice(0, ref.lastIndexOf(':') + 1);
+      chapterCounts.set(chapter, (chapterCounts.get(chapter) || 0) + 1);
+    }
+    searchEntries.push({ row, fields: row.slice(1, 5).map(value => String(value || '').toLocaleLowerCase()) });
+  });
+  bibleIndex = { source: bible, length: bible.length, byReference, chapterCounts, searchEntries, pageItems: null };
+  return bibleIndex;
+}
+
+function searchBibleRows(query) {
+  const normalized = query.toLocaleLowerCase();
+  const results = [];
+  for (const { row, fields } of getBibleIndex().searchEntries) {
+    if (fields.some(value => value.includes(normalized))) results.push(row);
   }
-  renderProjectedBible();
+  return results;
+}
+
+function loadBiblePageData() {
+  // Focus, broadcasts and the timer can request the same update concurrently.
+  if (biblePageLoad) return biblePageLoad;
+  biblePageLoad = (async () => {
+    try {
+      const index = getBibleIndex();
+      const items = index.pageItems || (index.pageItems = BiblePages.verses(index.source));
+      const data = await BiblePages.load(items);
+      if (index.source !== bible) return;
+      const signature = JSON.stringify(data);
+      if (loadedPageItems === items && loadedPageSignature === signature) return;
+      biblePageMap = BiblePages.expand(data, items);
+      loadedPageItems = items;
+      loadedPageSignature = signature;
+      renderProjectedBible();
+    } catch (error) {
+      console.warn('ページ情報を読み込めませんでした。聖句のみ表示します。', error);
+    }
+  })().finally(() => { biblePageLoad = null; });
+  return biblePageLoad;
 }
 
 window.addEventListener('focus', () => { if (bible.length) loadBiblePageData(); });
@@ -891,8 +934,8 @@ function loadCSVAsync(url) {
 }
 
 function convertbibleCSVtoArray(str) {
-  let tmp = str.split("\n");
-  for (let i = 0; i < tmp.length; ++i) bible[i] = tmp[i].split(",");
+  bible = str.split("\n").map(line => line.split(","));
+  getBibleIndex();
 }
 
 function converthymnCSVtoArray(str) {
@@ -2220,9 +2263,7 @@ function countVersesInChapter() {
     return;
   }
   const prefix = Abbre[abbre] + syouInput + ":";
-  let count = 0;
-  for (let i = 1; i < bible.length; i++)
-    if (bible[i] && bible[i][3] && bible[i][3].indexOf(prefix) === 0) count++;
+  const count = getBibleIndex().chapterCounts.get(prefix) || 0;
   display.innerText = count > 0 ? "この章の節数: " + count : "";
 }
 
@@ -2501,10 +2542,7 @@ function performSearch() {
     return;
   }
   bibleAiSearchRequestId += 1;
-  const lowerCaseQuery = query.toLocaleLowerCase();
-  const results = bible.slice(1).filter((rowArray) => {
-    return rowArray.slice(1, 5).some(value => String(value || '').toLocaleLowerCase().includes(lowerCaseQuery));
-  });
+  const results = searchBibleRows(query);
   displayResults(results, query);
 }
 
@@ -2617,7 +2655,7 @@ bookNumberは次の対応表の番号です: ${bookCatalog}`;
         || bookNumber < 1 || bookNumber > Abbre.length || chapter < 1 || verse < 1) return;
       const jpReference = `${Abbre[bookNumber - 1]}${chapter}:${verse}`;
       if (seenReferences.has(jpReference)) return;
-      const row = bible.find(item => item?.[3] === jpReference);
+      const row = getBibleIndex().byReference.get(jpReference);
       if (!row) return;
       seenReferences.add(jpReference);
       candidates.push({ row, reason: String(candidate.reason || '').trim() });
@@ -2678,30 +2716,27 @@ function displayAiBibleSearchError(query, error) {
 
 function applySearchResult(jpRef) {
   if (!jpRef) return;
-  for (let n = 1; n < bible.length; n++) {
-    if (bible[n][3] === jpRef) {
-      for (let i = Abbre.length - 1; i >= 0; i--) {
-        if (jpRef.startsWith(Abbre[i])) {
-          const rest = jpRef.substring(Abbre[i].length);
-          const parts = rest.split(':');
-          if (parts.length === 2) {
-            abbre = i;
-            syou = parts[0];
-            setu = parts[1];
-            document.getElementById('abbre_memo').textContent = Abbre[i];
-            document.getElementById('syou').value = syou;
-            document.getElementById('setu').value = setu;
-            updateBibleBookSelectionUi();
-            showBible();
-            checkwindow('bible');
-            countVersesInChapter();
-            closeBibleSearchModal();
-            showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
-            return;
-          }
+  if (getBibleIndex().byReference.has(jpRef)) {
+    for (let i = Abbre.length - 1; i >= 0; i--) {
+      if (jpRef.startsWith(Abbre[i])) {
+        const rest = jpRef.substring(Abbre[i].length);
+        const parts = rest.split(':');
+        if (parts.length === 2) {
+          abbre = i;
+          syou = parts[0];
+          setu = parts[1];
+          document.getElementById('abbre_memo').textContent = Abbre[i];
+          document.getElementById('syou').value = syou;
+          document.getElementById('setu').value = setu;
+          updateBibleBookSelectionUi();
+          showBible();
+          checkwindow('bible');
+          countVersesInChapter();
+          closeBibleSearchModal();
+          showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
+          return;
         }
       }
-      break;
     }
   }
   showToast('参照情報を解析できませんでした', 'error');

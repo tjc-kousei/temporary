@@ -79,7 +79,7 @@ function renderPlannedHymns() {
 
 function findBibleRow(book, chapter, verse) {
   if (book === '' || !Abbre[book] || !/^\d+$/.test(String(chapter)) || !/^\d+$/.test(String(verse))) return null;
-  return bible.find(row => row && row[3] === `${Abbre[book]}${Number(chapter)}:${Number(verse)}`) || null;
+  return getBibleIndex().byReference.get(`${Abbre[book]}${Number(chapter)}:${Number(verse)}`) || null;
 }
 
 function setBibleStatus(message) {
