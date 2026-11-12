@@ -302,7 +302,7 @@ let isModelsFetched = false;
 async function fetchAvailableModels() {
   if (isModelsFetched) return;
   try {
-    const response = await fetch('https://runaaa0712.weblike.jp/MyApp/available-api/api.php');
+    const response = await fetch('https://ss314029.stars.ne.jp/available-api/api.php');
     if (!response.ok) throw new Error('Network response error');
     const data = await response.json();
     if (data.status === 'success' && data.models) {
