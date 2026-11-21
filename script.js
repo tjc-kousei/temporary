@@ -744,7 +744,7 @@ const COLOR_DEFAULTS = {
   bible_body: '#000000',
 };
 
-let colorSettings = {};
+let colorSettings = { ...COLOR_DEFAULTS };
 
 function loadColorSettings() {
   const saved = localStorage.getItem('colorSettings');
@@ -864,13 +864,13 @@ function applyColors(targetWindow) {
   if (bThemaJp) bThemaJp.style.color = colorSettings.bible_jtitle;
   if (bThemaCh) bThemaCh.style.color = colorSettings.bible_ctitle;
 
-  // 聖書本文・箇所
-  const refRows = doc.querySelectorAll('.bible_ref_row');
-  refRows.forEach(r => r.style.color = colorSettings.bible_ref);
-  const targetRefs = doc.querySelectorAll('.target_ref_jp, .target_ref_ch');
+  // 聖書本文・箇所（箇所色は日本語・中国語のみに適用）
+  const refRows = doc.querySelectorAll ? doc.querySelectorAll('.bible_ref_row') : [];
+  refRows.forEach(r => r.style.color = colorSettings.bible_body);
+  const targetRefs = doc.querySelectorAll ? doc.querySelectorAll('.target_ref_jp, .target_ref_ch') : [];
   targetRefs.forEach(r => r.style.setProperty('color', colorSettings.bible_ref, 'important'));
 
-  const bodyRows = doc.querySelectorAll('.bible_body_row');
+  const bodyRows = doc.querySelectorAll ? doc.querySelectorAll('.bible_body_row') : [];
   bodyRows.forEach(b => b.style.color = colorSettings.bible_body);
 }
 
@@ -3133,6 +3133,7 @@ function renderProjectedBible(targetWindow) {
     ${!dualProjection || targetWindow !== chineseDisplayWindow ? `<div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b>${dualProjection ? '' : ` / ${kr[book]}${chapter}:${verse}`} ${pageLabel ? ` <span class="bible_page" style="font-size:0.65em;white-space:nowrap">（${pageLabel}）</span>` : ''}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>` : ''}
     ${!dualProjection || targetWindow === chineseDisplayWindow ? `<div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b>${dualProjection ? '' : ` / ${en[book]}${chapter}:${verse}`}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>` : ''}
   </div>`;
+  applyColors(targetWindow);
 }
 function showTitleInPopup(targetWindow) {
   if (!targetWindow) { projectedHymnVerse = null; if (currentTitleInfo) switchScreen('hymn'); }

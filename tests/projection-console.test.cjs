@@ -15,7 +15,8 @@ function fixture() {
     setTimeout() {}, clearTimeout() {}, localStorage: { getItem(key) { return storage.get(key) ?? null; }, setItem(key, value) { storage.set(key, value); } } });
   for (const file of ['bible-pages.js', 'script.js', 'projection-console.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), context);
   const run = code => vm.runInContext(code, context);
-  run(`bible = [[], ['','','','ヨハ3:1','本文1'], ['','','','ヨハ3:16','本文16'], ['','','','ヨハ3:17','本文17']];
+  run(`const realApplyColors = applyColors;
+    bible = [[], ['','','','ヨハ3:1','本文1'], ['','','','ヨハ3:16','本文16'], ['','','','ヨハ3:17','本文17']];
     abbre = '42'; syou = '3'; setu = '16';
     display_win = { closed: false, document }; fontsizecommit = () => {}; applyColors = () => {}; applyTicker = () => {};`);
   return { run, document, storage };
@@ -307,3 +308,46 @@ test('verse clearing still reaches Chinese output when primary window has been c
   run('showBible(); display_win.close(); clearBibleInputs();');
   assert.equal(run('chineseDisplayWindow.document.getElementById("b_out").innerHTML'), '');
 });
+
+test('scripture reference color applies only to Japanese and Chinese references while keeping other reference text in body color', () => {
+  const { run, document } = fixture();
+  const makeStyled = () => {
+    const props = {};
+    return {
+      style: {
+        color: '',
+        setProperty(name, value, priority) { props[name] = { value, priority }; this[name] = value; }
+      },
+      props
+    };
+  };
+  const refRowJp = makeStyled(), refRowCh = makeStyled();
+  const targetJp = makeStyled(), targetCh = makeStyled();
+  const bodyJp = makeStyled(), bodyCh = makeStyled();
+  document.querySelectorAll = selector => {
+    if (selector === '.bible_ref_row') return [refRowJp, refRowCh];
+    if (selector === '.target_ref_jp, .target_ref_ch') return [targetJp, targetCh];
+    if (selector === '.bible_body_row') return [bodyJp, bodyCh];
+    return [];
+  };
+  run('applyColors = realApplyColors; bible[2][1] = "約3:16"; bible[2][2] = "中文經文"; biblePageMap.set("ヨハ3:16", { section: "NT", page: 123 }); showBible();');
+  const html = document.getElementById('b_out').innerHTML;
+  assert.match(html, /<b class="target_ref_jp">ヨハ3:16<\/b> \/ 요3:16/);
+  assert.match(html, /<b class="target_ref_ch">約3:16<\/b> \/ John3:16/);
+  assert.equal(refRowJp.style.color, '#000000');
+  assert.equal(refRowCh.style.color, '#000000');
+  assert.deepEqual(targetJp.props.color, { value: '#E53935', priority: 'important' });
+  assert.deepEqual(targetCh.props.color, { value: '#E53935', priority: 'important' });
+  assert.equal(bodyJp.style.color, '#000000');
+  assert.equal(bodyCh.style.color, '#000000');
+
+  // Re-rendering (e.g. after size update or mode switch) preserves customized colors.
+  targetJp.props.color = null;
+  refRowJp.style.color = '';
+  run('onColorChange("bible_ref", "#123456"); onColorChange("bible_body", "#222222"); renderProjectedBible();');
+  assert.equal(refRowJp.style.color, '#222222');
+  assert.equal(refRowCh.style.color, '#222222');
+  assert.deepEqual(targetJp.props.color, { value: '#123456', priority: 'important' });
+  assert.deepEqual(targetCh.props.color, { value: '#123456', priority: 'important' });
+});
+
