@@ -44,6 +44,16 @@ async function run() {
   });
   const main = await context.newPage(); await main.goto(base); await main.waitForFunction(() => typeof SlideProjection !== 'undefined' && document.querySelector('#projection-status').textContent.includes('未接続'));
   assert.equal(context.pages().length, 1, 'startup never opens a projector');
+  await main.locator('#title_font_jtitle').evaluate(input => {
+    input.value = '6.35';
+    input.dispatchEvent(new Event('input'));
+    localStorage.setItem('dualProjection', 'true');
+  });
+  await main.reload();
+  await main.waitForFunction(() => document.querySelector('#title_font_jtitle').value === '6.35');
+  assert.equal(await main.evaluate(() => dualProjection), false);
+  assert.equal(await main.locator('#setting_dual_projection').count(), 0);
+  assert.equal(await main.locator('br + a[href="https://hymn.tjckousei.com/"]').count(), 1);
   const editorPromise = context.waitForEvent('page'); await main.getByRole('button', { name: 'スライド編集', exact: true }).click(); const editor = activeEditor = await editorPromise;
   await editor.waitForFunction(() => !document.querySelector('#workspace').inert);
   const thumbs = editor.locator('#slide-list .slide-item');
@@ -126,6 +136,7 @@ async function run() {
   await output.waitForFunction(() => document.body.classList.contains('slides-mode') && document.querySelector('#slides-view').textContent.includes('恵みによって歩む'));
   assert.equal(await output.locator('#common-logo').isVisible(), false);
   assert.equal(await output.locator('#b_footer_ticker').isVisible(), false);
+  assert.equal(await output.locator('#t_thema_ja').evaluate(el => el.style.fontSize), '6.35em');
   console.log('PASS: first explicit projection');
   await editor.locator('#canvas > .slide-text').first().dblclick(); await editor.locator('#canvas .tiptap').fill('編集途中の文字'); await editor.keyboard.press('Escape');
   assert.match(await output.locator('#slides-view').textContent(), /恵みによって歩む/, 'draft must not leak into projection');

@@ -14,9 +14,11 @@ function getProjectionWindows() {
 }
 
 function loadProjectionSettings() {
+  const toggle = document.getElementById('setting_dual_projection');
+  if (!toggle) return;
   try { dualProjection = localStorage.getItem('dualProjection') === 'true'; }
   catch { dualProjection = false; }
-  document.getElementById('setting_dual_projection').checked = dualProjection;
+  toggle.checked = dualProjection;
 }
 
 function applyProjectionLanguage(win) {
@@ -29,7 +31,8 @@ function applyProjectionLanguage(win) {
 function setDualProjection(enabled) {
   const hadChineseWindow = chineseDisplayWindow && !chineseDisplayWindow.closed;
   dualProjection = !!enabled;
-  document.getElementById('setting_dual_projection').checked = dualProjection;
+  const toggle = document.getElementById('setting_dual_projection');
+  if (toggle) toggle.checked = dualProjection;
   try { localStorage.setItem('dualProjection', String(dualProjection)); } catch { /* Session only. */ }
   if (!dualProjection) {
     if (chineseDisplayWindow && !chineseDisplayWindow.closed) chineseDisplayWindow.close();
@@ -170,7 +173,6 @@ let activeHymnRecommendationLabel = "";
 let currentMode = "title";
 
 let abbre = "", syou = "", setu = "";
-let disp_worship_font = 4.0, disp_jtitle_font = 5.0, disp_ctitle_font = 5.0, disp_person_font = 5.0;
 
 let currentServicerFilter = "all";
 let tempGASData = null; // GASから取得した一時的なデータを保持する変数
@@ -3304,12 +3306,13 @@ function fontsizecommit(targetWindow) {
     const el = doc.getElementById(id);
     if (el) el.style.fontSize = size + "em";
   };
-  setSize("t_worship", disp_worship_font);
-  setSize("t_thema_ja", disp_jtitle_font);
-  setSize("t_thema_ch", disp_ctitle_font);
-  setSize("t_speech", disp_person_font);
-  setSize("t_translator", disp_person_font);
-  setSize("t_hymn", disp_person_font);
+  setSize("t_worship", document.getElementById("title_font_worship").value);
+  setSize("t_thema_ja", document.getElementById("title_font_jtitle").value);
+  setSize("t_thema_ch", document.getElementById("title_font_ctitle").value);
+  const personSize = document.getElementById("title_font_person").value;
+  setSize("t_speech", personSize);
+  setSize("t_translator", personSize);
+  setSize("t_hymn", personSize);
 }
 
 // ==========================================
@@ -3349,9 +3352,15 @@ function setupEventListeners() {
   if(elBibleScale) elBibleScale.value = bibleDisplaySettings.refScale;
 
   // Font size ranges
-  const input_ranges = document.querySelectorAll('.change_size');
-  for (let n = 0; n < input_ranges.length; n++) {
-    input_ranges[n].addEventListener('input', () => fontsizecommit());
+  for (const input of document.querySelectorAll('.change_size')) {
+    const saved = localStorage.getItem(input.id);
+    if (saved !== null && Number(saved) >= Number(input.min) && Number(saved) <= Number(input.max)) {
+      input.value = saved;
+    }
+    input.addEventListener('input', () => {
+      fontsizecommit();
+      localStorage.setItem(input.id, input.value);
+    });
   }
 
   // Initialize color pickers with saved values
