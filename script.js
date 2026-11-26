@@ -7,6 +7,7 @@ let chineseDisplayWindow;
 let dualProjection = false;
 let projectionBlackedOut = false;
 let projectedHymnVerse = null;
+let projectedHymnPart = 0;
 
 function getProjectionWindows() {
   return [display_win, ...(dualProjection ? [chineseDisplayWindow] : [])]
@@ -56,7 +57,7 @@ function initializeProjectionWindow(win) {
   renderProjectedBible(win);
   if (currentTitleInfo) {
     if (projectedHymnVerse === null) showTitleInPopup(win);
-    else showLyricsVerse(projectedHymnVerse, win);
+    else showLyricsVerse(projectedHymnVerse, win, projectedHymnPart);
   }
   switchScreen(currentMode, win);
   window.SlideProjection?.render(win);
@@ -162,7 +163,8 @@ let currentLyricsSections = [];
 let currentTitleInfo = null;
 const HYMN_RECOMMENDATION_ENDPOINT = "https://tjckousei.com/api/v1/hymn-recommendations/index.php";
 const LYRICS_API_URL = "https://hymn.tjckousei.com/api.php?action=get_all_lyrics";
-const LYRICS_CACHE_KEY = "hymnLyricsData";
+const LYRICS_CACHE_KEY = "hymnLyricsDataV2";
+const LEGACY_LYRICS_CACHE_KEY = "hymnLyricsData";
 const LYRICS_CACHE_UPDATED_KEY = "hymnLyricsUpdatedAt";
 const fallbackHymnRecommendationGroups = [
   { label: "聖餐式", songs: ["194", "195", "196"] }
@@ -1053,6 +1055,7 @@ function enhanceSelect(select) {
     const selected = select.options[select.selectedIndex];
     trigger.textContent = selected?.textContent || "選択してください";
     trigger.disabled = select.disabled;
+    if (select.id === "hymn-language") trigger.setAttribute("aria-label", `歌詞の表示 ${trigger.textContent}`);
   };
   const show = () => {
     const items = Array.from(select.options).map(option => ({ label: option.textContent, value: option.value, disabled: option.disabled }));
@@ -2010,9 +2013,13 @@ function escapeRegExp(string) {
 }
 
 let allLyricsData = null;
+let lyricsFetch = null;
+let selectedHymnLyrics = null;
+let hymnLanguage = "ja";
+const hymnLanguages = { ja: "日本語", zh: "中国語" };
 
 function getNormalizedHymnNumber(value) {
-  return String(value || "").trim().replace(/[^(0-9)(甲乙)]/g, "");
+  return String(value || "").normalize("NFKC").replace(/[^0-9甲乙]/g, "");
 }
 
 function getHymnTitleInfo(value) {
@@ -2028,20 +2035,27 @@ function setLyricsMessage(message, type = "empty") {
   lyricsArea.innerHTML = `<div class="lyrics-state lyrics-state-${type}">${escapeHTML(message)}</div>`;
 }
 
+function isLyricMap(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function readLyricsCache() {
   try {
-    const cached = localStorage.getItem(LYRICS_CACHE_KEY);
-    return cached ? JSON.parse(cached) : null;
+    const cached = JSON.parse(localStorage.getItem(LYRICS_CACHE_KEY));
+    if (isLyricMap(cached?.ja)) return cached;
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_LYRICS_CACHE_KEY));
+    if (isLyricMap(legacy)) return { ja: legacy, zh: null };
   } catch (error) {
     console.warn("保存済み歌詞データの読み込みに失敗しました:", error);
-    return null;
   }
+  return null;
 }
 
 function writeLyricsCache(data) {
   try {
     localStorage.setItem(LYRICS_CACHE_KEY, JSON.stringify(data));
     localStorage.setItem(LYRICS_CACHE_UPDATED_KEY, new Date().toISOString());
+    localStorage.removeItem(LEGACY_LYRICS_CACHE_KEY);
   } catch (error) {
     console.warn("歌詞データの保存に失敗しました:", error);
   }
@@ -2053,80 +2067,161 @@ async function fetchLyricsData() {
     headers: { Accept: "application/json" },
     cache: "no-store"
   });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   const json = await response.json();
-  if (!json || !json.success || !json.data) {
-    throw new Error("Invalid lyrics response");
-  }
+  if (!json?.success || !isLyricMap(json.data)) throw new Error("Invalid lyrics response");
 
-  writeLyricsCache(json.data);
-  return json.data;
+  const data = { ja: json.data, zh: isLyricMap(json.data_zh) ? json.data_zh : null };
+  writeLyricsCache(data);
+  return data;
 }
 
 async function loadLyricsData({ force = false } = {}) {
   if (allLyricsData && !force) return allLyricsData;
 
-  if (!force) {
-    const cached = readLyricsCache();
-    if (cached) {
-      allLyricsData = cached;
-      return allLyricsData;
-    }
+  const cached = allLyricsData || readLyricsCache();
+  if (!force && cached?.zh) {
+    allLyricsData = cached;
+    return cached;
   }
 
-  allLyricsData = await fetchLyricsData();
+  lyricsFetch ||= fetchLyricsData().finally(() => { lyricsFetch = null; });
+  try {
+    allLyricsData = await lyricsFetch;
+  } catch (error) {
+    if (force || !cached) throw error;
+    allLyricsData = cached;
+  }
   return allLyricsData;
 }
 
 function clearDisplayedHymn(targetWindow) {
-  projectedHymnVerse = null;
   if (!targetWindow) {
-    getProjectionWindows().forEach(win => clearDisplayedHymn(win));
+    projectedHymnVerse = null;
+    projectedHymnPart = 0;
+    getProjectionWindows().forEach(clearDisplayedHymn);
     return;
   }
-  if (!targetWindow || targetWindow.closed) return;
-
   const doc = targetWindow.document;
-  const hOutput = doc.getElementById("h_output");
+  hymnFitObservers.get(targetWindow)?.disconnect();
+  const output = doc.getElementById("h_output");
+  if (output) output.innerHTML = "";
   const hBgNum = doc.getElementById("h_bg_number");
-  if (hOutput) hOutput.innerHTML = "";
   if (hBgNum) hBgNum.innerText = "";
 }
 
-function renderLyricsControls(sections) {
-  const lyricsArea = document.getElementById("lyrics_area");
-  if (!lyricsArea) return;
+function selectedHymnLanguages() {
+  return hymnLanguage === "both" ? ["ja", "zh"] : [hymnLanguage];
+}
 
-  lyricsArea.innerHTML = "";
+function setSelectedHymnLyrics(data, number) {
+  const file = `${number}.txt`;
+  selectedHymnLyrics = {
+    ja: parseLyrics(data.ja[file]),
+    zh: parseLyrics(data.zh?.[file])
+  };
+}
+
+function applyHymnLanguage(previousLabel = null, activate = false) {
+  const languages = selectedHymnLanguages();
+  const labels = new Set(languages.flatMap(language => [...selectedHymnLyrics[language].keys()]));
+  currentLyricsSections = [...labels]
+    .sort((a, b) => a.localeCompare(b, "ja", { numeric: true }))
+    .map(label => {
+      const lines = Object.fromEntries(languages.map(language => [language, selectedHymnLyrics[language].get(label) || []]));
+      const visualLines = Object.values(lines).flat().reduce((count, line) => {
+        const plain = line.replace(/\([ぁ-んァ-ヶー]+\)/g, "");
+        return count + Math.max(1, Math.ceil(Array.from(plain).length / 22));
+      }, 0);
+      const maxLines = Math.max(...Object.values(lines).map(lines => lines.length));
+      const partCount = Math.max(1, Math.min(maxLines, Math.ceil(visualLines / 7)));
+      const parts = Array.from({ length: partCount }, (_, index) => Object.fromEntries(
+        languages.map(language => {
+          const text = lines[language];
+          return [language, text.slice(Math.ceil(index * text.length / partCount), Math.ceil((index + 1) * text.length / partCount))];
+        })
+      ));
+      return { label, lines, parts };
+    });
+
+  const index = currentLyricsSections.findIndex(section => section.label === previousLabel);
+  projectedHymnVerse = index < 0 ? null : index;
+  projectedHymnPart = index < 0 ? 0 : Math.min(projectedHymnPart, currentLyricsSections[index].parts.length - 1);
+  renderLyricsControls();
+  if (activate) switchScreen("hymn");
+  getProjectionWindows().forEach(win => {
+    if (index < 0) showTitleInPopup(win);
+    else showLyricsVerse(index, win, projectedHymnPart);
+  });
+  updateHymnControls();
+}
+
+function renderLyricsControls() {
+  const lyricsArea = document.getElementById("lyrics_area");
+  lyricsArea.replaceChildren();
 
   const titleButton = document.createElement("button");
   titleButton.type = "button";
   titleButton.className = "lyric-btn";
   titleButton.id = "btn-title";
   titleButton.textContent = "タイトル";
-  titleButton.addEventListener("click", () => {
-    switchScreen("hymn");
-    showTitleInPopup();
-    updateActiveButton(titleButton);
-  });
+  titleButton.addEventListener("click", () => showTitleInPopup());
   lyricsArea.appendChild(titleButton);
 
-  sections.forEach((section, index) => {
+  currentLyricsSections.forEach((section, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "lyric-btn";
+    button.dataset.verse = index;
     button.textContent = section.label;
-    button.addEventListener("click", () => {
-      switchScreen("hymn");
-      showLyricsVerse(index);
-      updateActiveButton(button);
-    });
+    button.addEventListener("click", () => showLyricsVerse(index));
     lyricsArea.appendChild(button);
   });
+  const parts = document.createElement("div");
+  parts.id = "hymn-parts";
+  parts.className = "hymn-parts";
+  parts.setAttribute("role", "group");
+  parts.setAttribute("aria-label", "節の表示範囲");
+  parts.hidden = true;
+  lyricsArea.appendChild(parts);
+
+  for (const language of selectedHymnLanguages()) {
+    if (selectedHymnLyrics[language].size > 0) continue;
+    const message = document.createElement("div");
+    message.className = "lyrics-state lyrics-state-warning";
+    message.textContent = `${hymnLanguages[language]}の歌詞データがありません。`;
+    lyricsArea.appendChild(message);
+  }
+}
+
+function hymnPartLabel(index, total) {
+  if (total === 2) return index === 0 ? "前半" : "後半";
+  return `${index + 1}/${total}`;
+}
+
+function updateHymnControls() {
+  const verse = projectedHymnVerse;
+  const button = verse === null
+    ? document.getElementById("btn-title")
+    : document.querySelector(`.lyric-btn[data-verse="${verse}"]`);
+  updateActiveButton(button);
+  const parts = document.getElementById("hymn-parts");
+  if (!parts) return;
+  const total = currentLyricsSections[verse]?.parts.length || 0;
+  parts.hidden = total < 2;
+  if (parts.dataset.verse !== String(verse) || parts.childElementCount !== (total > 1 ? total : 0)) {
+    parts.replaceChildren();
+    parts.dataset.verse = String(verse);
+    for (let part = 0; total > 1 && part < total; part++) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = hymnPartLabel(part, total);
+      button.addEventListener("click", () => showLyricsVerse(verse, undefined, part));
+      parts.appendChild(button);
+    }
+  }
+  [...parts.children].forEach((button, part) => button.setAttribute("aria-pressed", String(part === projectedHymnPart)));
 }
 
 let lyricsRequestId = 0;
@@ -2138,6 +2233,7 @@ async function recievehymn(value) {
   lyricsArea.innerHTML = "";
   currentTitleInfo = null;
   currentLyricsSections = [];
+  selectedHymnLyrics = null;
   clearDisplayedHymn();
 
   const hymnNumber = getNormalizedHymnNumber(value);
@@ -2158,45 +2254,50 @@ async function recievehymn(value) {
     const lyricsData = await loadLyricsData();
     if (requestId !== lyricsRequestId) return;
     currentTitleInfo = titleInfo;
-    currentLyricsSections = [];
-    const text = lyricsData ? lyricsData[`${hymnNumber}.txt`] : null;
-
-    if (text) {
-      currentLyricsSections = parseLyrics(text);
-
-      if (currentLyricsSections.length > 0) {
-        renderLyricsControls(currentLyricsSections);
-        switchScreen("hymn");
-        showTitleInPopup();
-        const titleBtn = document.getElementById("btn-title");
-        if (titleBtn) updateActiveButton(titleBtn);
-      } else {
-        setLyricsMessage(`讃美歌 ${hymnNumber} の歌詞形式を解析できませんでした。`, "warning");
-      }
-    } else {
-      setLyricsMessage(`讃美歌 ${hymnNumber} の歌詞データはまだ登録されていません。`, "warning");
-      showTitleInPopup();
-      console.warn("歌詞データが見つかりませんでした:", hymnNumber);
-    }
-  } catch (e) {
+    setSelectedHymnLyrics(lyricsData, hymnNumber);
+    applyHymnLanguage(null, true);
+  } catch (error) {
     if (requestId !== lyricsRequestId) return;
     setLyricsMessage("歌詞データの取得に失敗しました。通信状況を確認してください。", "error");
-    console.warn("歌詞の取得に失敗しました:", hymnNumber, e);
+    console.warn("歌詞の取得に失敗しました:", hymnNumber, error);
+  }
+}
+
+async function changeHymnLanguage(language) {
+  hymnLanguage = language;
+  if (!selectedHymnLyrics) return;
+  const label = currentLyricsSections[projectedHymnVerse]?.label;
+  applyHymnLanguage(label);
+
+  if (language === "ja" || allLyricsData?.zh) return;
+  const requestId = lyricsRequestId;
+  try {
+    const data = await loadLyricsData({ force: true });
+    if (requestId !== lyricsRequestId || hymnLanguage === "ja" || !data.zh) return;
+    const label = currentLyricsSections[projectedHymnVerse]?.label;
+    setSelectedHymnLyrics(data, currentTitleInfo[0].trim());
+    applyHymnLanguage(label);
+  } catch (error) {
+    console.warn("中国語の歌詞データを取得できませんでした:", error);
   }
 }
 
 async function reloadLyricsData() {
   try {
-    showToast("最新の歌詞を取得しています...", "info");
-    await loadLyricsData({ force: true });
-    showToast("歌詞データを最新に更新しました", "success");
+    showToast("歌詞データを更新しています...", "info");
+    const data = await loadLyricsData({ force: true });
+    showToast("歌詞データを更新しました", "success");
 
-    const prehymnInput = document.getElementById("prehymn");
-    if (prehymnInput && prehymnInput.value) {
-      recievehymn(prehymnInput.value.trim());
+    if (currentTitleInfo) {
+      const label = currentLyricsSections[projectedHymnVerse]?.label;
+      setSelectedHymnLyrics(data, currentTitleInfo[0].trim());
+      applyHymnLanguage(label);
+    } else {
+      const number = document.getElementById("prehymn")?.value;
+      if (number) await recievehymn(number);
     }
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error(error);
     showToast("歌詞データの更新に失敗しました", "error");
   }
 }
@@ -2209,37 +2310,15 @@ function convertRuby(text) {
 }
 
 function parseLyrics(text) {
-  const regex = /\[(.*?)\]/g;
-  let match,
-    lastIndex = 0,
-    currentLabel = null;
-  const sections = [];
-  const processContent = (rawText) => {
-    rawText = rawText.trim();
-    if (!rawText) return "";
-    let processed = convertRuby(escapeHTML(rawText));
-    return processed
-      .split(/\r\n|\n/)
-      .map((line) => {
-        if (!line.trim()) return '<div style="min-height: 1.2em;">&nbsp;</div>';
-        return `<div style="white-space: nowrap; text-align: center; margin: 2px 0;">${line}</div>`;
-      })
-      .join("");
-  };
-  while ((match = regex.exec(text)) !== null) {
-    if (currentLabel)
-      sections.push({
-        label: currentLabel,
-        content: processContent(text.substring(lastIndex, match.index)),
-      });
-    currentLabel = match[1];
-    lastIndex = regex.lastIndex;
-  }
-  if (currentLabel)
-    sections.push({
-      label: currentLabel,
-      content: processContent(text.substring(lastIndex)),
-    });
+  const sections = new Map();
+  if (typeof text !== "string") return sections;
+  const headings = [...text.matchAll(/^[\t \uFEFF]*\[([^\]\r\n]+)\][\t ]*/gm)];
+  if (!headings.length && text.trim()) sections.set("1", text.trim().split(/\r?\n/));
+  headings.forEach((heading, index) => {
+    const label = heading[1].trim().normalize("NFKC");
+    const body = text.slice(heading.index + heading[0].length, headings[index + 1]?.index).trim();
+    if (label && body) sections.set(label, body.split(/\r?\n/));
+  });
   return sections;
 }
 function saveCookies() {
@@ -2304,7 +2383,7 @@ function openwindow(focusExisting = false) {
   let openedWindow = null;
   const openProjection = (name) => {
     // Calls can originate in the slide editor. Resolve against this app, not its caller.
-    const win = window.open(new URL('./popwindow/display.html?v=14', window.location.href).href, name,
+    const win = window.open(new URL('./popwindow/display.html?v=16', window.location.href).href, name,
       'width=1500,height=800,scrollbars=yes,resizable=yes');
     if (win) {
       openedWindow = win;
@@ -2382,8 +2461,11 @@ function updateModeUI(mode) {
 
 function updateActiveButton(activeBtn) {
   const buttons = document.querySelectorAll(".lyric-btn");
-  buttons.forEach((btn) => btn.classList.remove("active"));
-  if (activeBtn) activeBtn.classList.add("active");
+  buttons.forEach(button => {
+    const active = button === activeBtn;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
@@ -2973,7 +3055,7 @@ function checkwindow(mode, focusExisting = false) {
       getProjectionWindows().forEach(win => {
         if (!win.document.getElementById('h_output')?.innerHTML) {
           if (projectedHymnVerse === null) showTitleInPopup(win);
-          else showLyricsVerse(projectedHymnVerse, win);
+          else showLyricsVerse(projectedHymnVerse, win, projectedHymnPart);
         }
       });
     }
@@ -3138,100 +3220,101 @@ function renderProjectedBible(targetWindow) {
   applyColors(targetWindow);
 }
 function showTitleInPopup(targetWindow) {
-  if (!targetWindow) { projectedHymnVerse = null; if (currentTitleInfo) switchScreen('hymn'); }
+  if (!currentTitleInfo) return;
   if (!targetWindow) {
-    getProjectionWindows().forEach(win => showTitleInPopup(win));
+    projectedHymnVerse = null;
+    projectedHymnPart = 0;
+    switchScreen("hymn");
+    getProjectionWindows().forEach(showTitleInPopup);
+    updateHymnControls();
     return;
   }
-  if (!targetWindow || targetWindow.closed || !currentTitleInfo) return;
+  if (targetWindow.closed) return;
+
   const doc = targetWindow.document;
-  const outputDiv = doc.getElementById("h_output");
-  const bgNumDiv = doc.getElementById("h_bg_number");
-
-  if (bgNumDiv) bgNumDiv.innerText = ""; // 背景番号クリア
-
-  const hymnNumber = escapeHTML(currentTitleInfo[0] || "");
+  const output = doc.getElementById("h_output");
+  if (!output) return;
+  hymnFitObservers.get(targetWindow)?.disconnect();
+  doc.getElementById("h_bg_number").innerText = "";
+  const number = escapeHTML(currentTitleInfo[0].trim());
   const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
   const japaneseTitle = escapeHTML(currentTitleInfo[2] || "");
-  const verseTotal = currentLyricsSections.length;
-
-  let wrap = "<div><p id='h_title_text'>" + hymnNumber + "番</p>";
-  wrap += "<p id='h_ch_text'><<" + chineseTitle + ">></p>";
-  wrap += "<p id='h_jp_text'><<" + japaneseTitle + ">></p>";
-  if (verseTotal > 0) {
-    wrap += "<p id='h_verse_summary'>全 " + verseTotal + " 番</p>";
-  }
-  wrap += "</div>";
-  if (outputDiv) outputDiv.innerHTML = wrap;
+  const total = selectedHymnLyrics?.ja.size || 0;
+  output.innerHTML = `<div class="hymn-title-screen">
+    <p id="h_title_text">${number}番</p>
+    <p id="h_ch_text" lang="zh-Hant">&lt;&lt;${chineseTitle}&gt;&gt;</p>
+    <p id="h_jp_text" lang="ja">&lt;&lt;${japaneseTitle}&gt;&gt;</p>
+    ${total ? `<p id="h_verse_summary">全 ${total} 番</p>` : ""}
+  </div>`;
 }
-function showLyricsVerse(index, targetWindow) {
-  if (!targetWindow && currentLyricsSections[index]) { projectedHymnVerse = index; if (currentTitleInfo) switchScreen('hymn'); }
+
+const hymnFitObservers = new WeakMap();
+
+function showLyricsVerse(index, targetWindow, part = 0) {
+  const section = currentLyricsSections[index];
+  if (!currentTitleInfo || !section?.parts[part]) return;
   if (!targetWindow) {
-    getProjectionWindows().forEach(win => showLyricsVerse(index, win));
+    projectedHymnVerse = index;
+    projectedHymnPart = part;
+    switchScreen("hymn");
+    getProjectionWindows().forEach(win => showLyricsVerse(index, win, part));
+    updateHymnControls();
     return;
   }
-  if (!targetWindow || targetWindow.closed || !currentTitleInfo) return;
-  if (!currentLyricsSections[index]) return;
-
-  const contentHtml = currentLyricsSections[index].content;
-  const verseLabel = currentLyricsSections[index].label;
-  const hymnNumber = escapeHTML(currentTitleInfo[0] || "");
-  const japaneseTitle = escapeHTML(currentTitleInfo[2] || "");
-  const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
-  const verseTotal = currentLyricsSections.length;
-  const versePosition = index + 1;
-  const verseMeta = escapeHTML(`(${versePosition}/${verseTotal})`);
+  if (targetWindow.closed) return;
 
   const doc = targetWindow.document;
-  const outputDiv = doc.getElementById("h_output");
-  const bgNumDiv = doc.getElementById("h_bg_number");
+  const output = doc.getElementById("h_output");
+  if (!output) return;
+  doc.getElementById("h_bg_number").innerText = section.label;
+  const number = escapeHTML(currentTitleInfo[0].trim());
+  const japaneseTitle = escapeHTML(currentTitleInfo[2] || "");
+  const chineseTitle = escapeHTML(currentTitleInfo[1] || "");
+  const verse = `(${index + 1}/${currentLyricsSections.length})`;
+  const range = section.parts.length > 1 ? hymnPartLabel(part, section.parts.length) : "";
+  const blocks = selectedHymnLanguages().map(language => {
+    const lines = section.parts[part][language];
+    if (!lines.length) {
+      return !section.lines[language].length && part === 0
+        ? `<div class="hymn-lyrics-missing">${hymnLanguages[language]}の歌詞がありません</div>`
+        : "";
+    }
+    const japanese = language === "ja";
+    const html = lines.map(line => {
+      const escaped = escapeHTML(line);
+      return `<div class="hymn-line">${(japanese ? convertRuby(escaped) : escaped) || "&nbsp;"}</div>`;
+    }).join("");
+    return `<div class="hymn-lyrics" lang="${japanese ? "ja" : "zh-Hant"}">${html}</div>`;
+  }).join("");
 
-  if (bgNumDiv) bgNumDiv.innerText = verseLabel;
-
-  if (!outputDiv) return;
-
-  const headerHtml = `
-    <div style="flex: 0 0 auto; width: 100%; text-align: center; padding: 10px 20px; background: rgba(255,255,255,0.92); border-bottom: 2px solid #ccc; display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap;">
-      <span style="font-size: 4rem; font-weight: bold;">${hymnNumber} ${japaneseTitle}/${chineseTitle}</span>
-      <span style="font-size: 3rem; font-weight: 800; color: #006064; border: 3px solid #00838f; border-radius: 999px; padding: 0.1em 0.65em;">${verseMeta}</span>
+  output.innerHTML = `<div class="hymn-verse-screen">
+    <header class="hymn-verse-header">
+      <div class="hymn-verse-titles"><span class="hymn-song-number">${number}</span> <span lang="ja">${japaneseTitle}</span>/<span lang="zh-Hant">${chineseTitle}</span></div>
+      <span class="hymn-verse-label">${verse}${range ? ` <span>${range}</span>` : ""}</span>
+    </header>
+    <div id="lyric-container" tabindex="0" aria-label="投影中の歌詞">
+      <div id="lyric-text">${blocks}</div>
     </div>
-  `;
-  const bodyHtml = `
-    <div id="lyric-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center;">
-      <div id="lyric-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; line-height: 1.5;">${contentHtml}</div>
-    </div>
-  `;
-  outputDiv.innerHTML = `<div style="display: flex; flex-direction: column; height: 100vh; width: 100%;">${headerHtml}${bodyHtml}</div>`;
-  setTimeout(
-    () =>
-      adjustFontSizeForLyrics(
-        doc.getElementById("lyric-container"),
-        doc.getElementById("lyric-text")
-      ),
-    10
-  );
-  targetWindow.onresize = () => {
-    if (currentMode === "hymn")
-      adjustFontSizeForLyrics(
-        doc.getElementById("lyric-container"),
-        doc.getElementById("lyric-text")
-      );
-  };
+  </div>`;
+
+  hymnFitObservers.get(targetWindow)?.disconnect();
+  const container = doc.getElementById("lyric-container");
+  const text = doc.getElementById("lyric-text");
+  const fit = () => adjustFontSizeForLyrics(container, text);
+  const observer = new targetWindow.ResizeObserver(fit);
+  observer.observe(container);
+  hymnFitObservers.set(targetWindow, observer);
+  fit();
 }
 
 function adjustFontSizeForLyrics(container, element) {
-  if (!container || !element) return;
-  let size = 8, loopCount = 0;
-  element.style.fontSize = size + "rem";
-  while (
-    (element.scrollWidth > container.clientWidth ||
-      element.scrollHeight > container.clientHeight) &&
-    size > 0.5 &&
-    loopCount < 100
-  ) {
-    size -= 0.5;
-    element.style.fontSize = size + "rem";
-    loopCount++;
+  if (!container.clientWidth || !container.clientHeight) return;
+  const minSize = 2.25;
+  let size = 8;
+  element.style.fontSize = `${size}rem`;
+  while (element.scrollHeight > container.clientHeight && size > minSize) {
+    size = Math.max(minSize, size - 0.25);
+    element.style.fontSize = `${size}rem`;
   }
 }
 function commit(targetWindow) {

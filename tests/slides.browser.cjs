@@ -38,7 +38,11 @@ async function run() {
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.origin === new URL(base).origin || !url.protocol.startsWith('http')) return route.continue();
-    if (url.pathname.includes('api.php')) return route.fulfill({ json: { success: true, data: { '1.txt': '[1]\nテストの歌詞\n[2]\n二番の歌詞' } } });
+    if (url.pathname.includes('api.php')) return route.fulfill({ json: {
+      success: true,
+      data: { '1.txt': '[1]\nテストの歌詞\n[2]\n日本語一行目\n日本語二行目\n日本語三行目\n日本語四行目' },
+      data_zh: { '1.txt': '[1]\n中文歌詞\n[2]\n中文第一行\n中文第二行\n中文第三行\n中文第四行' }
+    } });
     if (url.pathname.includes('hymn-recommendations')) return route.fulfill({ json: { groups: [] } });
     return route.abort();
   });
@@ -273,8 +277,45 @@ async function run() {
   await waitFor(async () => (await output.locator('#b_out').textContent()).includes('神'), 'existing Bible projection failed');
   await main.locator('#prehymn').fill('1');
   await waitFor(async () => (await output.locator('#h_output').textContent()).includes('聖なる'), 'existing hymn title failed');
+  const hymnLanguage = main.getByRole('button', { name: /^歌詞の表示 / });
+  const chooseLanguage = async name => {
+    await hymnLanguage.click();
+    await main.getByRole('option', { name, exact: true }).click();
+  };
+  const projectedLyrics = output.locator('.hymn-lyrics');
+  assert.equal(await hymnLanguage.textContent(), '日本語のみ');
+  const title = await output.locator('.hymn-title-screen').innerHTML();
+  assert.match(title, /頌贊獨一真神.*聖なる聖なる/s);
+  await chooseLanguage('中国語のみ');
+  assert.equal(await output.locator('.hymn-title-screen').innerHTML(), title);
+  await chooseLanguage('日本語のみ');
   await main.locator('.lyric-btn').nth(1).click();
   await waitFor(async () => (await output.locator('#h_output').textContent()).includes('テストの歌詞'), 'existing lyric verse failed');
+  const verseTitles = output.locator('.hymn-verse-titles');
+  const verseTitle = await verseTitles.textContent();
+  assert.equal(verseTitle, '1 聖なる聖なる/頌贊獨一真神');
+
+  assert.equal(await projectedLyrics.count(), 1);
+  assert.equal(await projectedLyrics.first().getAttribute('lang'), 'ja');
+  await chooseLanguage('中国語のみ');
+  await waitFor(async () => (await projectedLyrics.first().textContent()).includes('中文歌詞'), 'Chinese lyric verse failed');
+  assert.equal(await projectedLyrics.first().getAttribute('lang'), 'zh-Hant');
+  assert.equal(await verseTitles.textContent(), verseTitle);
+  await chooseLanguage('日本語・中国語併記');
+  await main.locator('.lyric-btn').nth(2).click();
+  await waitFor(async () => (await projectedLyrics.count()) === 2, 'bilingual lyric verse failed');
+  assert.deepEqual(await projectedLyrics.evaluateAll(nodes => nodes.map(node => node.lang)), ['ja', 'zh-Hant']);
+  assert.match(await projectedLyrics.first().textContent(), /日本語一行目/);
+  assert.match(await projectedLyrics.last().textContent(), /中文第一行/);
+  await main.getByRole('button', { name: '後半', exact: true }).click();
+  assert.match(await projectedLyrics.first().textContent(), /日本語四行目/);
+  assert.match(await projectedLyrics.last().textContent(), /中文第四行/);
+  await output.setViewportSize({ width: 350, height: 160 });
+  const lyricsRegion = output.locator('#lyric-container');
+  await waitFor(() => lyricsRegion.evaluate(node => node.scrollHeight > node.clientHeight), 'lyrics should scroll in a short window');
+  await lyricsRegion.evaluate(node => { node.scrollTop = node.scrollHeight; });
+  assert(await lyricsRegion.evaluate(node => node.scrollTop > 0));
+  await output.setViewportSize({ width: 1500, height: 1000 });
   await main.evaluate(() => setUiStyle('modern'));
   await main.getByRole('button', { name: 'スライド 表示', exact: true }).click();
   await waitFor(async () => (await main.locator('#projection-status').textContent()).includes('スライド'), 'slides mode status failed');

@@ -309,32 +309,104 @@
             z-index: 10;
         }
 
-        #h_output>div {
+        .hymn-title-screen,
+        .hymn-verse-screen {
             width: 100%;
-            height: 100vh;
+            height: 100%;
             display: flex;
-            place-items: center;
-            align-items: center;
             flex-direction: column;
+        }
+
+        .hymn-title-screen {
+            align-items: center;
             justify-content: center;
+            padding: 2vw;
+            text-align: center;
         }
 
         #h_title_text {
-            font-size: 14rem;
-            font-weight: bold;
+            font-size: clamp(3rem, 24vmin, 14rem);
         }
 
         #h_ch_text,
         #h_jp_text {
-            font-size: 6rem;
+            overflow-wrap: anywhere;
             font-weight: 600;
+            font-size: clamp(1.5rem, 11vmin, 6rem);
         }
 
         #h_verse_summary {
-            margin-top: 2rem;
-            font-size: 4rem;
+            margin-top: clamp(0.5rem, 4vmin, 2rem);
+            font-size: clamp(1rem, 7vmin, 4rem);
             font-weight: 600;
             color: rgba(0, 0, 0, 0.58);
+        }
+
+        .hymn-verse-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6em;
+            flex: 0 0 auto;
+            padding: 0.28em 2vw;
+            background: rgba(255, 255, 255, 0.92);
+            border-bottom: 1px solid #ccc;
+            font-size: clamp(1rem, 4.5vmin, 4rem);
+            text-align: center;
+        }
+
+        .hymn-verse-titles {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .hymn-verse-label {
+            flex-shrink: 0;
+            padding: 0.12em 0.65em;
+            border: 2px solid #00838f;
+            border-radius: 999px;
+            color: #006064;
+            font-size: 0.75em;
+        }
+
+        .hymn-verse-label span {
+            font-size: 0.8em;
+        }
+
+        #lyric-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        #lyric-text {
+            flex: none;
+            width: 100%;
+            margin-block: auto;
+            padding: 2vh 3vw;
+            text-align: center;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        .hymn-line {
+            white-space: pre-wrap;
+        }
+
+        .hymn-lyrics + .hymn-lyrics,
+        .hymn-lyrics-missing + .hymn-lyrics,
+        .hymn-lyrics + .hymn-lyrics-missing {
+            border-top: 1px solid #b9d0d1;
+            margin-top: 0.32em;
+            padding-top: 0.32em;
+        }
+
+        .hymn-lyrics-missing {
+            color: #555;
+            font-size: 0.55em;
         }
 
         /* 歌詞番号の背景表示用スタイル  */

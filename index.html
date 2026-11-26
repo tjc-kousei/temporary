@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#00838f">
   <link rel="apple-touch-icon" href="./tjc.png">
-  <link rel="stylesheet" href="./style.css?v=15">
+  <link rel="stylesheet" href="./style.css?v=16">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@200&display=swap');
   </style>
@@ -150,10 +150,18 @@
         <div class="form-group">
           <label class="hymn-number-label" for="prehymn">讃美歌番号</label>
           <input type="search" id="prehymn" list="hymnlist"
-            oninput="this.value = (this.value).replace(/[^(0-9)(甲乙)]/g, ''); recievehymn(this.value);"
+            oninput="this.value = getNormalizedHymnNumber(this.value); recievehymn(this.value);"
             maxlength="4" placeholder="番号を入力">
         </div>
         <div id="planned-hymns" class="planned-hymns" aria-label="礼拝讃美歌から選択"></div>
+        <div class="hymn-language-field">
+          <label for="hymn-language">歌詞の表示</label>
+          <select id="hymn-language" autocomplete="off" onchange="changeHymnLanguage(this.value);">
+            <option value="ja" selected>日本語のみ</option>
+            <option value="zh">中国語のみ</option>
+            <option value="both">日本語・中国語併記</option>
+          </select>
+        </div>
         <div id="lyrics_area" class="lyrics-actions"></div>
         <div id="hymn-recommendation-panel" class="hymn-recommendation-panel">
           <div class="hymn-recommendation-head">
@@ -665,7 +673,7 @@
 
   <script src="./worship.js"></script>
   <script src="./bible-pages.js?v=11"></script>
-  <script src="./script.js?v=22"></script>
+  <script src="./script.js?v=24"></script>
   <script src="./projection-console.js?v=12"></script>
   <script src="./slides/core.js?v=2"></script>
   <script src="./slide-projection.js?v=2"></script>

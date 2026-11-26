@@ -188,6 +188,45 @@ textarea:focus {
   min-height: 42px;
 }
 
+.hymn-language-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.hymn-language-field label {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+
+.hymn-language-field select,
+.hymn-language-field .custom-select-trigger {
+  flex: 1;
+  min-width: 0;
+}
+
+.hymn-parts:not([hidden]) {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hymn-parts button {
+  width: auto;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--primary-dark);
+  padding: 6px 14px;
+}
+
+.hymn-parts button[aria-pressed="true"] {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: white;
+}
+
 .lyrics-state {
   width: 100%;
   border: 1px dashed var(--border-color);
@@ -1123,8 +1162,6 @@ body.book-picker-open {
   padding: 10px 20px;
   font-size: 1.2rem;
   cursor: pointer;
-  margin-right: 5px;
-  margin-bottom: 5px;
   background-color: #eceff1;
   color: #333;
   border: 1px solid #ccc;

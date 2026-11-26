@@ -137,14 +137,15 @@ test('a slow lyric response cannot replace a more recently entered hymn', async 
     let finishFirst, finishSecond;
     let loadCount = 0;
     loadLyricsData = () => new Promise(resolve => { if (++loadCount === 1) finishFirst = resolve; else finishSecond = resolve; });
-    renderLyricsControls = () => {}; switchScreen = () => {}; showTitleInPopup = () => {}; updateActiveButton = () => {};`);
+    renderLyricsControls = () => {}; switchScreen = () => {}; showTitleInPopup = () => {}; updateHymnControls = () => {};`);
   const first = run("recievehymn('1')");
   const second = run("recievehymn('2')");
-  run("finishSecond({'2.txt': '[1]二番の本文'});");
+  run("finishSecond({ja: {'2.txt': '[1]二番の本文'}, zh: null});");
   await second;
-  run("finishFirst({'1.txt': '[1]一番の本文'});");
+  run("finishFirst({ja: {'1.txt': '[1]一番の本文'}, zh: null});");
   await first;
   assert.equal(run('currentTitleInfo[0]'), '2');
+  assert.equal(run('currentLyricsSections[0].parts[0].ja[0]'), '二番の本文');
 });
 
 test('clearing the hymn number immediately clears projected lyrics', async () => {
@@ -155,6 +156,20 @@ test('clearing the hymn number immediately clears projected lyrics', async () =>
   assert.equal(document.getElementById('h_output').innerHTML, '');
   assert.equal(document.getElementById('h_bg_number').innerText, '');
   assert.equal(run('currentTitleInfo'), null);
+});
+
+test('hymn title keeps the original bilingual order and verse total for every lyric language', () => {
+  const { run, document } = fixture();
+  run(`currentTitleInfo = ['1', '中文歌名', '日本語曲名'];
+    selectedHymnLyrics = { ja: new Map([['1', ['一番']], ['2', ['二番']]]), zh: parseLyrics('[1]中文第一節') };
+    showTitleInPopup(display_win);`);
+  const output = document.getElementById('h_output');
+  const title = output.innerHTML;
+  assert.match(title, /1番.*中文歌名.*日本語曲名.*全 2 番/s);
+  for (const language of ['zh', 'both']) {
+    run(`hymnLanguage = '${language}'; showTitleInPopup(display_win);`);
+    assert.equal(output.innerHTML, title);
+  }
 });
 
 test('page label follows the projected verse and disappears for unmapped or cleared verses', () => {
@@ -229,7 +244,8 @@ function dualFixture() {
           return nodes.get(id);
         }
       };
-      return { document: doc, closed: false, focusCount: 0, focus() { this.focusCount++; }, close() { this.closed = true; }, addEventListener() {} };
+      return { document: doc, closed: false, focusCount: 0, focus() { this.focusCount++; }, close() { this.closed = true; }, addEventListener() {},
+        ResizeObserver: class { observe() {} disconnect() {} } };
     }
     display_win = makeProjection(); chineseDisplayWindow = makeProjection(); dualProjection = true;
     refreshProjectionConsole = () => {}; bindProjectionPreview = () => {}; bindDisplayFullscreenEvents = () => {};
@@ -264,11 +280,15 @@ test('two outputs separate scripture, synchronize live info and mode, and restor
 test('hymn verse, mode and blackout survive reconnecting either window, and clearing updates both', () => {
   const { run } = dualFixture();
   run(`currentTitleInfo = ['1', '中文歌名', '日本語曲名'];
-    currentLyricsSections = [{ label: '1', content: '<div>第一節</div>' }, { label: '2', content: '<div>第二節</div>' }];
-    showLyricsVerse(1); toggleBlackout();
+    updateHymnControls = () => {};
+    currentLyricsSections = [
+      { label: '1', parts: [{ ja: ['第一節'] }] },
+      { label: '2', parts: [{ ja: ['第二節前半'] }, { ja: ['第二節後半'] }] }
+    ];
+    showLyricsVerse(1, undefined, 1); toggleBlackout();
     chineseDisplayWindow.close(); chineseDisplayWindow = makeProjection(); initializeProjectionWindow(chineseDisplayWindow);`);
   for (const win of ['display_win', 'chineseDisplayWindow']) {
-    assert.match(run(`${win}.document.getElementById('h_output').innerHTML`), /第二節/);
+    assert.match(run(`${win}.document.getElementById('h_output').innerHTML`), /第二節後半/);
     assert.equal(run(`${win}.document.body.classList.contains('hymn-mode')`), true);
     assert.equal(run(`${win}.document.body.classList.contains('is-blacked-out')`), true);
   }
