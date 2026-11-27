@@ -2383,7 +2383,7 @@ function openwindow(focusExisting = false) {
   let openedWindow = null;
   const openProjection = (name) => {
     // Calls can originate in the slide editor. Resolve against this app, not its caller.
-    const win = window.open(new URL('./popwindow/display.html?v=18', window.location.href).href, name,
+    const win = window.open(new URL('./popwindow/display.html?v=19', window.location.href).href, name,
       'width=1500,height=800,scrollbars=yes,resizable=yes');
     if (win) {
       openedWindow = win;
@@ -3300,22 +3300,40 @@ function showLyricsVerse(index, targetWindow, part = 0) {
   hymnFitObservers.get(targetWindow)?.disconnect();
   const container = doc.getElementById("lyric-container");
   const text = doc.getElementById("lyric-text");
-  const fit = () => adjustFontSizeForLyrics(container, text);
+  const fit = () => { if (text.isConnected) adjustFontSizeForLyrics(targetWindow); };
   const observer = new targetWindow.ResizeObserver(fit);
   observer.observe(container);
   hymnFitObservers.set(targetWindow, observer);
   fit();
+  doc.fonts?.ready.then(fit);
 }
 
-function adjustFontSizeForLyrics(container, element) {
-  if (!container.clientWidth || !container.clientHeight) return;
-  const minSize = 2.25;
-  let size = 8;
-  element.style.fontSize = `${size}rem`;
-  while (element.scrollHeight > container.clientHeight && size > minSize) {
-    size = Math.max(minSize, size - 0.25);
+function adjustFontSizeForLyrics(targetWindow) {
+  const doc = targetWindow.document;
+  const container = doc.getElementById("lyric-container");
+  if (!container?.clientWidth) return;
+  const element = doc.getElementById("lyric-text");
+  const lines = Array.from(element.querySelectorAll(".hymn-line"));
+  const maxSize = Number(document.getElementById("hymn_font_lyrics").value);
+  const minSizeForHeight = Math.min(2.25, maxSize);
+
+  const fits = size => {
     element.style.fontSize = `${size}rem`;
+    // 短い画面では縦スクロールを残し、横幅にはすべての行を収める。
+    if (size > minSizeForHeight && element.scrollHeight > container.clientHeight) return false;
+    return lines.every(line => line.getBoundingClientRect().width <= line.parentElement.getBoundingClientRect().width);
+  };
+
+  if (fits(maxSize)) return;
+  const stepsPerRem = 16;
+  let low = 0;
+  let high = maxSize * stepsPerRem;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (fits(middle / stepsPerRem)) low = middle;
+    else high = middle;
   }
+  element.style.fontSize = `${low / stepsPerRem}rem`;
 }
 function commit(targetWindow) {
   if (!targetWindow) {
@@ -3441,7 +3459,8 @@ function setupEventListeners() {
       input.value = saved;
     }
     input.addEventListener('input', () => {
-      fontsizecommit();
+      if (input.id === 'hymn_font_lyrics') getProjectionWindows().forEach(adjustFontSizeForLyrics);
+      else fontsizecommit();
       localStorage.setItem(input.id, input.value);
     });
   }

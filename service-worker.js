@@ -1,13 +1,13 @@
 // Service Worker - 集会管理アプリ
 // バージョンを変更するとキャッシュが更新される
-const CACHE_VERSION = 'v31';
+const CACHE_VERSION = 'v35';
 const CACHE_NAME = `meeting-app-${CACHE_VERSION}`;
 
 // 起動時に必ずキャッシュするコアファイル
 const CORE_ASSETS = [
   './',
   './index.html',
-  './script.js?v=26',
+  './script.js?v=29',
   './projection-console.js?v=12',
   './slide-projection.js?v=4',
   './slides/core.js?v=4',
@@ -21,7 +21,7 @@ const CORE_ASSETS = [
   './worship.js',
   './tjc.png',
   './manifest.json',
-  './popwindow/display.html?v=18',
+  './popwindow/display.html?v=19',
   './Data.csv',
   './bible-pages.js?v=11',
   './bible-pages.json',

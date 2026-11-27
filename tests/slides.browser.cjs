@@ -35,13 +35,20 @@ async function run() {
   const context = await browser.newContext({ viewport: { width: 1500, height: 1000 }, serviceWorkers: 'block', acceptDownloads: true });
   context.setDefaultTimeout(10000);
   context.on('page', page => { page.on('pageerror', error => errors.push(`${page.url()}: ${error.stack || error.message}`)); page.on('dialog', dialog => dialog.accept()); });
+  const geminiRequests = [];
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.origin === new URL(base).origin || !url.protocol.startsWith('http')) return route.continue();
+    if (url.hostname === 'generativelanguage.googleapis.com') {
+      const isGeneration = url.pathname.endsWith(':generateContent');
+      geminiRequests.push({ path: url.pathname, body: isGeneration ? route.request().postDataJSON() : null });
+      if (!isGeneration) return route.abort();
+      return route.fulfill({ json: { candidates: [{ content: { parts: [{ text: '["翻訳候補","第二候補","第三候補"]' }] } }] } });
+    }
     if (url.pathname.includes('api.php')) return route.fulfill({ json: {
       success: true,
-      data: { '1.txt': '[1]\nテストの歌詞\n[2]\n日本語一行目\n日本語二行目\n日本語三行目\n日本語四行目' },
-      data_zh: { '1.txt': '[1]\n中文歌詞\n[2]\n中文第一行\n中文第二行\n中文第三行\n中文第四行' }
+      data: { '1.txt': '[1]\nテストの歌詞\n[2]\n日本語一行目\n日本語二行目\n日本語三行目\n日本語四行目\n[3]\n恵(めぐ)み　' + '主をたたえよ'.repeat(6) },
+      data_zh: { '1.txt': '[1]\n中文歌詞\n[2]\n中文第一行\n中文第二行\n中文第三行\n中文第四行\n[3]\n' + '讚美我主恩典'.repeat(6) }
     } });
     if (url.pathname.includes('hymn-recommendations')) return route.fulfill({ json: { groups: [] } });
     return route.abort();
@@ -318,7 +325,48 @@ async function run() {
   await waitFor(() => lyricsRegion.evaluate(node => node.scrollHeight > node.clientHeight), 'lyrics should scroll in a short window');
   await lyricsRegion.evaluate(node => { node.scrollTop = node.scrollHeight; });
   assert(await lyricsRegion.evaluate(node => node.scrollTop > 0));
+  await output.setViewportSize({ width: 420, height: 600 });
+  await main.locator('.lyric-btn').nth(3).click();
+  const lyricText = output.locator('#lyric-text');
+  const fontSize = () => lyricText.evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+  const linesFit = () => lyricText.evaluate(node => [...node.querySelectorAll('.hymn-line')].every(line => (
+    getComputedStyle(line).whiteSpace === 'pre'
+    && line.getBoundingClientRect().width <= line.parentElement.getBoundingClientRect().width
+  )) && node.parentElement.scrollWidth === node.parentElement.clientWidth);
+  await waitFor(linesFit, 'each bilingual lyric line should fit the narrow viewport');
+  assert.equal(await lyricText.locator('.hymn-line').count(), 2);
+  assert.equal(await lyricText.locator('rt').textContent(), 'めぐ');
+  const narrowSize = await fontSize();
+  assert(narrowSize < 36, 'long lines can shrink below the height fitting minimum');
   await output.setViewportSize({ width: 1500, height: 1000 });
+  await waitFor(async () => await fontSize() > narrowSize && await linesFit(), 'lyric font should grow when the viewport widens');
+  await main.getByRole('button', { name: '投影画面の設定', exact: true }).click();
+  const hymnSize = main.getByRole('slider', { name: '歌詞の最大文字サイズ' });
+  await hymnSize.fill('1.25');
+  assert.equal(await fontSize(), 20);
+  assert.equal(await main.evaluate(() => localStorage.getItem('hymn_font_lyrics')), '1.25');
+  await main.keyboard.press('Escape');
+  await main.getByRole('button', { name: 'AI機能設定', exact: true }).click();
+  await main.locator('#geminiApiKey').fill('test-key');
+  await main.getByRole('button', { name: /保存して閉じる/ }).click();
+  assert.equal(await main.locator('#translate-with-scripture').count(), 0);
+  const translate = async (direction, choice) => {
+    await main.getByTitle(direction, { exact: true }).click();
+    await main.locator('#translationCandidates').getByRole('button', { name: choice, exact: true }).click();
+    return geminiRequests.at(-1).body;
+  };
+  const chineseRequest = await translate('中国語へ翻訳', '第二候補');
+  assert.equal(chineseRequest.contents[0].parts[0].text, '入力の即時反映');
+  assert.equal(chineseRequest.tools, undefined);
+  assert.equal(await main.locator('#ctitle').inputValue(), '第二候補');
+  const reverseRequest = await translate('日本語へ翻訳', '第三候補');
+  assert.equal(reverseRequest.contents[0].parts[0].text, '第二候補');
+  assert.equal(reverseRequest.tools, undefined);
+  assert.equal(await main.locator('#jtitle').inputValue(), '第三候補');
+  assert.equal(geminiRequests.length, 2);
+  assert(geminiRequests.every(request => request.path.endsWith(':generateContent')));
+  await main.locator('#jtitle').fill('入力の即時反映');
+  console.log('PASS: title translation in both directions sends only the title');
   await main.evaluate(() => setUiStyle('modern'));
   await main.getByRole('button', { name: 'スライド 表示', exact: true }).click();
   await waitFor(async () => (await main.locator('#projection-status').textContent()).includes('スライド'), 'slides mode status failed');

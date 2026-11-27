@@ -580,6 +580,14 @@
         </section>
 
         <section class="settings-section">
+          <h3>讃美歌画面</h3>
+          <div class="slider-group">
+            <label for="hymn_font_lyrics">歌詞の最大文字サイズ</label>
+            <input type="range" class="change_size" id="hymn_font_lyrics" min="1" max="12" step="0.25" value="8">
+          </div>
+        </section>
+
+        <section class="settings-section">
           <h3>表示設定</h3>
           <label class="settings-toggle">
             <input type="checkbox" id="setting_show_ticker" checked onchange="toggleTicker(this.checked);">
@@ -673,7 +681,7 @@
 
   <script src="./worship.js"></script>
   <script src="./bible-pages.js?v=11"></script>
-  <script src="./script.js?v=26"></script>
+  <script src="./script.js?v=29"></script>
   <script src="./projection-console.js?v=12"></script>
   <script src="./slides/core.js?v=4"></script>
   <script src="./slide-projection.js?v=4"></script>

@@ -389,11 +389,12 @@
             padding: 2vh 3vw;
             text-align: center;
             line-height: 1.35;
-            overflow-wrap: anywhere;
         }
 
         .hymn-line {
-            white-space: pre-wrap;
+            width: max-content;
+            margin-inline: auto;
+            white-space: pre;
         }
 
         .hymn-lyrics + .hymn-lyrics,
@@ -407,6 +408,7 @@
         .hymn-lyrics-missing {
             color: #555;
             font-size: 0.55em;
+            overflow-wrap: anywhere;
         }
 
         /* 歌詞番号の背景表示用スタイル  */
