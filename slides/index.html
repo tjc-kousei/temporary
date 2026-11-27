@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#15574b">
   <title>スライドスタジオ | 集会管理</title>
   <link rel="icon" href="../tjc.png">
-  <link rel="stylesheet" href="./canvas.css?v=2">
-  <link rel="stylesheet" href="./editor.css?v=3">
+  <link rel="stylesheet" href="./canvas.css?v=4">
+  <link rel="stylesheet" href="./editor.css?v=5">
 </head>
 <body inert>
   <header class="studio-header">
@@ -15,7 +15,10 @@
     <input id="deck-name" class="deck-name" aria-label="資料名" maxlength="200" value="新しいプレゼンテーション">
     <span id="save-status" role="status">読み込み中…</span>
     <div class="header-actions">
-      <button data-action="new-deck">新規</button><button data-action="import">開く</button><button data-action="export">資料を保存</button>
+      <button data-action="new-deck">新規</button><button data-action="import">開く</button><button data-action="import-pptx" title="PowerPoint (.pptx) を取り込む">PPTX取込</button><button data-action="export">資料を保存</button>
+      <button data-action="open-sorter" title="スライド一覧・並べ替え">一覧</button>
+      <button data-action="open-print" title="印刷 / PDF保存">印刷 / PDF</button>
+      <button data-action="open-shortcuts" title="キーボードショートカット (?)">？</button>
       <button data-action="present" class="present-button">▶ 投影へ反映</button>
     </div>
   </header>
@@ -31,64 +34,148 @@
   <section class="ribbon" id="panel-home" role="tabpanel" aria-labelledby="tab-home">
     <div class="tool-group"><button data-action="add-slide" class="large-tool">＋<span>スライド追加</span></button><button data-action="duplicate-slide" title="一覧で Ctrl / ⌘ D">複製</button><button data-action="delete-slide" title="一覧で Delete / Backspace">スライドを削除</button><small>スライド</small></div>
     <div class="tool-group text-tools">
-      <label class="sr-only" for="font-family">フォント</label><select id="font-family"><option value="Yu Gothic">游ゴシック</option><option value="Yu Mincho">游明朝</option><option value="Meiryo">メイリオ</option><option value="Arial">Arial</option><option value="sans-serif">ゴシック体</option><option value="serif">明朝体</option></select>
+      <label class="sr-only" for="font-family">フォント</label><select id="font-family">
+        <option value="Yu Gothic">游ゴシック</option>
+        <option value="Yu Mincho">游明朝</option>
+        <option value="Meiryo">メイリオ</option>
+        <option value="Noto Sans JP">Noto Sans JP</option>
+        <option value="Noto Serif JP">Noto Serif JP</option>
+        <option value="Hiragino Kaku Gothic ProN">ヒラギノ角ゴ</option>
+        <option value="Noto Sans SC">簡体字 (Noto Sans SC)</option>
+        <option value="Noto Sans TC">繁体字 (Noto Sans TC)</option>
+        <option value="Microsoft YaHei">微软雅黑</option>
+        <option value="Arial">Arial</option>
+        <option value="sans-serif">ゴシック体</option>
+        <option value="serif">明朝体</option>
+      </select>
+      <button data-action="font-smaller" title="文字を小さく" aria-label="文字サイズ縮小">A−</button>
       <label class="sr-only" for="font-size">文字サイズ</label><input id="font-size" type="number" min="8" max="240" value="44" title="文字サイズ (px)">
-      <button data-action="bold" title="太字 (Ctrl / ⌘ B)" aria-label="太字"><b>B</b></button><button data-action="italic" title="斜体" aria-label="斜体"><i>I</i></button><button data-action="underline" title="下線" aria-label="下線"><u>U</u></button>
+      <button data-action="font-larger" title="文字を大きく" aria-label="文字サイズ拡大">A＋</button>
+      <button data-action="bold" title="太字 (Ctrl / ⌘ B)" aria-label="太字"><b>B</b></button>
+      <button data-action="italic" title="斜体" aria-label="斜体"><i>I</i></button>
+      <button data-action="underline" title="下線" aria-label="下線"><u>U</u></button>
+      <button data-action="strike" title="打ち消し線" aria-label="打ち消し線"><s>S</s></button>
+      <button data-action="text-shadow" title="文字の影" aria-label="文字の影">影</button>
       <label class="color-tool" title="文字色">A<input id="text-color" type="color" value="#172b36" aria-label="文字色"></label>
+      <div class="color-swatches" data-color-target="text" aria-label="文字色プリセット">
+        <button type="button" data-swatch="#172b36" style="background:#172b36" title="濃紺"></button>
+        <button type="button" data-swatch="#ffffff" style="background:#ffffff" title="白"></button>
+        <button type="button" data-swatch="#15574b" style="background:#15574b" title="深緑"></button>
+        <button type="button" data-swatch="#b84239" style="background:#b84239" title="赤"></button>
+        <button type="button" data-swatch="#d19a2a" style="background:#d19a2a" title="金"></button>
+      </div>
       <small>フォント・部分書式</small>
     </div>
-    <div class="tool-group"><button data-action="align-text-left">左揃え</button><button data-action="align-text-center">中央揃え</button><button data-action="align-text-right">右揃え</button><button data-action="bullet">箇条書き</button><small>段落</small></div>
-    <div class="tool-group"><button data-action="add-text">Ｔ テキスト</button><button data-action="duplicate">要素を複製</button><button data-action="delete">要素を削除</button><small>編集</small></div>
+    <div class="tool-group"><button data-action="align-text-left">左揃え</button><button data-action="align-text-center">中央揃え</button><button data-action="align-text-right">右揃え</button><button data-action="bullet">箇条書き</button><button data-action="ordered">番号リスト</button><small>段落</small></div>
+    <div class="tool-group"><button data-action="add-text">Ｔ テキスト</button><button data-action="copy-style" title="Ctrl / ⌘ Shift C">書式コピー</button><button data-action="paste-style" title="Ctrl / ⌘ Shift V">書式貼付</button><button data-action="duplicate">要素を複製</button><button data-action="delete">要素を削除</button><small>編集</small></div>
   </section>
   <section class="ribbon" id="panel-insert" role="tabpanel" aria-labelledby="tab-insert" hidden>
     <div class="tool-group"><button data-action="add-text" class="large-tool">Ｔ<span>テキスト</span></button><button data-action="add-image" class="large-tool">▧<span>画像</span></button><small>コンテンツ</small></div>
-    <div class="tool-group"><button data-action="add-rect">▭ 四角形</button><button data-action="add-ellipse">◯ 円・楕円</button><button data-action="add-line">／ 線</button><small>図形</small></div>
-    <div class="tool-group"><button data-action="insert-bible">聖句を挿入</button><button data-action="meeting-cover">集会情報から表紙</button><small>礼拝用ツール</small></div>
+    <div class="tool-group"><button data-action="add-rect">▭ 四角形</button><button data-action="add-rounded-rect">▢ 角丸四角</button><button data-action="add-ellipse">◯ 円・楕円</button><button data-action="add-triangle">△ 三角形</button><button data-action="add-arrow">➔ 矢印</button><button data-action="add-line">／ 線</button><small>図形</small></div>
+    <div class="tool-group"><button data-action="insert-bible">聖句を挿入</button><button data-action="insert-hymn">讃美歌を挿入</button><button data-action="meeting-cover">集会情報から表紙</button><small>礼拝用ツール</small></div>
   </section>
   <section class="ribbon" id="panel-design" role="tabpanel" aria-labelledby="tab-design" hidden>
-    <div class="tool-group"><button data-theme="light" class="theme theme-light">Aa<span>ホワイト</span></button><button data-theme="forest" class="theme theme-forest">Aa<span>フォレスト</span></button><button data-theme="night" class="theme theme-night">Aa<span>ナイト</span></button><button data-theme="warm" class="theme theme-warm">Aa<span>アイボリー</span></button><small>現在のスライドのテーマ</small></div>
-    <div class="tool-group"><label>背景色 <input type="color" id="background-color" value="#ffffff"></label><button data-action="background-image">背景画像</button><button data-action="clear-background">画像を解除</button><small>背景</small></div>
-    <div class="tool-group"><button data-template="title">表紙</button><button data-template="body">見出し＋本文</button><button data-template="bilingual">日中対訳</button><button data-template="blank">白紙</button><small>レイアウトを新しいスライドに追加</small></div>
+    <div class="tool-group">
+      <button data-theme="light" class="theme theme-light">Aa<span>ホワイト</span></button>
+      <button data-theme="forest" class="theme theme-forest">Aa<span>フォレスト</span></button>
+      <button data-theme="night" class="theme theme-night">Aa<span>ナイト</span></button>
+      <button data-theme="warm" class="theme theme-warm">Aa<span>アイボリー</span></button>
+      <button data-theme="dawn" class="theme theme-dawn">Aa<span>朝焼け</span></button>
+      <button data-theme="ocean" class="theme theme-ocean">Aa<span>深海</span></button>
+      <button data-action="apply-theme-all" title="現在の背景設定と代表文字色を全スライドに適用">全スライドに適用</button>
+      <small>テーマ</small>
+    </div>
+    <div class="tool-group bg-tools">
+      <label>背景色 <input type="color" id="background-color" value="#ffffff"></label>
+      <label><input type="checkbox" id="bg-gradient-enabled"> グラデーション</label>
+      <label id="bg-end-wrap">終点色 <input type="color" id="background-color-end" value="#dbece5"></label>
+      <label id="bg-angle-wrap">角度 <input type="number" id="background-angle" min="0" max="360" step="15" value="135"></label>
+      <button data-action="background-image">背景画像</button><button data-action="clear-background">画像を解除</button>
+      <label id="bg-overlay-wrap" title="背景画像の暗さ">暗さ <input type="range" id="background-overlay" min="0" max="0.8" step="0.05" value="0"></label>
+      <small>背景</small>
+    </div>
+    <div class="tool-group"><button data-template="title">表紙</button><button data-template="section">セクション</button><button data-template="body">見出し＋本文</button><button data-template="two-col">2カラム</button><button data-template="bilingual">日中対訳</button><button data-template="quote">引用カード</button><button data-template="blank">白紙</button><small>レイアウトを追加</small></div>
+    <div class="tool-group">
+      <label><input type="checkbox" id="show-slide-number"> スライド番号</label>
+      <label>切替効果 <select id="slide-transition"><option value="none">なし</option><option value="fade">フェード</option><option value="slide">スライド</option></select></label>
+      <small>演出</small>
+    </div>
   </section>
   <section class="ribbon" id="panel-arrange" role="tabpanel" aria-labelledby="tab-arrange" hidden>
-    <div class="tool-group"><button data-action="align-left">左端</button><button data-action="align-center">左右中央</button><button data-action="align-right">右端</button><button data-action="align-top">上端</button><button data-action="align-middle">上下中央</button><button data-action="align-bottom">下端</button><small>選択した要素を整列（1個の場合はスライド基準）</small></div>
-    <div class="tool-group"><button data-action="distribute-x">横に等間隔</button><button data-action="distribute-y">縦に等間隔</button><button data-action="forward">一つ前面へ</button><button data-action="backward">一つ背面へ</button><button data-action="front">最前面</button><button data-action="back">最背面</button><small>間隔・重なり</small></div>
-    <div class="tool-group"><button data-action="group">グループ化</button><button data-action="ungroup">グループ解除</button><label><input id="snap" type="checkbox" checked> ガイドに吸着</label><small>グループ・ガイド</small></div>
+    <div class="tool-group"><button data-action="align-left">左端</button><button data-action="align-center">左右中央</button><button data-action="align-right">右端</button><button data-action="align-top">上端</button><button data-action="align-middle">上下中央</button><button data-action="align-bottom">下端</button><small>整列（1個はスライド基準）</small></div>
+    <div class="tool-group"><button data-action="distribute-x">横に等間隔</button><button data-action="distribute-y">縦に等間隔</button><button data-action="match-width">幅を揃える</button><button data-action="match-height">高さを揃える</button><small>等間隔・サイズ</small></div>
+    <div class="tool-group"><button data-action="forward">一つ前面へ</button><button data-action="backward">一つ背面へ</button><button data-action="front">最前面</button><button data-action="back">最背面</button><button data-action="rotate-90">90°回転</button><button data-action="rotate-reset">角度0°</button><small>重なり・回転</small></div>
+    <div class="tool-group"><button data-action="group">グループ化</button><button data-action="ungroup">グループ解除</button><button data-action="toggle-lock" title="Ctrl / ⌘ L">ロック切替</button><label><input id="snap" type="checkbox" checked> ガイド吸着</label><label><input id="show-grid" type="checkbox"> 補助グリッド</label><small>グループ・補助</small></div>
   </section>
   <main class="workspace" id="workspace" inert>
     <aside class="slide-rail" aria-label="スライド一覧">
-      <div class="rail-title"><strong>スライド</strong><button data-action="add-slide" aria-label="スライドを追加">＋</button></div>
+      <div class="rail-title"><strong>スライド</strong><div class="rail-title-actions"><button data-action="open-sorter" title="一覧表示" aria-label="一覧表示">⊞</button><button data-action="add-slide" aria-label="スライドを追加">＋</button></div></div>
       <div id="slide-list"></div>
       <button class="rail-add" data-action="add-slide">＋ スライドを追加</button>
     </aside>
     <section class="editor-area" aria-label="編集領域">
-      <div class="editor-caption"><span id="current-slide-name">タイトル</span><span>文字・図形をダブルクリックで文字編集 · Shift＋クリックで複数選択</span></div>
+      <div class="editor-caption"><span id="current-slide-name">タイトル</span><span>再クリック・ダブルクリックで文字編集 · Alt+ドラッグで複製 · Space+ドラッグで移動</span></div>
       <div id="stage-scroll" class="stage-scroll"><div id="stage-space" class="stage-space"><div id="canvas" class="slide-canvas" tabindex="0" aria-label="スライドキャンバス"></div></div></div>
-      <div class="notes-panel"><label for="speaker-notes">発表者ノート <span>投影には表示されません</span></label><textarea id="speaker-notes" placeholder="このスライドで話す内容をメモ…" maxlength="50000"></textarea></div>
+      <div class="notes-panel" id="notes-panel">
+        <div class="notes-header">
+          <label for="speaker-notes">発表者ノート <span>投影には表示されません</span></label>
+          <div class="notes-controls"><span id="notes-count">0文字</span><button type="button" id="toggle-notes" title="ノートの高さを切り替え">展開 ▾</button></div>
+        </div>
+        <textarea id="speaker-notes" placeholder="このスライドで話す内容をメモ…" maxlength="50000"></textarea>
+      </div>
     </section>
     <aside class="inspector" aria-label="詳細設定">
       <div class="inspector-heading"><strong id="selection-heading">スライドの設定</strong><span id="selection-count">要素を選択してください</span></div>
       <button id="element-options" aria-haspopup="menu" aria-expanded="false" aria-controls="element-menu">要素の操作 ▾</button>
-      <section><h2>スライド</h2><label>スライド名<input id="slide-name" maxlength="200"></label><div class="button-row"><button data-action="slide-up">↑ 上へ</button><button data-action="slide-down">↓ 下へ</button><button data-action="delete-slide">削除</button></div></section>
+      <section><h2>スライド</h2><label>スライド名<input id="slide-name" maxlength="200"></label><label class="checkbox-row"><span>非表示（投影スキップ）</span><input id="slide-hidden" type="checkbox"></label><div class="button-row"><button data-action="slide-up">↑ 上へ</button><button data-action="slide-down">↓ 下へ</button><button data-action="delete-slide">削除</button></div></section>
       <fieldset id="element-properties" disabled>
         <legend>サイズと位置</legend><div class="property-grid">
           <label>X<input id="prop-x" data-prop="x" type="number" step="1" min="-2560" max="2560"></label><label>Y<input id="prop-y" data-prop="y" type="number" step="1" min="-1440" max="1440"></label>
           <label>幅<input id="prop-width" data-prop="width" type="number" min="1" max="5120"></label><label>高さ<input id="prop-height" data-prop="height" type="number" min="1" max="2880"></label>
           <label>回転 °<input id="prop-rotation" data-prop="rotation" type="number" min="-360" max="360"></label><label>不透明度<input id="prop-opacity" data-prop="opacity" type="number" min="0" max="1" step="0.1"></label>
         </div>
-        <label class="fill-property">図形の色<input id="shape-fill" type="color" value="#d9eee8"></label>
-        <div id="shape-outline"><label>塗りつぶしなし<input id="shape-no-fill" type="checkbox"></label>
+        <label class="fill-property">塗りつぶし<input id="shape-fill" type="color" value="#d9eee8"></label>
+        <div id="fill-swatches-row" class="color-swatches inspector-swatches" data-color-target="fill" aria-label="塗りつぶしプリセット">
+          <button type="button" data-swatch="#d9eee8" style="background:#d9eee8" title="淡緑"></button>
+          <button type="button" data-swatch="#15574b" style="background:#15574b" title="深緑"></button>
+          <button type="button" data-swatch="#ffffff" style="background:#ffffff" title="白"></button>
+          <button type="button" data-swatch="#f6f0e3" style="background:#f6f0e3" title="アイボリー"></button>
+          <button type="button" data-swatch="#162632" style="background:#162632" title="ナイト"></button>
+          <button type="button" data-swatch="#d19a2a" style="background:#d19a2a" title="金"></button>
+        </div>
+        <div id="shape-outline">
+          <label class="checkbox-row">塗りつぶしなし<input id="shape-no-fill" type="checkbox"></label>
           <label>枠線の色<input id="shape-stroke" type="color"></label>
-          <label>枠線の太さ (px)<input id="shape-stroke-width" type="number" min="0" max="24" step="1" title="0 で枠線なし"></label></div>
+          <label>枠線の太さ (px)<input id="shape-stroke-width" type="number" min="0" max="24" step="1" title="0 で枠線なし"></label>
+          <label>枠線の種類<select id="shape-stroke-style"><option value="solid">実線</option><option value="dashed">破線</option><option value="dotted">点線</option></select></label>
+        </div>
+        <label>角丸 (px)<input id="prop-borderRadius" type="number" min="0" max="200" step="2" value="0"></label>
         <label>文字の上下配置<select id="vertical-align"><option value="top">上揃え</option><option value="middle">中央揃え</option><option value="bottom">下揃え</option></select></label>
+        <label>文字の自動調整<select id="text-fit"><option value="grow">枠の高さを自動拡張</option><option value="shrink">枠内に文字を自動縮小</option><option value="none">自動調整なし</option></select></label>
+        <button type="button" data-action="fit-text-box" id="fit-text-box-btn" class="wide-button">高さを文字に合わせる</button>
         <label>行間<input id="prop-lineHeight" data-prop="lineHeight" type="number" min="0.8" max="3" step="0.1" value="1.5"></label>
+        <label>内側余白 (px)<input id="prop-padding" type="number" min="0" max="64" step="2" value="4"></label>
         <label>画像の表示<select id="image-fit"><option value="contain">全体を収める</option><option value="cover">枠いっぱいに切り抜く</option></select></label>
+        <label class="checkbox-row">要素の影<input id="prop-shadow" type="checkbox"></label>
+        <label class="checkbox-row">文字の影<input id="prop-textShadow" type="checkbox"></label>
+        <label class="checkbox-row">要素をロック<input id="prop-locked" type="checkbox"></label>
       </fieldset>
-      <section class="layers-section"><h2>レイヤー <span>上ほど手前</span></h2><div id="layers"></div></section>
-      <section class="projection-card"><span class="live-dot"></span><strong>投影は操作したときに更新</strong><p>編集内容は自動では投影されません。</p><div class="button-row"><button data-action="previous">‹ 前へ</button><button data-action="present">投影</button><button data-action="next">次へ ›</button></div><button data-action="blackout" class="wide-button">黒画面 / 再開</button><p id="projection-state" role="status">投影待機中</p></section>
+      <section class="layers-section"><h2>レイヤー <span>上ほど手前・ドラッグで順序変更</span></h2><div id="layers"></div></section>
+      <section class="projection-card">
+        <span class="live-dot"></span><strong>投影は操作したときに更新</strong>
+        <p>編集内容は自動では投影されません。</p>
+        <div class="button-row"><button data-action="previous">‹ 前へ</button><button data-action="present">投影</button><button data-action="next">次へ ›</button></div>
+        <button data-action="blackout" class="wide-button">黒画面 / 再開</button>
+        <p id="projection-state" role="status">投影待機中</p>
+        <div class="presenter-timer">
+          <span id="timer-display">00:00</span>
+          <button type="button" data-action="timer-toggle" id="timer-toggle">開始</button>
+          <button type="button" data-action="timer-reset">リセット</button>
+        </div>
+      </section>
     </aside>
   </main>
-  <footer class="studio-footer"><span id="page-status">1 / 1</span><span class="footer-hint">16:9 · 1280 × 720</span><div><button data-action="zoom-out" aria-label="縮小">−</button><select id="zoom" aria-label="表示倍率"><option value="fit">画面に合わせる</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select><button data-action="zoom-in" aria-label="拡大">＋</button></div></footer>
+  <footer class="studio-footer"><span id="page-status">1 / 1</span><span class="footer-hint">16:9 · 1280 × 720</span><div><button data-action="zoom-fit" title="画面に合わせる (Ctrl / ⌘ 0)">全体</button><button data-action="zoom-out" aria-label="縮小">−</button><select id="zoom" aria-label="表示倍率"><option value="fit">画面に合わせる</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option></select><button data-action="zoom-in" aria-label="拡大">＋</button></div></footer>
   <div id="element-menu" role="menu" aria-label="要素の操作" hidden>
     <button role="menuitem" data-action="cut">切り取り</button>
     <button role="menuitem" data-action="copy">コピー</button>
@@ -102,15 +189,47 @@
     <button role="menuitem" data-action="backward">一つ背面へ</button>
     <button role="menuitem" data-action="group">グループ化</button>
     <button role="menuitem" data-action="ungroup">グループ解除</button>
+    <button role="menuitem" data-action="toggle-lock">ロック / ロック解除</button>
     <hr>
     <button role="menuitem" data-action="delete">要素を削除</button>
   </div>
+  <div id="slide-menu" role="menu" aria-label="スライドの操作" hidden>
+    <button role="menuitem" data-action="add-slide">新しいスライドを追加</button>
+    <button role="menuitem" data-action="duplicate-slide">スライドを複製</button>
+    <button role="menuitem" data-action="slide-up">上へ移動</button>
+    <button role="menuitem" data-action="slide-down">下へ移動</button>
+    <button role="menuitem" data-action="toggle-slide-hidden">表示 / 投影スキップ切替</button>
+    <hr>
+    <button role="menuitem" data-action="delete-slide">スライドを削除</button>
+  </div>
   <div id="toast" role="status" hidden></div>
-  <input type="file" id="import-file" accept=".json,.assembly-slides,application/json" hidden>
+  <input type="file" id="import-file" accept=".json,.assembly-slides,.pptx,application/json,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden>
+  <input type="file" id="import-pptx-file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden>
   <input type="file" id="image-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-  <dialog id="bible-dialog"><form method="dialog"><h2>聖句を挿入</h2><p>集会管理で選択中の聖句を取り込めます。任意の本文も入力できます。</p><button type="button" data-action="get-current-bible">選択中の聖句を取得</button><label>聖書箇所<input id="bible-reference" placeholder="ヨハネによる福音書 3:16" maxlength="200"></label><label>日本語<textarea id="bible-japanese" rows="5" maxlength="10000"></textarea></label><label>中国語（任意）<textarea id="bible-chinese" rows="5" maxlength="10000"></textarea></label><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-bible" class="present-button">新しいスライドに挿入</button></div></form></dialog>
+  <dialog id="pptx-dialog" aria-labelledby="pptx-dialog-title"><form method="dialog"><h2 id="pptx-dialog-title">PowerPoint (.pptx) の取り込み</h2><p id="pptx-summary"></p><p id="pptx-warning" hidden></p><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-pptx-append">現在の資料に追加</button><button type="button" data-action="confirm-pptx-replace" class="present-button">新しい資料として開く</button></div></form></dialog>
+  <dialog id="bible-dialog"><form method="dialog"><h2>聖句を挿入</h2><p>集会管理で選択中の聖句を取り込めます。任意の本文も入力できます。</p><button type="button" data-action="get-current-bible">選択中の聖句を取得</button><label>聖書箇所<input id="bible-reference" placeholder="ヨハネによる福音書 3:16" maxlength="200"></label><label>日本語<textarea id="bible-japanese" rows="5" maxlength="10000"></textarea></label><label>中国語（任意）<textarea id="bible-chinese" rows="5" maxlength="10000"></textarea></label><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-bible-current">現在のスライドに挿入</button><button type="button" data-action="confirm-bible" class="present-button">新しいスライドに挿入</button></div></form></dialog>
+  <dialog id="hymn-dialog"><form method="dialog"><h2>讃美歌を挿入</h2><p>集会管理で表示中の讃美歌を取り込むか、曲名・歌詞を入力してスライドを作成します。</p><button type="button" data-action="get-current-hymn">選択中の讃美歌を取得</button><label>讃美歌番号<input id="hymn-number" placeholder="例: 1" maxlength="40"></label><label>日本語曲名<input id="hymn-title-ja" placeholder="聖なる聖なる" maxlength="200"></label><label>中国語曲名（任意）<input id="hymn-title-zh" placeholder="頌贊獨一真神" maxlength="200"></label><label>歌詞本文<textarea id="hymn-lyrics" rows="6" maxlength="10000" placeholder="1節の歌詞を入力…"></textarea></label><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-hymn" class="present-button">新しいスライドに挿入</button></div></form></dialog>
+  <dialog id="sorter-dialog" aria-labelledby="sorter-title"><form method="dialog"><div class="sorter-header"><h2 id="sorter-title">スライド一覧</h2><button value="cancel" class="sorter-close">閉じる</button></div><p>クリックして編集へ移動、ドラッグで並べ替えができます。</p><div id="sorter-grid" class="sorter-grid"></div></form></dialog>
+  <dialog id="print-dialog"><form method="dialog"><h2>印刷 / PDF保存</h2><p>ブラウザの印刷ダイアログで「PDFに保存」を選ぶと配布資料として書き出せます。</p><label class="radio-row"><input type="radio" name="print-mode" value="slides" checked> スライドのみ（1ページ1枚）</label><label class="radio-row"><input type="radio" name="print-mode" value="notes"> 発表者ノート付きハンドアウト</label><label class="checkbox-row print-opt"><span>非表示（スキップ）スライドも含める</span><input type="checkbox" id="print-include-hidden"></label><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-print" class="present-button">印刷を実行</button></div></form></dialog>
+  <dialog id="shortcuts-dialog"><form method="dialog"><div class="sorter-header"><h2>キーボードショートカット</h2><button value="cancel" class="sorter-close">閉じる</button></div><table class="shortcuts-table"><tbody>
+    <tr><th>Ctrl / ⌘ + Z / Shift+Z</th><td>元に戻す / やり直す</td></tr>
+    <tr><th>Ctrl / ⌘ + C / X / V / D</th><td>コピー / 切り取り / 貼り付け / 複製</td></tr>
+    <tr><th>Ctrl / ⌘ + Shift + C / V</th><td>書式のコピー / 書式の貼り付け</td></tr>
+    <tr><th>Ctrl / ⌘ + G / Shift+G</th><td>グループ化 / グループ解除</td></tr>
+    <tr><th>Ctrl / ⌘ + ] / [</th><td>一つ前面へ / 一つ背面へ</td></tr>
+    <tr><th>Ctrl / ⌘ + L</th><td>要素のロック切替</td></tr>
+    <tr><th>Alt + ドラッグ</th><td>要素を複製しながら移動</td></tr>
+    <tr><th>Space + ドラッグ</th><td>編集領域をスクロール（パン移動）</td></tr>
+    <tr><th>Ctrl / ⌘ + ホイール</th><td>拡大・縮小</td></tr>
+    <tr><th>Ctrl / ⌘ + 0</th><td>表示倍率を「画面に合わせる」に戻す</td></tr>
+    <tr><th>矢印キー / Shift+矢印</th><td>要素を1px移動 / 10px移動</td></tr>
+    <tr><th>F2 / Escape</th><td>文字編集開始 / 編集終了・選択解除</td></tr>
+    <tr><th>PageUp / PageDown / F5</th><td>前後のスライド / 投影へ反映</td></tr>
+    <tr><th>Ctrl / ⌘ + S</th><td>資料をファイルに保存</td></tr>
+  </tbody></table></form></dialog>
   <dialog id="delete-dialog" aria-labelledby="delete-title"><form method="dialog"><h2 id="delete-title">スライドを削除しますか？</h2><p id="delete-description"></p><div class="dialog-actions"><button value="cancel" autofocus>キャンセル</button><button type="button" data-action="confirm-delete-slide">削除する</button></div></form></dialog>
   <dialog id="new-dialog"><form method="dialog"><h2>新しい資料を作成</h2><p>現在の資料を残すには、先に「資料を保存」でファイルへ保存してください。このブラウザの自動保存は新しい資料に置き換わります。</p><div class="dialog-actions"><button value="cancel">キャンセル</button><button type="button" data-action="confirm-new" class="present-button">新規作成</button></div></form></dialog>
-  <script src="./editor.bundle.js?v=5" defer></script>
+  <div id="print-sheets" aria-hidden="true"></div>
+  <script src="./editor.bundle.js?v=7" defer></script>
 </body>
 </html>

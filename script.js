@@ -2383,7 +2383,7 @@ function openwindow(focusExisting = false) {
   let openedWindow = null;
   const openProjection = (name) => {
     // Calls can originate in the slide editor. Resolve against this app, not its caller.
-    const win = window.open(new URL('./popwindow/display.html?v=16', window.location.href).href, name,
+    const win = window.open(new URL('./popwindow/display.html?v=18', window.location.href).href, name,
       'width=1500,height=800,scrollbars=yes,resizable=yes');
     if (win) {
       openedWindow = win;

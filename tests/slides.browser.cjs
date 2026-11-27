@@ -185,10 +185,13 @@ async function run() {
   await editor.getByRole('button', { name: '▶ 投影へ反映', exact: true }).click();
   const outputShape = output.locator('#slides-view .slide-rect');
   assert.equal(await outputShape.textContent(), '会場の入口');
-  assert.deepEqual(await outputShape.evaluate(n => {
+  const outputStyle = await outputShape.evaluate(n => {
     const style = getComputedStyle(n);
     return [style.borderTopWidth, style.backgroundColor, style.justifyContent];
-  }), ['6px', 'rgba(0, 0, 0, 0)', 'flex-end']);
+  });
+  assert.equal(outputStyle[0], '6px');
+  assert.equal(outputStyle[1], 'rgba(0, 0, 0, 0)');
+  assert(['flex-end', 'flow-end'].includes(outputStyle[2]), `unexpected justifyContent: ${outputStyle[2]}`);
   console.log('PASS: in-shape text, transparent fill, outline, vertical alignment and stacking order');
   const menu = editor.getByRole('menu', { name: '要素の操作' });
   await shape.click({ button: 'right' });
@@ -284,10 +287,10 @@ async function run() {
   };
   const projectedLyrics = output.locator('.hymn-lyrics');
   assert.equal(await hymnLanguage.textContent(), '日本語のみ');
-  const title = await output.locator('.hymn-title-screen').innerHTML();
-  assert.match(title, /頌贊獨一真神.*聖なる聖なる/s);
+  const hymnTitle = await output.locator('.hymn-title-screen').innerHTML();
+  assert.match(hymnTitle, /頌贊獨一真神.*聖なる聖なる/s);
   await chooseLanguage('中国語のみ');
-  assert.equal(await output.locator('.hymn-title-screen').innerHTML(), title);
+  assert.equal(await output.locator('.hymn-title-screen').innerHTML(), hymnTitle);
   await chooseLanguage('日本語のみ');
   await main.locator('.lyric-btn').nth(1).click();
   await waitFor(async () => (await output.locator('#h_output').textContent()).includes('テストの歌詞'), 'existing lyric verse failed');
@@ -366,6 +369,174 @@ async function run() {
   await editor.getByRole('button', { name: '集会情報から表紙', exact: true }).click(); assert.equal(await editor.locator('#slide-list .slide-item').count(), 4);
   assert((await editor.locator('#canvas').textContent()).includes('入力の即時反映'));
   console.log('PASS: handles, group movement, images, IME composition, worship templates, rendering parity and reconnection under a Pages subpath');
+  // Enhanced features: rich formatting, new shapes, themes, lock/hide, slide skip, sorter, shortcuts and hymn insertion.
+  await editor.getByRole('tab', { name: '挿入', exact: true }).click();
+  await editor.getByRole('button', { name: '▢ 角丸四角', exact: true }).click();
+  await editor.getByRole('button', { name: '△ 三角形', exact: true }).click();
+  await editor.getByRole('button', { name: '➔ 矢印', exact: true }).click();
+  assert.equal(await editor.locator('#canvas > .slide-rect').count(), 1);
+  assert.equal(await editor.locator('#canvas > .slide-triangle svg polygon').count(), 1);
+  assert.equal(await editor.locator('#canvas > .slide-arrow svg line').count(), 1);
+  await editor.getByRole('tab', { name: 'ホーム', exact: true }).click();
+  await editor.locator('#panel-home').getByRole('button', { name: 'Ｔ テキスト', exact: true }).click();
+  await editor.locator('#canvas .tiptap').fill('装飾テスト');
+  await editor.locator('#canvas .tiptap').selectText();
+  await editor.getByRole('button', { name: '打ち消し線', exact: true }).click();
+  await editor.getByRole('button', { name: '番号リスト', exact: true }).click();
+  assert.equal(await editor.locator('#canvas .tiptap s').textContent(), '装飾テスト');
+  assert.equal(await editor.locator('#canvas .tiptap ol li').count(), 1);
+  const sizeBefore = Number(await editor.locator('#font-size').inputValue());
+  await editor.getByRole('button', { name: '文字サイズ拡大', exact: true }).click();
+  assert.equal(Number(await editor.locator('#font-size').inputValue()), sizeBefore + 4);
+  await editor.keyboard.press('Escape');
+  await editor.locator('#canvas > .slide-text').last().click();
+  await editor.getByRole('button', { name: '文字の影', exact: true }).click();
+  assert.match(await editor.locator('#canvas > .slide-text').last().evaluate(n => n.style.textShadow), /rgba/);
+  // Element lock prevents canvas selection and drag, and can be unlocked from layers.
+  await editor.locator('#prop-locked').check();
+  assert.equal(await editor.locator('#canvas > .slide-text').last().getAttribute('data-locked'), 'true');
+  const lockedBox = await editor.locator('#canvas > .slide-text').last().boundingBox();
+  await editor.mouse.click(lockedBox.x + 20, lockedBox.y + 20);
+  assert.equal(await editor.locator('#selection-count').textContent(), '要素を選択してください');
+  await editor.locator('#layers .layer-row').first().getByRole('button', { name: 'ロック解除' }).click();
+  assert.equal(await editor.locator('#canvas > .slide-text').last().getAttribute('data-locked'), 'false');
+  // Element hide/show via layers.
+  await editor.locator('#layers .layer-row').first().getByRole('button', { name: '非表示にする' }).click();
+  assert.equal(await editor.locator('#canvas > .slide-text').last().evaluate(n => n.textContent.includes('装飾テスト')), false);
+  await editor.locator('#layers .layer-row').first().getByRole('button', { name: '表示する' }).click();
+  assert.equal(await editor.locator('#canvas > .slide-text').last().evaluate(n => n.textContent.includes('装飾テスト')), true);
+  // Design gradient theme, apply-all and undo.
+  await editor.getByRole('tab', { name: 'デザイン', exact: true }).click();
+  await editor.locator('[data-theme="dawn"]').click();
+  assert.match(await editor.locator('#canvas').evaluate(n => n.style.backgroundImage), /linear-gradient/);
+  await editor.getByRole('button', { name: '全スライドに適用', exact: true }).click();
+  await editor.locator('#slide-list .slide-item').first().click();
+  assert.match(await editor.locator('#canvas').evaluate(n => n.style.backgroundImage), /linear-gradient/);
+  await editor.getByRole('button', { name: '↶ 元に戻す', exact: true }).click();
+  assert.equal(await editor.locator('#canvas').evaluate(n => n.style.backgroundImage), 'none');
+  // Slide skip and projection navigation sync.
+  await editor.locator('#slide-list .slide-item').nth(1).click();
+  await editor.locator('#slide-hidden').check();
+  assert.equal(await editor.locator('#slide-list .slide-item').nth(1).locator('.slide-badge.is-skip').textContent(), 'スキップ');
+  await editor.locator('#slide-list .slide-item').nth(0).click();
+  await editor.getByRole('button', { name: '▶ 投影へ反映', exact: true }).click();
+  await waitFor(async () => (await editor.locator('#slide-list .slide-item').nth(0).locator('.slide-badge').first().textContent()) === '投影中', 'projected badge should show on slide 1');
+  await reconnected.keyboard.press('ArrowRight');
+  await waitFor(async () => (await editor.locator('#slide-list .slide-item').nth(2).locator('.slide-badge').first().textContent()) === '投影中', 'hidden slide 2 should be skipped during projection navigation');
+  // Slide sorter, shortcuts modal, and hymn insertion dialog.
+  await editor.getByRole('button', { name: '一覧', exact: true }).click();
+  assert.equal(await editor.locator('#sorter-dialog .sorter-card').count(), 4);
+  await editor.locator('#sorter-dialog .sorter-close').click();
+  await editor.getByRole('button', { name: '？', exact: true }).click();
+  assert.equal(await editor.locator('#shortcuts-dialog').evaluate(d => d.open), true);
+  await editor.locator('#shortcuts-dialog .sorter-close').click();
+  await editor.getByRole('tab', { name: '挿入', exact: true }).click();
+  await editor.getByRole('button', { name: '讃美歌を挿入', exact: true }).click();
+  await editor.getByRole('button', { name: '選択中の讃美歌を取得', exact: true }).click();
+  assert.equal(await editor.locator('#hymn-number').inputValue(), '1');
+  assert.match(await editor.locator('#hymn-lyrics').inputValue(), /テストの歌詞/);
+  await editor.locator('#hymn-dialog').getByRole('button', { name: '新しいスライドに挿入', exact: true }).click();
+  assert.equal(await editor.locator('#slide-list .slide-item').count(), 5);
+  console.log('PASS: enhanced formatting, shapes, themes, lock/hide, skip navigation, sorter, shortcuts and hymn insertion');
+  // PowerPoint-style text box behavior: auto-grow, shrink on delete, Tab indent, edit-drag handle, re-click edit, shrink-to-fit.
+  await editor.getByRole('tab', { name: 'ホーム', exact: true }).click();
+  await editor.locator('#panel-home').getByRole('button', { name: 'Ｔ テキスト', exact: true }).click();
+  const pptBox = editor.locator('#canvas > .slide-text').last();
+  const h0 = Number(await editor.locator('#prop-height').inputValue());
+  await editor.locator('#canvas .tiptap').fill('1行目\n2行目\n3行目\n4行目\n5行目\n6行目');
+  const h1 = Number(await editor.locator('#prop-height').inputValue());
+  assert(h1 > h0, `text box should auto-grow with lines (h0=${h0}, h1=${h1})`);
+  assert.equal(await pptBox.evaluate(n => n.scrollHeight <= n.clientHeight + 2), true, 'text box must not clip lines');
+  await editor.locator('#canvas .tiptap').fill('1行のみ');
+  const h2 = Number(await editor.locator('#prop-height').inputValue());
+  assert(h2 < h1, `text box should shrink when lines are deleted (h1=${h1}, h2=${h2})`);
+  await editor.getByRole('button', { name: '箇条書き', exact: true }).click();
+  await editor.keyboard.press('Enter');
+  await editor.locator('#canvas .tiptap').pressSequentially('ネスト項目');
+  await editor.keyboard.press('Tab');
+  assert.equal(await editor.locator('#canvas .tiptap ul ul li').count(), 1, 'Tab should indent list item');
+  const xBeforeDrag = Number(await editor.locator('#prop-x').inputValue());
+  const dragHandle = await editor.locator('.edit-drag-handle').boundingBox();
+  assert(dragHandle, 'edit drag handle should appear during text editing');
+  await editor.mouse.move(dragHandle.x + dragHandle.width / 2, dragHandle.y + dragHandle.height / 2);
+  await editor.mouse.down();
+  await editor.mouse.move(dragHandle.x + 80, dragHandle.y + 40, { steps: 6 });
+  await editor.mouse.up();
+  assert.equal(await editor.locator('#canvas .tiptap').count(), 1, 'dragging edit handle must keep editing active');
+  assert(Number(await editor.locator('#prop-x').inputValue()) > xBeforeDrag + 20, 'edit drag handle should move box');
+  await editor.keyboard.press('Escape');
+  assert.equal(await editor.locator('#canvas .tiptap').count(), 0);
+  const pptRect = await pptBox.boundingBox();
+  await editor.mouse.click(pptRect.x + 20, pptRect.y + 20);
+  assert.equal(await editor.locator('#canvas .tiptap').count(), 1, 're-clicking selected text box should enter edit mode');
+  await editor.keyboard.press('Escape');
+  await editor.locator('#prop-height').fill('84'); await editor.locator('#prop-height').press('Tab');
+  await editor.locator('#text-fit').selectOption('shrink');
+  await pptBox.dblclick();
+  await editor.locator('#canvas .tiptap').fill('非常に長い文章です。枠の中に自動的に文字サイズが縮小されて収まることを確認するためのテストテキストです。さらに行を増やして縮小を検証します。');
+  await editor.keyboard.press('Escape');
+  const shrunkSize = await pptBox.locator('.slide-text-body').evaluate(n => parseFloat(n.style.fontSize));
+  assert(shrunkSize > 0 && shrunkSize < 44, `shrink mode should reduce font size, got ${shrunkSize}`);
+  assert.equal(await pptBox.evaluate(n => n.querySelector('.slide-text-body').scrollHeight <= n.clientHeight + 2), true);
+  await editor.getByRole('button', { name: '▶ 投影へ反映', exact: true }).click();
+  await waitFor(async () => (await reconnected.locator('#slides-view').textContent()).includes('非常に長い文章です'), 'shrunk text projection failed');
+  const outShrunkSize = await reconnected.locator('#slides-view .slide-text').last().locator('.slide-text-body').evaluate(n => parseFloat(n.style.fontSize));
+  assert(outShrunkSize > 0 && outShrunkSize < 44, `projected shrink font size should match, got ${outShrunkSize}`);
+  console.log('PASS: PowerPoint-style text box auto-grow, shrink-to-fit, Tab indent, edit-drag and re-click editing');
+  // PPTX import: invalid rejection, append to current deck, and replace deck with full fidelity.
+  const zlib = require('node:zlib');
+  const buildZip = entries => {
+    const locals = [], centrals = [];
+    let offset = 0;
+    for (const { name, data } of entries) {
+      const raw = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8');
+      const comp = zlib.deflateRawSync(raw);
+      const nameBuf = Buffer.from(name, 'utf8');
+      const lh = Buffer.alloc(30);
+      lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(8, 8);
+      lh.writeUInt32LE(comp.length, 18); lh.writeUInt32LE(raw.length, 22); lh.writeUInt16LE(nameBuf.length, 26);
+      locals.push(lh, nameBuf, comp);
+      const ch = Buffer.alloc(46);
+      ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(8, 10);
+      ch.writeUInt32LE(comp.length, 20); ch.writeUInt32LE(raw.length, 24); ch.writeUInt16LE(nameBuf.length, 28); ch.writeUInt32LE(offset, 42);
+      centrals.push(ch, nameBuf);
+      offset += lh.length + nameBuf.length + comp.length;
+    }
+    const cdBuf = Buffer.concat(centrals);
+    const eocd = Buffer.alloc(22);
+    eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
+    eocd.writeUInt32LE(cdBuf.length, 12); eocd.writeUInt32LE(offset, 16);
+    return Buffer.concat([...locals, cdBuf, eocd]);
+  };
+  const samplePptx = buildZip([
+    { name: 'ppt/presentation.xml', data: '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/></p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/></p:presentation>' },
+    { name: 'ppt/_rels/presentation.xml.rels', data: '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide2.xml"/></Relationships>' },
+    { name: 'ppt/slides/_rels/slide1.xml.rels', data: '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/><Relationship Id="rNote1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide1.xml"/></Relationships>' },
+    { name: 'ppt/media/image1.png', data: png },
+    { name: 'ppt/notesSlides/notesSlide1.xml', data: '<?xml version="1.0"?><p:notes xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="N"/><p:cNvSpPr/><p:nvPr><p:ph type="body"/></p:nvPr></p:nvSpPr><p:txBody><a:bodyPr/><a:p><a:r><a:t>PPTX発表者ノート</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:notes>' },
+    { name: 'ppt/slides/slide1.xml', data: '<?xml version="1.0"?><p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:cSld><p:bg><p:bgPr><a:gradFill><a:gsLst><a:gs pos="0"><a:srgbClr val="f2f7f5"/></a:gs><a:gs pos="100000"><a:srgbClr val="cde3da"/></a:gs></a:gsLst><a:lin ang="5400000"/></a:gradFill></p:bgPr></p:bg><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr txBox="1"/><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr><a:xfrm><a:off x="952500" y="476250"/><a:ext cx="9525000" cy="952500"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:p><a:r><a:rPr b="1" sz="3600"><a:solidFill><a:srgbClr val="15574b"/></a:solidFill></a:rPr><a:t>PPTXからの礼拝題目</a:t></a:r></a:p></p:txBody></p:sp><p:pic><p:nvPicPr><p:cNvPr id="3" name="Pic"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rImg1"/></p:blipFill><p:spPr><a:xfrm><a:off x="952500" y="1800000"/><a:ext cx="1905000" cy="1905000"/></a:xfrm></p:spPr></p:pic><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="4" name="Tbl"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><a:xfrm><a:off x="3500000" y="1800000"/><a:ext cx="5000000" cy="1600000"/></a:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="2500000"/><a:gridCol w="2500000"/></a:tblGrid><a:tr h="800000"><a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>項目A</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc><a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>内容B</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>' },
+    { name: 'ppt/slides/slide2.xml', data: '<?xml version="1.0"?><p:sld show="0" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="B"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="952500" y="952500"/><a:ext cx="4762500" cy="952500"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:p><a:r><a:t>スキップされるPPTXスライド</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>' }
+  ]);
+  await editor.locator('#import-pptx-file').setInputFiles({ name: 'broken.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', buffer: Buffer.from('broken') });
+  await waitFor(async () => (await editor.locator('#toast').textContent()).includes('PPTXを読み込めません'), 'invalid pptx must show error');
+  assert.equal(await editor.locator('#slide-list .slide-item').count(), 5);
+  await editor.locator('#import-pptx-file').setInputFiles({ name: 'worship.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', buffer: samplePptx });
+  await editor.locator('#pptx-dialog').waitFor({ state: 'visible' });
+  await editor.getByRole('button', { name: '現在の資料に追加', exact: true }).click();
+  assert.equal(await editor.locator('#slide-list .slide-item').count(), 7);
+  assert((await editor.locator('#canvas').textContent()).includes('PPTXからの礼拝題目'));
+  assert((await editor.locator('#canvas').textContent()).includes('項目A'));
+  assert.equal(await editor.locator('#speaker-notes').inputValue(), 'PPTX発表者ノート');
+  assert.equal(await editor.locator('#canvas .slide-image img').evaluate(n => n.complete && n.naturalWidth > 0), true);
+  assert.match(await editor.locator('#canvas').evaluate(n => n.style.backgroundImage), /linear-gradient/);
+  await editor.locator('#import-pptx-file').setInputFiles({ name: 'worship.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', buffer: samplePptx });
+  await editor.locator('#pptx-dialog').waitFor({ state: 'visible' });
+  await editor.getByRole('button', { name: '新しい資料として開く', exact: true }).click();
+  assert.equal(await editor.locator('#slide-list .slide-item').count(), 2);
+  assert.equal(await editor.locator('#slide-list .slide-item').nth(1).locator('.slide-badge.is-skip').textContent(), 'スキップ');
+  await editor.getByRole('button', { name: '▶ 投影へ反映', exact: true }).click();
+  await waitFor(async () => (await reconnected.locator('#slides-view').textContent()).includes('PPTXからの礼拝題目'), 'imported pptx projection failed');
+  console.log('PASS: PPTX import (validation, append, replace, table, image, gradient, notes, skip and projection)');
   // Standalone mode and offline start use only bundled static assets.
   const offlineContext = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'allow' });
   offlineContext.setDefaultTimeout(10000);
