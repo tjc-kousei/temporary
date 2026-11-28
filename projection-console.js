@@ -110,7 +110,6 @@ function navigateBible(direction) {
   document.getElementById('syou').value = syou;
   document.getElementById('setu').value = setu;
   updateBibleBookSelectionUi();
-  countVersesInChapter();
   if (showBible()) checkwindow('bible');
 }
 
@@ -131,18 +130,25 @@ function bindProjectionPreview() {
   previewDirty = true;
   projectionObserver = new MutationObserver(() => {
     previewDirty = true;
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(refreshProjectionConsole, 80);
+    scheduleProjectionPreview();
   });
   projectionObserver.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
   display_win.addEventListener('resize', refreshProjectionConsole);
-  refreshProjectionConsole();
 }
 
-function refreshProjectionConsole() {
+function scheduleProjectionPreview() {
+  if (previewTimer !== null || document.documentElement.dataset.uiStyle !== 'modern') return;
+  previewTimer = setTimeout(() => {
+    previewTimer = null;
+    refreshProjectionConsole();
+  }, 40);
+}
+
+function refreshProjectionConsole({ deferPreview = false } = {}) {
   const doc = getDisplayDocument();
   const connected = !!doc?.getElementById('title-view');
-  const blackedOut = getProjectionWindows().length > 0 && projectionBlackedOut;
+  const count = getProjectionWindows().length;
+  const blackedOut = count > 0 && projectionBlackedOut;
   const names = { title: '基本情報', hymn: '讃美歌', bible: '聖書', capture: '画面キャプチャ', slides: 'スライド' };
   const status = document.getElementById('projection-status');
   const preview = document.getElementById('projection-preview');
@@ -151,7 +157,6 @@ function refreshProjectionConsole() {
   const empty = document.getElementById('preview-empty');
   const blackButton = document.getElementById('blackout-toggle');
   const modeText = blackedOut ? '黒画面' : names[currentMode];
-  const count = getProjectionWindows().length;
   const dualStatus = document.getElementById('dual-projection-status');
   if (dualStatus) dualStatus.textContent = dualProjection ? `2画面設定：${count}/2画面 接続中${count < 2 ? '（表示ボタンで再接続）' : ''}` : '1画面設定（日本語・中国語）';
   const statusText = dualProjection ? `投影画面：${count}/2画面 接続中・${modeText}（プレビュー：日本語）` : (connected ? `投影中：${modeText}` : '投影画面：未接続');
@@ -159,7 +164,7 @@ function refreshProjectionConsole() {
   document.getElementById('preview-mode').textContent = connected ? modeText : '未接続';
   document.querySelector('.projection-status').classList.toggle('is-connected', connected);
   document.querySelector('.projection-status').classList.toggle('is-blacked-out', blackedOut);
-  blackButton.disabled = getProjectionWindows().length === 0;
+  blackButton.disabled = count === 0;
   blackButton.textContent = blackedOut ? '投影を再開' : '黒画面にする';
   blackButton.setAttribute('aria-pressed', String(blackedOut));
   Object.keys(names).forEach(mode => {
@@ -185,6 +190,10 @@ function refreshProjectionConsole() {
     frame.hidden = true;
     video.hidden = true;
     video.srcObject = null;
+    return;
+  }
+  if (deferPreview) {
+    scheduleProjectionPreview();
     return;
   }
   const width = Math.max(1, display_win.innerWidth);

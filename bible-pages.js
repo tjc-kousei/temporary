@@ -57,7 +57,13 @@
     });
     return result;
   }
-  function label(entry) { return entry ? `${entry.section === 'OT' ? '旧約' : '新約'} p.${entry.page}` : ''; }
+  function label(entry, language = 'jp') {
+    if (!entry) return '';
+    const oldTestament = entry.section === 'OT';
+    return language === 'ch'
+      ? `${oldTestament ? '旧约' : '新约'} 第${entry.page}页`
+      : `${oldTestament ? '旧約' : '新約'} p.${entry.page}`;
+  }
   function toMarkers(data, items) {
     const clean = validate(data, items);
     if (clean.version === 2) return clean;
@@ -70,9 +76,9 @@
     }
     return { version: 2, starts, boundaries: clean.boundaries.map(b => ({ ref: b.ref })) };
   }
-  async function load(items) {
-    const response = await fetch('./bible-pages.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('ページデータを読み込めませんでした。');
+  async function load(items, file = 'bible-pages.json') {
+    const response = await fetch(`./${file}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`ページデータを読み込めませんでした (HTTP ${response.status})。`);
     return validate(await response.json(), items);
   }
   const api = { books, verses, validate, expand, label, load, toMarkers };

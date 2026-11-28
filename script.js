@@ -8,6 +8,7 @@ let dualProjection = false;
 let projectionBlackedOut = false;
 let projectedHymnVerse = null;
 let projectedHymnPart = 0;
+const initializedProjectionDocuments = new WeakSet();
 
 function getProjectionWindows() {
   return [display_win, ...(dualProjection ? [chineseDisplayWindow] : [])]
@@ -24,6 +25,7 @@ function loadProjectionSettings() {
 
 function applyProjectionLanguage(win) {
   const language = dualProjection ? (win === chineseDisplayWindow ? 'ch' : 'jp') : 'both';
+  if (win.document.documentElement.dataset.bibleLanguage === language) return;
   win.document.documentElement.dataset.bibleLanguage = language;
   win.document.documentElement.lang = language === 'ch' ? 'zh' : 'ja';
   win.document.title = language === 'both' ? 'スクリーン表示' : `スクリーン表示（${language === 'jp' ? '日本語' : '中国語'}）`;
@@ -46,11 +48,12 @@ function setDualProjection(enabled) {
     commit(win);
     renderProjectedBible(win);
   });
-  refreshProjectionConsole();
+  refreshProjectionConsole({ deferPreview: currentMode === 'bible' });
 }
 
 function initializeProjectionWindow(win) {
-  if (!win || win.closed || !win.document.getElementById('title-view')) return;
+  if (!win || win.closed || !win.document.getElementById('title-view') || initializedProjectionDocuments.has(win.document)) return;
+  initializedProjectionDocuments.add(win.document);
   applyProjectionLanguage(win);
   applyLogoSettings(win);
   commit(win);
@@ -63,7 +66,7 @@ function initializeProjectionWindow(win) {
   window.SlideProjection?.render(win);
   win.document.body.classList.toggle('is-blacked-out', projectionBlackedOut);
   if (win === display_win) { bindDisplayFullscreenEvents(); bindProjectionPreview(); }
-  refreshProjectionConsole();
+  refreshProjectionConsole({ deferPreview: currentMode === 'bible' });
 }
 
 let Abbre = [
@@ -96,11 +99,11 @@ let en = [
 ];
 
 let bible = [];
-let biblePageMap = new Map();
 let bibleIndex = null;
-let biblePageLoad = null;
-let loadedPageItems = null;
-let loadedPageSignature = '';
+const biblePageEditions = {
+  jp: { file: 'bible-pages.json', pages: new Map() },
+  ch: { file: 'bible-pages-zh.json', pages: new Map() }
+};
 
 // CSV rows are replaced on reload; build once and reuse across live input/search.
 function getBibleIndex() {
@@ -129,34 +132,41 @@ function searchBibleRows(query) {
   return results;
 }
 
-function loadBiblePageData() {
+function loadBiblePageData(language = 'jp') {
+  const edition = biblePageEditions[language];
   // Focus, broadcasts and the timer can request the same update concurrently.
-  if (biblePageLoad) return biblePageLoad;
-  biblePageLoad = (async () => {
+  if (edition.pending) return edition.pending;
+  edition.pending = (async () => {
     try {
       const index = getBibleIndex();
       const items = index.pageItems || (index.pageItems = BiblePages.verses(index.source));
-      const data = await BiblePages.load(items);
+      const data = await BiblePages.load(items, edition.file);
       if (index.source !== bible) return;
       const signature = JSON.stringify(data);
-      if (loadedPageItems === items && loadedPageSignature === signature) return;
-      biblePageMap = BiblePages.expand(data, items);
-      loadedPageItems = items;
-      loadedPageSignature = signature;
+      if (edition.items === items && edition.signature === signature) return;
+      edition.pages = BiblePages.expand(data, items);
+      edition.items = items;
+      edition.signature = signature;
       renderProjectedBible();
     } catch (error) {
-      console.warn('ページ情報を読み込めませんでした。聖句のみ表示します。', error);
+      console.warn(`${edition.file} のページ情報を取得できませんでした。`, error);
     }
-  })().finally(() => { biblePageLoad = null; });
-  return biblePageLoad;
+  })().finally(() => { edition.pending = null; });
+  return edition.pending;
 }
 
-window.addEventListener('focus', () => { if (bible.length) loadBiblePageData(); });
+function refreshBiblePageData() {
+  if (!bible.length) return;
+  void loadBiblePageData('jp');
+  void loadBiblePageData('ch');
+}
+
+window.addEventListener('focus', refreshBiblePageData);
 if (window.BroadcastChannel) {
   const pageChannel = new window.BroadcastChannel('bible-pages');
-  pageChannel.onmessage = () => { if (bible.length) loadBiblePageData(); };
+  pageChannel.onmessage = refreshBiblePageData;
 }
-window.setInterval?.(() => { if (bible.length) loadBiblePageData(); }, 30000);
+window.setInterval?.(refreshBiblePageData, 30000);
 let hymn = [];
 let servicerList = {};
 let currentLyricsSections = [];
@@ -868,14 +878,7 @@ function applyColors(targetWindow) {
   if (bThemaJp) bThemaJp.style.color = colorSettings.bible_jtitle;
   if (bThemaCh) bThemaCh.style.color = colorSettings.bible_ctitle;
 
-  // 聖書本文・箇所（箇所色は日本語・中国語のみに適用）
-  const refRows = doc.querySelectorAll ? doc.querySelectorAll('.bible_ref_row') : [];
-  refRows.forEach(r => r.style.color = colorSettings.bible_body);
-  const targetRefs = doc.querySelectorAll ? doc.querySelectorAll('.target_ref_jp, .target_ref_ch') : [];
-  targetRefs.forEach(r => r.style.setProperty('color', colorSettings.bible_ref, 'important'));
-
-  const bodyRows = doc.querySelectorAll ? doc.querySelectorAll('.bible_body_row') : [];
-  bodyRows.forEach(b => b.style.color = colorSettings.bible_body);
+  if (bOut) bOut.style.setProperty('--bible-reference-color', colorSettings.bible_ref);
 }
 
 // フル名称データ (略称に対応するフル名称)
@@ -1370,9 +1373,9 @@ async function loadInitialData() {
     convertbibleCSVtoArray(bibleData);
     converthymnCSVtoArray(hymnData);
     void loadHymnRecommendations();
-    await loadBiblePageData();
     updateProgress(100, "準備完了！");
     if (overlay) overlay.classList.add("hidden");
+    refreshBiblePageData();
   } catch (error) {
     console.error(error);
     updateProgress(100, "エラーが発生しました");
@@ -2340,12 +2343,13 @@ function countVersesInChapter() {
   const syouInput = document.getElementById("syou").value;
   if (!display) return;
   if (abbre === "" || !syouInput) {
-    display.innerText = "";
+    if (display.textContent) display.textContent = "";
     return;
   }
   const prefix = Abbre[abbre] + syouInput + ":";
   const count = getBibleIndex().chapterCounts.get(prefix) || 0;
-  display.innerText = count > 0 ? "この章の節数: " + count : "";
+  const label = count > 0 ? "この章の節数: " + count : "";
+  if (display.textContent !== label) display.textContent = label;
 }
 
 function memobible(num) {
@@ -2383,10 +2387,11 @@ function openwindow(focusExisting = false) {
   let openedWindow = null;
   const openProjection = (name) => {
     // Calls can originate in the slide editor. Resolve against this app, not its caller.
-    const win = window.open(new URL('./popwindow/display.html?v=19', window.location.href).href, name,
+    const win = window.open(new URL('./popwindow/display.html?v=20', window.location.href).href, name,
       'width=1500,height=800,scrollbars=yes,resizable=yes');
     if (win) {
       openedWindow = win;
+      win.addEventListener('DOMContentLoaded', () => initializeProjectionWindow(win));
       win.addEventListener('load', () => initializeProjectionWindow(win));
     }
     return win;
@@ -2825,7 +2830,6 @@ function applySearchResult(jpRef) {
           updateBibleBookSelectionUi();
           showBible();
           checkwindow('bible');
-          countVersesInChapter();
           closeBibleSearchModal();
           showToast(`${Abbre[i]} ${syou}:${setu} を反映しました`, 'success');
           return;
@@ -2954,29 +2958,18 @@ function selectBibleBook(index) {
   document.getElementById('syou')?.focus();
 }
 
-function abbre_btn(num, value) {
-  memobible(num);
-  const abbreviationMemo = document.getElementById('abbre_memo');
-  if (abbreviationMemo) abbreviationMemo.textContent = value;
-  updateBibleBookSelectionUi();
-  closeBookPicker({ restoreFocus: false });
-}
-
 function display_history(element, index) {
   if (index == 0) return;
   const arr = element[index].value.split(",");
   abbre = arr[0];
   syou = arr[1];
   setu = arr[2];
-  const text = element[index].innerHTML;
-  abbre_btn(abbre, text);
-  syou = arr[1];
-  setu = arr[2];
+  document.getElementById('abbre_memo').textContent = element[index].textContent;
+  updateBibleBookSelectionUi();
   document.getElementById("syou").value = syou;
   document.getElementById("setu").value = setu;
   if (showBible()) checkwindow("bible");
   element[0].selected = true;
-  countVersesInChapter();
 }
 
 function append_history() {
@@ -3019,14 +3012,13 @@ function switchScreen(mode, targetWindow) {
   if (mode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
   currentMode = mode;
   if (!targetWindow) {
+    updateModeUI(mode);
     getProjectionWindows().forEach(win => switchScreen(mode, win));
     return;
   }
-  if (mode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
-  if (!targetWindow || targetWindow.closed) return;
-  currentMode = mode;
-  updateModeUI(mode);
+  if (targetWindow.closed) return;
   const dBody = targetWindow.document.body;
+  if (dBody.classList.contains(mode + '-mode')) return;
   dBody.classList.remove("bible-mode", "title-mode", "hymn-mode", "capture-mode", "slides-mode");
   dBody.classList.add(mode + "-mode");
 
@@ -3045,25 +3037,19 @@ function checkwindow(mode, focusExisting = false) {
   if (targetMode === 'capture' && !SCREEN_CAPTURE_ENABLED) return;
   currentMode = targetMode;
   openwindow(focusExisting);
-  const show = () => {
-    switchScreen(targetMode);
-    applyLogoSettings();
-    commit();
-    renderProjectedBible();
-    if (targetMode === 'slides') getProjectionWindows().forEach(win => window.SlideProjection?.render(win));
-    if (targetMode === 'hymn' && currentTitleInfo) {
-      getProjectionWindows().forEach(win => {
-        if (!win.document.getElementById('h_output')?.innerHTML) {
-          if (projectedHymnVerse === null) showTitleInPopup(win);
-          else showLyricsVerse(projectedHymnVerse, win, projectedHymnPart);
-        }
-      });
-    }
-    bindProjectionPreview();
-    refreshProjectionConsole();
-  };
-  if (!display_win || display_win.document.getElementById('title-view')) show();
-  else display_win.addEventListener('load', show, { once: true });
+  switchScreen(targetMode);
+  if (targetMode === 'bible') renderProjectedBible();
+  if (targetMode === 'slides') getProjectionWindows().forEach(win => window.SlideProjection?.render(win));
+  if (targetMode === 'hymn' && currentTitleInfo) {
+    getProjectionWindows().forEach(win => {
+      if (!win.document.getElementById('h_output')?.innerHTML) {
+        if (projectedHymnVerse === null) showTitleInPopup(win);
+        else showLyricsVerse(projectedHymnVerse, win, projectedHymnPart);
+      }
+    });
+  }
+  bindProjectionPreview();
+  refreshProjectionConsole({ deferPreview: targetMode === 'bible' });
 }
 
 // ==========================================
@@ -3177,47 +3163,51 @@ async function initializeCapture() {
 
 function showBible() {
   const row = findBibleRow(abbre, syou, setu);
-  if (!row) {
-    projectedBible = null;
-    renderProjectedBible();
-    commit();
-    return false;
-  }
-  projectedBible = { book: String(abbre), chapter: String(Number(syou)), verse: String(Number(setu)) };
+  projectedBible = row ? { book: String(abbre), chapter: String(Number(syou)), verse: String(Number(setu)) } : null;
   renderProjectedBible();
-  commit();
-  countVersesInChapter();
-  return true;
+  getProjectionWindows().forEach(updateBibleTicker);
+  if (row) countVersesInChapter();
+  return !!row;
 }
 
-function updateBiblePageStatus() {
-  const pageLabel = projectedBible ? BiblePages.label(biblePageMap.get(`${Abbre[projectedBible.book]}${projectedBible.chapter}:${projectedBible.verse}`)) : '';
-  const pageStatus = document.getElementById('bible_page_display');
-  if (pageStatus) pageStatus.textContent = pageLabel;
-  return pageLabel;
-}
+const projectedBibleMarkup = new WeakMap();
 
 function renderProjectedBible(targetWindow) {
   if (!targetWindow) {
+    const ref = projectedBible && `${Abbre[projectedBible.book]}${projectedBible.chapter}:${projectedBible.verse}`;
+    const jp = BiblePages.label(biblePageEditions.jp.pages.get(ref));
+    const ch = BiblePages.label(biblePageEditions.ch.pages.get(ref), 'ch');
+    const label = [jp && `日本語 ${jp}`, ch && `中文 ${ch}`].filter(Boolean).join(' ／ ');
+    const pageStatus = document.getElementById('bible_page_display');
+    if (pageStatus && pageStatus.textContent !== label) {
+      pageStatus.hidden = !label;
+      pageStatus.textContent = label;
+    }
     getProjectionWindows().forEach(win => renderProjectedBible(win));
-    updateBiblePageStatus();
     return;
   }
-  const pageLabel = updateBiblePageStatus();
-  if (!targetWindow || targetWindow.closed) return;
+  if (targetWindow.closed) return;
   const outDiv = targetWindow.document.getElementById('b_out');
-  if (!projectedBible) {
-    if (outDiv) outDiv.innerHTML = '';
+  if (!outDiv) return;
+  const row = projectedBible && findBibleRow(projectedBible.book, projectedBible.chapter, projectedBible.verse);
+  if (!row) {
+    if (projectedBibleMarkup.delete(outDiv)) outDiv.innerHTML = '';
     return;
   }
   const { book, chapter, verse } = projectedBible;
-  const row = findBibleRow(book, chapter, verse);
-  if (!outDiv || !row) return;
-  outDiv.innerHTML = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}" data-bible-ref-max="${bibleDisplaySettings.refMax}">
-    ${!dualProjection || targetWindow !== chineseDisplayWindow ? `<div id="jp"><div class="bible_ref_row"><b class="target_ref_jp">${escapeHTML(row[3])}</b>${dualProjection ? '' : ` / ${kr[book]}${chapter}:${verse}`} ${pageLabel ? ` <span class="bible_page" style="font-size:0.65em;white-space:nowrap">（${pageLabel}）</span>` : ''}</div><div class="target_jp bible_body_row">${escapeHTML(row[4])}</div></div>` : ''}
-    ${!dualProjection || targetWindow === chineseDisplayWindow ? `<div id="ch"><div class="bible_ref_row"><b class="target_ref_ch">${escapeHTML(row[1])}</b>${dualProjection ? '' : ` / ${en[book]}${chapter}:${verse}`}</div><div class="target_ch bible_body_row">${escapeHTML(row[2])}</div></div>` : ''}
+  const language = dualProjection ? (targetWindow === chineseDisplayWindow ? 'ch' : 'jp') : 'both';
+  const column = (lang, reference, body, otherReference) => {
+    const page = BiblePages.label(biblePageEditions[lang].pages.get(row[3]), lang);
+    return `<div id="${lang}"><div class="bible_ref_row"><b class="target_ref_${lang}">${escapeHTML(reference)}</b>${language === 'both' ? ` / ${otherReference}${chapter}:${verse}` : ''}</div><div class="bible_body_row">${escapeHTML(body)}</div>${page ? `<div class="bible_page">${page}</div>` : ''}</div>`;
+  };
+  const markup = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}" data-bible-ref-max="${bibleDisplaySettings.refMax}">
+    ${language !== 'ch' ? column('jp', row[3], row[4], kr[book]) : ''}
+    ${language !== 'jp' ? column('ch', row[1], row[2], en[book]) : ''}
   </div>`;
-  applyColors(targetWindow);
+  if (projectedBibleMarkup.get(outDiv) !== markup) {
+    outDiv.innerHTML = markup;
+    projectedBibleMarkup.set(outDiv, markup);
+  }
 }
 function showTitleInPopup(targetWindow) {
   if (!currentTitleInfo) return;
@@ -3377,23 +3367,22 @@ function commit(targetWindow) {
   if (doc.getElementById("t_translator")) doc.getElementById("t_translator").innerHTML = translator;
   if (doc.getElementById("t_hymn")) doc.getElementById("t_hymn").innerHTML = hymnText;
 
-  const tickerJp = doc.getElementById('ticker-jp');
-  const tickerCh = doc.getElementById('ticker-ch');
-
-  if (tickerJp && tickerCh) {
-    if (projectedBible) {
-      const { book, chapter, verse } = projectedBible;
-      tickerJp.innerText = `${FullNameJP[book]} ${chapter}章 ${verse}節`;
-      tickerCh.innerText = `${FullNameCH[book]} ${chapter}章 ${verse}節`;
-    } else {
-      tickerJp.innerText = "";
-      tickerCh.innerText = "";
-    }
-  }
-
+  updateBibleTicker(targetWindow);
   fontsizecommit(targetWindow);
   applyColors(targetWindow);
   applyTicker(targetWindow);
+}
+
+function updateBibleTicker(targetWindow) {
+  const doc = targetWindow.document;
+  const tickerJp = doc.getElementById('ticker-jp');
+  const tickerCh = doc.getElementById('ticker-ch');
+  if (!tickerJp || !tickerCh) return;
+  const { book, chapter, verse } = projectedBible || {};
+  const jp = projectedBible ? `${FullNameJP[book]} ${chapter}章 ${verse}節` : '';
+  const ch = projectedBible ? `${FullNameCH[book]} ${chapter}章 ${verse}節` : '';
+  if (tickerJp.textContent !== jp) tickerJp.textContent = jp;
+  if (tickerCh.textContent !== ch) tickerCh.textContent = ch;
 }
 
 function fontsizecommit(targetWindow) {

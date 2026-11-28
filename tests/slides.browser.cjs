@@ -38,6 +38,9 @@ async function run() {
   const geminiRequests = [];
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/bible-pages-zh.json')) return route.fulfill({ json: {
+      version: 1, boundaries: [{ ref: 'ヨハ3:16', page: 123 }]
+    } });
     if (url.origin === new URL(base).origin || !url.protocol.startsWith('http')) return route.continue();
     if (url.hostname === 'generativelanguage.googleapis.com') {
       const isGeneration = url.pathname.endsWith(':generateContent');
@@ -283,8 +286,31 @@ async function run() {
   await main.locator('#jtitle').fill('既存機能のタイトル'); await main.getByRole('button', { name: '基本情報 表示', exact: true }).click();
   await waitFor(async () => (await output.locator('#t_thema_ja').textContent()).includes('既存機能のタイトル'), 'existing title projection failed');
   await main.locator('#jtitle').fill('入力の即時反映'); await waitFor(async () => (await output.locator('#t_thema_ja').textContent()).includes('入力の即時反映'), 'title live update failed');
-  await main.evaluate(() => { abbre = '42'; syou = '3'; setu = '16'; document.querySelector('#syou').value = '3'; document.querySelector('#setu').value = '16'; showBible(); checkwindow('bible'); });
+  await main.evaluate(() => { abbre = '42'; syou = '3'; setu = '16'; document.querySelector('#syou').value = '3'; document.querySelector('#setu').value = '16'; showBible(); });
+  const originalVerse = await output.locator('#master').elementHandle();
+  const originalHeader = await output.locator('#b_thema').elementHandle();
+  await main.locator('#btn-mode-bible').click();
   await waitFor(async () => (await output.locator('#b_out').textContent()).includes('神'), 'existing Bible projection failed');
+  assert(await originalVerse.evaluate(node => node === document.querySelector('#master')));
+  assert(await originalHeader.evaluate(node => node === document.querySelector('#b_thema')));
+  assert.match(await output.locator('#jp > .bible_body_row + .bible_page').textContent(), /新約 p\.\d+/);
+  assert.equal(await output.locator('#ch > .bible_body_row + .bible_page').textContent(), '新约 第123页');
+  await main.evaluate(() => { onColorChange('bible_ref', '#123456'); onColorChange('bible_body', '#222222'); });
+  assert.equal(await output.locator('.target_ref_jp').evaluate(node => getComputedStyle(node).color), 'rgb(18, 52, 86)');
+  assert.equal(await output.locator('#ch > .bible_page').evaluate(node => getComputedStyle(node).color), 'rgb(34, 34, 34)');
+  await output.setViewportSize({ width: 360, height: 380 });
+  await output.waitForFunction(() => {
+    const text = document.querySelector('#master');
+    const bounds = document.querySelector('#b_out').getBoundingClientRect();
+    const fitted = text.getBoundingClientRect();
+    return text.style.fontSize && fitted.top >= bounds.top && fitted.bottom <= bounds.bottom &&
+      Array.from(text.querySelectorAll('.bible_ref_row')).every(row => row.scrollWidth <= row.clientWidth);
+  });
+  await output.setViewportSize({ width: 1500, height: 1000 });
+  await main.getByRole('button', { name: '次の節', exact: true }).click();
+  await waitFor(() => output.locator('.target_ref_jp').textContent().then(ref => ref === 'ヨハ3:17'), 'next verse must be shown');
+  assert.equal(await output.locator('#ch > .bible_page').count(), 0);
+  await main.getByRole('button', { name: '前の節', exact: true }).click();
   await main.locator('#prehymn').fill('1');
   await waitFor(async () => (await output.locator('#h_output').textContent()).includes('聖なる'), 'existing hymn title failed');
   const hymnLanguage = main.getByRole('button', { name: /^歌詞の表示 / });
@@ -598,7 +624,15 @@ async function run() {
   await standaloneOutput.waitForFunction(() => document.querySelector('#canvas').textContent.includes('ここにタイトルを入力'));
   assert(standaloneOutput.url().includes('/assembly/slides/present.html'));
   await standalone.getByRole('button', { name: '黒画面 / 再開', exact: true }).click(); assert.equal(await standaloneOutput.locator('#blackout').isVisible(), true);
-  console.log('PASS: standalone projection and offline reload with cached static bundle');
+  const offlineMain = await offlineContext.newPage();
+  await offlineMain.goto(base);
+  await offlineMain.waitForFunction(() => bible.length > 30000);
+  const offlineProjection = offlineMain.waitForEvent('popup');
+  await offlineMain.evaluate(() => { applySearchResult('ヨハ3:16'); });
+  const offlineProjector = await offlineProjection;
+  await offlineProjector.locator('body.bible-mode #master').waitFor();
+  assert.equal(await offlineProjector.locator('.target_ref_jp').textContent(), 'ヨハ3:16');
+  console.log('PASS: standalone projection and offline Bible projection with cached static assets');
   assert.deepEqual(errors, [], `uncaught browser errors: ${errors.join('\n')}`);
   console.log('PASS: rich text, partial marks, autosave, explicit publish, manipulation, history, templates, grouping, roundtrip, existing projection, dual output and blackout');
   await browser.close();

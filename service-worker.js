@@ -1,17 +1,19 @@
 // Service Worker - 集会管理アプリ
 // バージョンを変更するとキャッシュが更新される
-const CACHE_VERSION = 'v35';
+const CACHE_VERSION = 'v36';
 const CACHE_NAME = `meeting-app-${CACHE_VERSION}`;
+const PROJECTION_ASSETS = ['./popwindow/display.html?v=20', './slides/canvas.css?v=4'];
+const projectionAssetUrls = new Set(PROJECTION_ASSETS.map(path => new URL(path, location.href).href));
 
 // 起動時に必ずキャッシュするコアファイル
 const CORE_ASSETS = [
   './',
   './index.html',
-  './script.js?v=29',
-  './projection-console.js?v=12',
+  './script.js?v=30',
+  './projection-console.js?v=13',
   './slide-projection.js?v=4',
   './slides/core.js?v=4',
-  './slides/canvas.css?v=4',
+  ...PROJECTION_ASSETS,
   './slides/index.html',
   './slides/editor.css?v=5',
   './slides/editor.bundle.js?v=7',
@@ -21,10 +23,10 @@ const CORE_ASSETS = [
   './worship.js',
   './tjc.png',
   './manifest.json',
-  './popwindow/display.html?v=19',
   './Data.csv',
-  './bible-pages.js?v=11',
+  './bible-pages.js?v=12',
   './bible-pages.json',
+  './bible-pages-zh.json',
   './hymn.csv'
 ];
 
@@ -67,6 +69,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   // Persistence API must never return a cached success or revision.
   if (url.pathname.endsWith('/bible-pages-api.php')) return;
+
+  // Versioned projection assets can be shown from the installed cache immediately.
+  if (projectionAssetUrls.has(url.href)) {
+    event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+    return;
+  }
 
   // 外部リクエスト（GAS API、Google Fontsなど）はネットワーク優先
   if (url.origin !== location.origin) {

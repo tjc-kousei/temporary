@@ -20,7 +20,7 @@ test('indexed lookup and chapter counts match the entire Bible dataset', () => {
     assert.equal(run(`findBibleRow(${reference})`), null);
   }
   run("abbre = 42; document.getElementById('syou').value = '3'; countVersesInChapter()");
-  assert.equal(run("document.getElementById('verse_count_display').innerText"), 'この章の節数: 36');
+  assert.equal(run("document.getElementById('verse_count_display').textContent"), 'この章の節数: 36');
 });
 
 test('cached text search preserves result order, fields, case and no-match behavior', () => {
@@ -76,15 +76,37 @@ test('page refresh shares pending requests, skips unchanged rendering, and recov
   assert.equal(run('conversions'), 1);
   run("BiblePages.load = async () => { throw new Error('offline'); }");
   await run('loadBiblePageData()');
-  assert.equal(run("biblePageMap.get('創1:1').page"), 1);
+  assert.equal(run("biblePageEditions.jp.pages.get('創1:1').page"), 1);
   run('BiblePages.load = async () => ({ version: 1, boundaries: [{ ref: "創1:1", page: 2 }] })');
   await run('loadBiblePageData()');
   assert.equal(run('renders'), 2);
-  assert.equal(run("biblePageMap.get('創1:1').page"), 2);
+  assert.equal(run("biblePageEditions.jp.pages.get('創1:1').page"), 2);
   // A response for old CSV rows must not overwrite data after a reload.
   run('BiblePages.load = () => new Promise(resolve => { resolveLoad = resolve; })');
   const stale = run('loadBiblePageData()');
   run("convertbibleCSVtoArray('id,ch_info,ch,jp_info,jp'); resolveLoad(pageData)");
   await stale;
   assert.equal(run('renders'), 2);
+});
+
+test('Japanese and Chinese page requests and assignments are independent', async () => {
+  const { run } = fixture();
+  run(String.raw`convertbibleCSVtoArray('id,ch_info,ch,jp_info,jp\n1,创1:1,中,創1:1,日本語');
+    const requestedFiles = [];
+    const pageResponses = new Map();
+    BiblePages.load = (items, file) => {
+      requestedFiles.push(file);
+      return new Promise(resolve => { pageResponses.set(file, resolve); });
+    };
+    const pageData = page => ({ version: 1, boundaries: [{ ref: '創1:1', page }] });
+    abbre = 0; syou = 1; setu = 1; showBible();`);
+  const japanese = run("loadBiblePageData('jp')");
+  const chinese = run("loadBiblePageData('ch')");
+  assert.equal(run("requestedFiles.join(',')"), 'bible-pages.json,bible-pages-zh.json');
+  run("pageResponses.get('bible-pages.json')(pageData(1));");
+  await japanese;
+  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 旧約 p.1');
+  run("pageResponses.get('bible-pages-zh.json')(pageData(5));");
+  await chinese;
+  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 旧約 p.1 ／ 中文 旧约 第5页');
 });

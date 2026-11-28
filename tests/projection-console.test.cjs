@@ -174,9 +174,9 @@ test('hymn title keeps the original bilingual order and verse total for every ly
 
 test('page label follows the projected verse and disappears for unmapped or cleared verses', () => {
   const { run, document } = fixture();
-  run("biblePageMap.set('ヨハ3:16', { section: 'NT', page: 123 }); showBible();");
+  run("biblePageEditions.jp.pages.set('ヨハ3:16', { section: 'NT', page: 123 }); showBible();");
   assert.match(document.getElementById('b_out').innerHTML, /新約 p.123/);
-  assert.equal(document.getElementById('bible_page_display').textContent, '新約 p.123');
+  assert.equal(document.getElementById('bible_page_display').textContent, '日本語 新約 p.123');
   run("memosetu('17');");
   assert.doesNotMatch(document.getElementById('b_out').innerHTML, /新約 p.123/);
   assert.equal(document.getElementById('bible_page_display').textContent, '');
@@ -258,7 +258,7 @@ test('two outputs separate scripture, synchronize live info and mode, and restor
   const { run, document, storage } = dualFixture();
   document.getElementById('jtitle').value = '日本語題';
   document.getElementById('ctitle').value = '中文題';
-  run('showBible(); switchScreen("bible");');
+  run('updateLiveInfo(); showBible(); switchScreen("bible");');
   assert.match(run('display_win.document.getElementById("b_out").innerHTML'), /本文16/);
   assert.doesNotMatch(run('display_win.document.getElementById("b_out").innerHTML'), /中文經文|id="ch"/);
   assert.match(run('chineseDisplayWindow.document.getElementById("b_out").innerHTML'), /中文經文/);
@@ -331,43 +331,17 @@ test('verse clearing still reaches Chinese output when primary window has been c
 
 test('scripture reference color applies only to Japanese and Chinese references while keeping other reference text in body color', () => {
   const { run, document } = fixture();
-  const makeStyled = () => {
-    const props = {};
-    return {
-      style: {
-        color: '',
-        setProperty(name, value, priority) { props[name] = { value, priority }; this[name] = value; }
-      },
-      props
-    };
-  };
-  const refRowJp = makeStyled(), refRowCh = makeStyled();
-  const targetJp = makeStyled(), targetCh = makeStyled();
-  const bodyJp = makeStyled(), bodyCh = makeStyled();
-  document.querySelectorAll = selector => {
-    if (selector === '.bible_ref_row') return [refRowJp, refRowCh];
-    if (selector === '.target_ref_jp, .target_ref_ch') return [targetJp, targetCh];
-    if (selector === '.bible_body_row') return [bodyJp, bodyCh];
-    return [];
-  };
-  run('applyColors = realApplyColors; bible[2][1] = "約3:16"; bible[2][2] = "中文經文"; biblePageMap.set("ヨハ3:16", { section: "NT", page: 123 }); showBible();');
-  const html = document.getElementById('b_out').innerHTML;
-  assert.match(html, /<b class="target_ref_jp">ヨハ3:16<\/b> \/ 요3:16/);
-  assert.match(html, /<b class="target_ref_ch">約3:16<\/b> \/ John3:16/);
-  assert.equal(refRowJp.style.color, '#000000');
-  assert.equal(refRowCh.style.color, '#000000');
-  assert.deepEqual(targetJp.props.color, { value: '#E53935', priority: 'important' });
-  assert.deepEqual(targetCh.props.color, { value: '#E53935', priority: 'important' });
-  assert.equal(bodyJp.style.color, '#000000');
-  assert.equal(bodyCh.style.color, '#000000');
+  const output = document.getElementById('b_out');
+  output.style.setProperty = (name, value) => { output.style[name] = value; };
+  run('applyColors = realApplyColors; applyColors(display_win); bible[2][1] = "約3:16"; bible[2][2] = "中文經文"; showBible();');
+  assert.match(output.innerHTML, /<b class="target_ref_jp">ヨハ3:16<\/b> \/ 요3:16/);
+  assert.match(output.innerHTML, /<b class="target_ref_ch">約3:16<\/b> \/ John3:16/);
+  assert.equal(output.style.color, '#000000');
+  assert.equal(output.style['--bible-reference-color'], '#E53935');
 
   // Re-rendering (e.g. after size update or mode switch) preserves customized colors.
-  targetJp.props.color = null;
-  refRowJp.style.color = '';
-  run('onColorChange("bible_ref", "#123456"); onColorChange("bible_body", "#222222"); renderProjectedBible();');
-  assert.equal(refRowJp.style.color, '#222222');
-  assert.equal(refRowCh.style.color, '#222222');
-  assert.deepEqual(targetJp.props.color, { value: '#123456', priority: 'important' });
-  assert.deepEqual(targetCh.props.color, { value: '#123456', priority: 'important' });
+  run('onColorChange("bible_ref", "#123456"); onColorChange("bible_body", "#222222"); memosetu("17");');
+  assert.equal(output.style.color, '#222222');
+  assert.equal(output.style['--bible-reference-color'], '#123456');
 });
 

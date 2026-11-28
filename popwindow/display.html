@@ -7,10 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スクリーン表示</title>
     <style>
-        /* === フォント読み込み === */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700&display=swap');
-
         /* === 共通設定 === */
         :root {
             --title-logo-width: 250px;
@@ -176,6 +172,8 @@
         html[data-bible-language="ch"] #b_thema-jp { display: none; }
 
         .bible_ref_row { white-space: nowrap; overflow-wrap: normal; }
+        .bible_body_row { overflow-wrap: anywhere; }
+        .bible_page { margin-top: 0.35em; font-size: 0.5em; white-space: nowrap; text-align: right; }
 
         #jp {
             font-family: 'Noto Serif JP', serif;
@@ -430,7 +428,7 @@
         /* 聖書表示の箇所の色 */
         .target_ref_jp,
         .target_ref_ch {
-            color: #e53935 !important;
+            color: var(--bible-reference-color, #e53935);
         }
 
         /* 共通ロゴ */
@@ -536,8 +534,7 @@
         // 文字サイズ自動調整
         function fitHeader() {
             const header = document.getElementById('b_header');
-            if (!header || !header.offsetParent || !header.innerHTML.trim()) return;
-            header.style.fontSize = '10px';
+            if (!header.firstElementChild) return;
             let min = 10, max = 300, optimal = min;
             while (min <= max) {
                 let mid = Math.floor((min + max) / 2);
@@ -555,66 +552,77 @@
         function fitTextToContainer() {
             const container = document.getElementById('b_out');
             const content = document.getElementById('master');
-            if (!container || !container.offsetParent || !content) return;
+            if (!content) return;
 
-            // 親ウィンドウあるいは自身にセットされたデータ属性から設定取得
-            let customMax = 80;
-            let refScale = 1.0;
-            if (content.hasAttribute('data-bible-body-max')) {
-                customMax = parseFloat(content.getAttribute('data-bible-body-max'));
-            }
-            if (content.hasAttribute('data-bible-ref-scale')) {
-                refScale = parseFloat(content.getAttribute('data-bible-ref-scale'));
-            }
-
-            const refMax = Number(content.getAttribute('data-bible-ref-max')) || 80;
-            const refRows = content.querySelectorAll('.bible_ref_row');
-            function fitReferences(bodySize) {
-                refRows.forEach(row => {
-                    let low = 1, high = Math.max(1, Math.floor(Math.min(refMax, bodySize * refScale))), best = 1;
-                    while (low <= high) {
-                        const size = Math.floor((low + high) / 2);
-                        row.style.fontSize = size + 'px';
-                        if (row.scrollWidth > row.clientWidth) high = size - 1;
-                        else { best = size; low = size + 1; }
-                    }
-                    row.style.fontSize = best + 'px';
-                });
-            }
-            let min = 1, max = customMax, optimal = min;
-            while (min <= max) {
-                const mid = Math.floor((min + max) / 2);
-                content.style.fontSize = mid + 'px';
-                fitReferences(mid);
-                if (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth) {
-                    max = mid - 1;
-                } else {
-                    optimal = mid;
-                    min = mid + 1;
+            const { bibleBodyMax, bibleRefScale, bibleRefMax } = content.dataset;
+            const bodyMax = Math.max(1, Math.floor(Number(bibleBodyMax) || 80));
+            const refScale = Number(bibleRefScale) || 1;
+            const refMax = Math.max(1, Math.floor(Math.min(Number(bibleRefMax) || 80, bodyMax * refScale)));
+            const refRows = Array.from(content.querySelectorAll('.bible_ref_row'));
+            refRows.forEach(row => { row.style.fontSize = `${refMax}px`; });
+            const refLimits = refRows.map(row => {
+                const width = row.clientWidth;
+                if (row.scrollWidth <= width) return refMax;
+                let low = 1, high = refMax - 1;
+                while (low < high) {
+                    const size = Math.ceil((low + high) / 2);
+                    row.style.fontSize = `${size}px`;
+                    if (row.scrollWidth <= width) low = size;
+                    else high = size - 1;
                 }
+                return low;
+            });
+            const padding = getComputedStyle(container);
+            const height = container.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
+            function applySize(size) {
+                content.style.fontSize = `${size}px`;
+                const refSize = Math.max(1, Math.floor(size * refScale));
+                refRows.forEach((row, i) => { row.style.fontSize = `${Math.min(refSize, refLimits[i])}px`; });
             }
-            const finalSize = optimal * 0.95;
-            content.style.fontSize = finalSize + 'px';
-            fitReferences(finalSize);
+            function fits(size) {
+                applySize(size);
+                return content.offsetHeight <= height && content.scrollWidth <= content.clientWidth;
+            }
+            let low = 1, high = bodyMax;
+            if (fits(high)) low = high;
+            while (low < high) {
+                const size = Math.ceil((low + high) / 2);
+                if (fits(size)) low = size;
+                else high = size - 1;
+            }
+            applySize(low * 0.95);
         }
 
-        const observer = new MutationObserver(() => {
+        let headerNeedsFit = true, textNeedsFit = true, fitScheduled = false;
+        function scheduleBibleFit() {
+            if (fitScheduled || !document.body.classList.contains('bible-mode') || (!headerNeedsFit && !textNeedsFit)) return;
+            fitScheduled = true;
             requestAnimationFrame(() => {
-                if (document.body.classList.contains('bible-mode')) {
-                    fitHeader();
-                    fitTextToContainer();
-                }
+                fitScheduled = false;
+                if (!document.body.classList.contains('bible-mode')) return;
+                if (headerNeedsFit) fitHeader();
+                if (textNeedsFit) fitTextToContainer();
+                headerNeedsFit = textNeedsFit = false;
             });
-        });
+        }
+
+        function refitBible() {
+            headerNeedsFit = textNeedsFit = true;
+            scheduleBibleFit();
+        }
 
         const bHeader = document.getElementById('b_header');
         const bOut = document.getElementById('b_out');
-        if (bHeader) observer.observe(bHeader, { childList: true, subtree: true, characterData: true });
-        if (bOut) observer.observe(bOut, { childList: true, subtree: true });
-
-        // Refit when returning from title/hymn mode as well as when text changes.
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bible-language'] });
+        new MutationObserver(() => {
+            headerNeedsFit = true;
+            scheduleBibleFit();
+        }).observe(bHeader, { childList: true, subtree: true, characterData: true });
+        new MutationObserver(() => {
+            textNeedsFit = true;
+            scheduleBibleFit();
+        }).observe(bOut, { childList: true });
+        new MutationObserver(scheduleBibleFit).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        new MutationObserver(refitBible).observe(document.documentElement, { attributes: true, attributeFilter: ['data-bible-language'] });
         document.addEventListener('dblclick', async () => {
             try {
                 if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -628,13 +636,14 @@
             } catch (error) { console.warn('全画面表示を切り替えられませんでした', error); }
         });
 
-        document.fonts?.ready.then(() => { fitHeader(); fitTextToContainer(); });
-
-        window.addEventListener('resize', () => {
-            if (document.body.classList.contains('bible-mode')) {
-                fitHeader();
-                fitTextToContainer();
-            }
+        window.addEventListener('resize', refitBible);
+        document.fonts?.addEventListener('loadingdone', refitBible);
+        window.addEventListener('load', () => {
+            // Start projecting with system fonts while the web fonts load.
+            const fonts = document.createElement('link');
+            fonts.rel = 'stylesheet';
+            fonts.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&family=Noto+Serif+JP:wght@700&display=swap';
+            document.head.append(fonts);
         });
     </script>
 </body>
