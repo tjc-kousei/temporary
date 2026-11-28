@@ -293,11 +293,16 @@ async function run() {
   await waitFor(async () => (await output.locator('#b_out').textContent()).includes('神'), 'existing Bible projection failed');
   assert(await originalVerse.evaluate(node => node === document.querySelector('#master')));
   assert(await originalHeader.evaluate(node => node === document.querySelector('#b_thema')));
-  assert.match(await output.locator('#jp > .bible_body_row + .bible_page').textContent(), /新約 p\.\d+/);
-  assert.equal(await output.locator('#ch > .bible_body_row + .bible_page').textContent(), '新约 第123页');
+  const japanesePage = output.locator('#jp > .bible_body_row > span.bible_page:last-child');
+  const chinesePage = output.locator('#ch > .bible_body_row > span.bible_page:last-child');
+  assert.match(await japanesePage.textContent(), /^（新p\.\d+）$/);
+  assert.equal(await chinesePage.textContent(), '（新p.123）');
+  for (const page of [japanesePage, chinesePage]) {
+    assert(await page.evaluate(node => node.previousSibling?.nodeType === Node.TEXT_NODE && getComputedStyle(node).display === 'inline'));
+  }
   await main.evaluate(() => { onColorChange('bible_ref', '#123456'); onColorChange('bible_body', '#222222'); });
   assert.equal(await output.locator('.target_ref_jp').evaluate(node => getComputedStyle(node).color), 'rgb(18, 52, 86)');
-  assert.equal(await output.locator('#ch > .bible_page').evaluate(node => getComputedStyle(node).color), 'rgb(34, 34, 34)');
+  assert.equal(await chinesePage.evaluate(node => getComputedStyle(node).color), 'rgb(34, 34, 34)');
   await output.setViewportSize({ width: 360, height: 380 });
   await output.waitForFunction(() => {
     const text = document.querySelector('#master');
@@ -309,7 +314,7 @@ async function run() {
   await output.setViewportSize({ width: 1500, height: 1000 });
   await main.getByRole('button', { name: '次の節', exact: true }).click();
   await waitFor(() => output.locator('.target_ref_jp').textContent().then(ref => ref === 'ヨハ3:17'), 'next verse must be shown');
-  assert.equal(await output.locator('#ch > .bible_page').count(), 0);
+  assert.equal(await chinesePage.count(), 0);
   await main.getByRole('button', { name: '前の節', exact: true }).click();
   await main.locator('#prehymn').fill('1');
   await waitFor(async () => (await output.locator('#h_output').textContent()).includes('聖なる'), 'existing hymn title failed');

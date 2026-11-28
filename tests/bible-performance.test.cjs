@@ -105,8 +105,8 @@ test('Japanese and Chinese page requests and assignments are independent', async
   assert.equal(run("requestedFiles.join(',')"), 'bible-pages.json,bible-pages-zh.json');
   run("pageResponses.get('bible-pages.json')(pageData(1));");
   await japanese;
-  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 旧約 p.1');
+  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 （旧p.1）');
   run("pageResponses.get('bible-pages-zh.json')(pageData(5));");
   await chinese;
-  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 旧約 p.1 ／ 中文 旧约 第5页');
+  assert.equal(run("document.getElementById('bible_page_display').textContent"), '日本語 （旧p.1） ／ 中文 （旧p.5）');
 });

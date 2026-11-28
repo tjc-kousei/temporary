@@ -175,10 +175,10 @@ test('hymn title keeps the original bilingual order and verse total for every ly
 test('page label follows the projected verse and disappears for unmapped or cleared verses', () => {
   const { run, document } = fixture();
   run("biblePageEditions.jp.pages.set('ヨハ3:16', { section: 'NT', page: 123 }); showBible();");
-  assert.match(document.getElementById('b_out').innerHTML, /新約 p.123/);
-  assert.equal(document.getElementById('bible_page_display').textContent, '日本語 新約 p.123');
+  assert.match(document.getElementById('b_out').innerHTML, /本文16<span class="bible_page">（新p\.123）<\/span><\/div>/);
+  assert.equal(document.getElementById('bible_page_display').textContent, '日本語 （新p.123）');
   run("memosetu('17');");
-  assert.doesNotMatch(document.getElementById('b_out').innerHTML, /新約 p.123/);
+  assert.doesNotMatch(document.getElementById('b_out').innerHTML, /class="bible_page"/);
   assert.equal(document.getElementById('bible_page_display').textContent, '');
   run('clearBibleInputs();');
   assert.equal(document.getElementById('bible_page_display').textContent, '');

@@ -2387,7 +2387,7 @@ function openwindow(focusExisting = false) {
   let openedWindow = null;
   const openProjection = (name) => {
     // Calls can originate in the slide editor. Resolve against this app, not its caller.
-    const win = window.open(new URL('./popwindow/display.html?v=20', window.location.href).href, name,
+    const win = window.open(new URL('./popwindow/display.html?v=21', window.location.href).href, name,
       'width=1500,height=800,scrollbars=yes,resizable=yes');
     if (win) {
       openedWindow = win;
@@ -3176,7 +3176,7 @@ function renderProjectedBible(targetWindow) {
   if (!targetWindow) {
     const ref = projectedBible && `${Abbre[projectedBible.book]}${projectedBible.chapter}:${projectedBible.verse}`;
     const jp = BiblePages.label(biblePageEditions.jp.pages.get(ref));
-    const ch = BiblePages.label(biblePageEditions.ch.pages.get(ref), 'ch');
+    const ch = BiblePages.label(biblePageEditions.ch.pages.get(ref));
     const label = [jp && `日本語 ${jp}`, ch && `中文 ${ch}`].filter(Boolean).join(' ／ ');
     const pageStatus = document.getElementById('bible_page_display');
     if (pageStatus && pageStatus.textContent !== label) {
@@ -3197,8 +3197,9 @@ function renderProjectedBible(targetWindow) {
   const { book, chapter, verse } = projectedBible;
   const language = dualProjection ? (targetWindow === chineseDisplayWindow ? 'ch' : 'jp') : 'both';
   const column = (lang, reference, body, otherReference) => {
-    const page = BiblePages.label(biblePageEditions[lang].pages.get(row[3]), lang);
-    return `<div id="${lang}"><div class="bible_ref_row"><b class="target_ref_${lang}">${escapeHTML(reference)}</b>${language === 'both' ? ` / ${otherReference}${chapter}:${verse}` : ''}</div><div class="bible_body_row">${escapeHTML(body)}</div>${page ? `<div class="bible_page">${page}</div>` : ''}</div>`;
+    const page = BiblePages.label(biblePageEditions[lang].pages.get(row[3]));
+    const pageSuffix = page ? `<span class="bible_page">${page}</span>` : '';
+    return `<div id="${lang}"><div class="bible_ref_row"><b class="target_ref_${lang}">${escapeHTML(reference)}</b>${language === 'both' ? ` / ${otherReference}${chapter}:${verse}` : ''}</div><div class="bible_body_row">${escapeHTML(body)}${pageSuffix}</div></div>`;
   };
   const markup = `<div id="master" data-bible-body-max="${bibleDisplaySettings.bodyMax}" data-bible-ref-scale="${bibleDisplaySettings.refScale}" data-bible-ref-max="${bibleDisplaySettings.refMax}">
     ${language !== 'ch' ? column('jp', row[3], row[4], kr[book]) : ''}

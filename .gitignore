@@ -7,6 +7,8 @@ temp/
 bible-pages.lock
 .bible-pages-*
 /php-server/
+/php-server-zh/
+/php-server-zh.zip
 /tests/*
 !/tests/bible-performance.test.cjs
 !/tests/bible-performance.bench.cjs

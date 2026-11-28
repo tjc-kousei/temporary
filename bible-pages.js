@@ -57,13 +57,7 @@
     });
     return result;
   }
-  function label(entry, language = 'jp') {
-    if (!entry) return '';
-    const oldTestament = entry.section === 'OT';
-    return language === 'ch'
-      ? `${oldTestament ? '旧约' : '新约'} 第${entry.page}页`
-      : `${oldTestament ? '旧約' : '新約'} p.${entry.page}`;
-  }
+  function label(entry) { return entry ? `（${entry.section === 'OT' ? '旧' : '新'}p.${entry.page}）` : ''; }
   function toMarkers(data, items) {
     const clean = validate(data, items);
     if (clean.version === 2) return clean;
